@@ -1,46 +1,32 @@
-# API Архитектура
+# API — индекс
 
-Базовый URL: `/api/v1`
+> **Единый контракт:** [API_Contract.md](./API_Contract.md)  
+> **OpenAPI 3.1:** [../contracts/openapi.yaml](../contracts/openapi.yaml)
 
-## Аутентификация
+## Быстро
 
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| POST | `/api/v1/auth/register` | user-service | Регистрация |
-| POST | `/api/v1/auth/login` | user-service | Вход (JWT) |
+| | |
+|--|--|
+| Base URL | `http://localhost:8000/api/v1` |
+| Auth | `Authorization: Bearer <jwt>` |
+| Gateway | `back/services/core-api/api-gateway` |
 
-## Чеки
+## Critical для demo «Поток»
 
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| GET | `/api/v1/receipts` | receipt-service | Лента чеков (itemized) |
-| POST | `/api/v1/providers/connect` | user-service | Привязать LK |
-| POST | `/api/v1/providers/{name}/sync` | scraper-service | Синхронизация |
+| Метод | Path | Назначение |
+|-------|------|------------|
+| POST | `/auth/login` | Вход |
+| POST | `/expenses/manual` | Голос / ручной |
+| GET | `/dashboard/sankey` | Главный экран |
+| GET | `/credits/dashboard` | Кредитный светофор |
+| POST | `/scenarios/simulate` | Ипотека / «что если» |
+| POST | `/goals` | Цель |
+| POST | `/fns/ticket` | ФНС (опционально) |
 
-## Бюджеты и цели
+Полная таблица с приоритетами и JSON — в [API_Contract.md](./API_Contract.md).  
+TypeScript (front): [typescript-types.md](./typescript-types.md).
 
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| POST | `/api/v1/budgets` | budget-service | Создать бюджет |
-| POST | `/api/v1/goals` | goal-service | Создать цель |
+## Связи
 
-## Кредиты
-
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| GET | `/api/v1/credits/dashboard` | credit-service | DTI, подушка |
-| POST | `/api/v1/credits/scan` | credit-service | Скан договора |
-
-## Аналитика
-
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| POST | `/api/v1/scenarios/simulate` | analytics-service | Time Machine |
-| GET | `/api/v1/insights` | analytics-service | Инсайты |
-| GET | `/api/v1/digest/latest` | reporting-service | Дайджест |
-
-## Социальное
-
-| Метод | Endpoint | Сервис | Описание |
-|-------|----------|--------|----------|
-| POST | `/api/v1/challenges` | social-service | Челлендж |
+- [NAVI.md](../../NAVI.md)
+- [../product/input-methods.md](../product/input-methods.md)

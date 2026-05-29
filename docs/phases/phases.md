@@ -1,45 +1,48 @@
 # Фазы разработки (48 часов)
 
-| # | Фаза | Оценка | Критичность |
-|---|------|--------|-------------|
-| **0** | Инфраструктура и DevOps | 2–3ч | Блокер |
-| **1** | X5 Club provider | 2ч | Блокер |
-| **2** | Магнит provider | 2ч | Блокер |
-| **3** | Scraper ядро (Scheduler + Kafka) | 2ч | Блокер |
-| **4** | Receipt-service (Kafka consumer) | 2ч | Блокер |
-| **5** | Auth + привязка провайдеров | 2ч | Блокер |
-| **6** | AI-категоризация (YandexGPT) | 2–3ч | Ключевая |
-| **7** | Email + ФНС fallback | 2ч | Важная |
-| **8** | Dashboard + аналитика | 3ч | Важная |
-| **9** | Лента, ВкусВилл, Ozon, WB | 3–4ч | Дополнительно |
-| **10** | Credit Health Dashboard | 2ч | WOW-фича |
-| **11** | Time Machine + Predictive AI | 2–3ч | WOW-фича |
-| **12** | Геймификация + Social | 2–3ч | WOW-фича |
-| **13** | Детектор + Дайджест | 2ч | Для демо |
-| **14** | Demo Polish + хардкод | 2–3ч | Финал |
+> Статус сверен с веткой **`back`** (коммиты `dafda67`, `12b7f12`) и **`front`** (`9ff425c`).
 
-**Итого:** ~30–36 часов.
-**Критический путь:** 0 → 1 → 3 → 4 → 5 → 8 → 14 ≈ 17 часов.
+| # | Фаза | Оценка | Критичность | Статус |
+|---|------|--------|-------------|--------|
+| **0** | Инфраструктура и DevOps | 2–3ч | Блокер | ✅ `back` |
+| **1** | Email + ФНС | 2ч | Блокер | ✅ scraper FNS/MCO |
+| **2** | X5 Club provider | 2ч | Блокер | ✅ |
+| **3** | Магнит provider | 2ч | Блокер | ✅ |
+| **4** | Scraper ядро (Scheduler + Kafka) | 2ч | Блокер | ✅ |
+| **5** | Receipt-service | 2ч | Блокер | ✅ + dashboard API |
+| **6** | Auth + JWT + providers | 2ч | Блокер | ✅ |
+| **7** | AI: голос/ручной + категоризация | 2–3ч | Ключевая | ✅ ai-processor |
+| **8** | Dashboard + аналитика | 3ч | Важная | 🟡 back API + front charts |
+| **9** | LK / доп. провайдеры | 3–4ч | Доп. | 🟡 X5/Magnit есть |
+| **10** | Финансовое здоровье (UI) | 2ч | WOW | 🟡 `/credits`, product docs |
+| **11** | Прогноз цели + сценарии | 2–3ч | WOW | 🟡 timemachine, forecast API |
+| **12** | Social / gamification | 2–3ч | Демо | 🟡 страница `/social` |
+| **13** | Инсайты + дайджест | 2ч | Демо | 🟡 `/digest`, insights |
+| **14** | Demo Polish + онбординг UX | 2–3ч | Финал | ⏳ онбординг, narrative |
 
-## Критический путь (17 часов)
+## Критический путь (продукт «Поток»)
 
-### Фаза 0: Инфраструктура и DevOps
-Docker Compose: PostgreSQL 16, ClickHouse 24, Redis 7, Kafka + ZK, MinIO.
+```
+Онбординг → первое действие (голос/чек/ФНС) → фин. здоровье → прогноз цели → ипотечный разбор (демо)
+```
 
-### Фаза 1: X5 Club provider
-Auth POST /api/v2/auth/login, history GET /api/v2/history.
+Технический путь (уже пройден):
 
-### Фаза 3: Scraper-service ядро
-Provider interface, Scheduler (горутины), Kafka producer, AES-256-GCM.
+```
+0 → 1–6 (back) → 8 (dashboard) → 14 (polish front + seed)
+```
 
-### Фаза 4: Receipt-service
-Kafka consumer → валидация → дедупликация → PostgreSQL.
+## Фаза 14 — Demo Polish (актуальные задачи)
 
-### Фаза 5: Auth + привязка провайдеров
-Регистрация по телефону, JWT (access + refresh), привязка LK.
+1. **`/onboarding`** на `front` — wizard по [onboarding.md](../product/onboarding.md)
+2. Кнопка «Добавить» → голос / чек / ФНС
+3. Narrative на dashboard: ответы вместо голых графиков
+4. Seed + [demo_flow.sh](../deployment/scripts/demo_flow.sh) (эталон в `docs`; копия в `back/scripts/`)
+5. Ипотечный сценарий ([monetization.md](../product/monetization.md))
 
-### Фаза 8: Dashboard + аналитика
-GET /api/v1/dashboard, /analytics/categories, /analytics/trends.
+**Не в demo:** social, auction — [гипотезы](../features/social.md).
 
-### Фаза 14: Demo Polish
-Прекэширование. Фейковый fast-path. 6 актов < 30 секунд.
+## Связи
+
+- **Продукт**: [../product/ux-scenarios.md](../product/ux-scenarios.md)
+- **Архитектура**: [../architecture/overview.md](../architecture/overview.md)

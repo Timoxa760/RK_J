@@ -1,0 +1,12 @@
+---
+description: Workflow документации «Поток»
+globs: docs/**/*,Potok_plan.md,NAVI.md,README.md
+---
+
+# Workflow docs «Поток»
+
+1. Начни с [NAVI.md](../../NAVI.md).
+2. Продукт — `docs/product/`; не дублируй GDD в `Potok_plan.md`.
+3. Техника — сверяй с веткой `back` (compose, gateway), не с legacy `services/` в docs.
+4. Context7 — rule `context7-potok`, skill **potok-docs**.
+5. Social / auction — только как **гипотеза**, не demo.

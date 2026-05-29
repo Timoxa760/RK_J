@@ -1,17 +1,41 @@
-# 3.1 Receipt Magic — поштучный разбор чека
+# Ввод расходов и pipeline чеков
 
-**Цель:** Каждая покупка разобрана до уровня отдельных товаров с категоризацией.
+> Продукт: [input-methods.md](../product/input-methods.md)  
+> Старый заголовок «Receipt Magic» — технический pipeline ingest, не позиционирование.
 
-## User Flow
+## Цель в «Поток»
 
-1. Пользователь подключает X5 Club / Магнит / любой LK (один раз)
-2. Система автоматически синхронизирует чеки по расписанию
-3. В ленте появляются покупки с детализацией
-4. Каждый товар категоризирован
-5. Система подсвечивает импульсивные покупки и переплаты
+Пользователь добавляет трату одним из способов; система интерпретирует и обновляет **финансовую модель**, показывая влияние на цель — не «15 000 ₽ на маркетплейсы», а «цель сдвигается на N месяцев».
 
-## Техническая реализация
+## User Flow (UX)
 
-1. Scraper-service → 8 провайдеров → единый RawReceipt → Kafka `receipt.raw`
-2. Receipt-service: валидация → дедупликация (sha256) → обогащение (INN) → Kafka `receipt.parsed`
-3. Ai-enrichment: YandexGPT категоризирует каждый товар → Kafka `receipt.enriched` → ClickHouse + PostgreSQL
+1. Кнопка **«Добавить»** → голос / чек / ФНС (на выбор)
+2. Система разбивает и категоризирует
+3. Обновляется прогноз цели и один мягкий инсайт
+
+## Технический pipeline (`back`)
+
+```
+scraper / manual / voice
+        ↓
+  Kafka receipt.raw
+        ↓
+receipt-service: validate → dedup (sha256) → receipt.parsed
+        ↓
+ai-processor: categorize → enriched
+        ↓
+PostgreSQL + ClickHouse → dashboard / analytics
+```
+
+## Сервисы
+
+| Этап | Сервис |
+|------|--------|
+| FNS, X5, Magnit, email | scraper-service |
+| Голос, ручной | ai-processor → `manual_expenses` |
+| Persist, dashboard | receipt-service |
+
+## Связи
+
+- **ФНС**: [fotochecking.md](./fotochecking.md)
+- **Инсайты**: [detective.md](./detective.md)

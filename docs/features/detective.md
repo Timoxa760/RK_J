@@ -1,17 +1,31 @@
-# 3.4 Финансовый детектив
+# Поведенческие инсайты (Финансовый детектив)
 
-AI сканирует всю историю трат и находит утечки.
+> Продукт: причины, не цифры — «маркетплейсы отодвигают цель на 3 месяца».
 
-## Детектируемые паттерны
+## Примеры инсайтов
 
-| Паттерн | Логика |
-|---------|--------|
-| Подписки | `GROUP BY amount HAVING count > 3 AND deviation < 5%` |
-| Дубли | Одинаковые item.name в одном чеке |
-| Переплаты | `item.price > avg(price over 30d)` per store |
+| Паттерн | Пример формулировки |
+|---------|---------------------|
+| После зарплаты | «Чаще покупаете в первые 5 дней после дохода» |
+| Импульс | «40% свободных денег — спонтанные покупки» |
+| Подписки | «3 похожих списания — проверьте подписки» |
+| Маркетплейсы | «MP отодвигают цель на 3 месяца» |
 
 ## Pipeline
 
 ```
-Результаты → Kafka insight.found → notification-service → push/Telegram
+analytics-service → insights
+        ↓
+notification-service (optional push)
+        ↓
+front: InsightsPanel, /analytics
 ```
+
+## API
+
+`GET /api/v1/insights/*` — analytics-service
+
+## Связи
+
+- [ux-scenarios.md](../product/ux-scenarios.md) №3, №4
+- [philosophy.md](../product/philosophy.md)

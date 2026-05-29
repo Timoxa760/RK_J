@@ -1,0 +1,19 @@
+{
+  "project": "Potok",
+  "updated": "2026-05-30",
+  "navi": "NAVI.md",
+  "libraries": [
+    {"topic": "nuxt", "name": "Nuxt 4", "context7_id": "/websites/nuxt_4_x", "target_version": "4.3.x"},
+    {"topic": "go", "name": "Go", "context7_id": "/golang/go", "target_version": "1.25.x"},
+    {"topic": "openapi-spec", "name": "OpenAPI", "context7_id": "/oai/openapi-specification", "target_version": "3.1"},
+    {"topic": "go-chi", "name": "chi", "context7_id": "/go-chi/docs"},
+    {"topic": "kafka-go", "name": "kafka-go", "context7_id": "/segmentio/kafka-go"},
+    {"topic": "kafka", "name": "Apache Kafka", "context7_id": "/apache/kafka"},
+    {"topic": "go-redis", "name": "go-redis", "context7_id": "/redis/go-redis"},
+    {"topic": "postgresql", "name": "PostgreSQL", "context7_id": "/websites/postgresql_16"},
+    {"topic": "clickhouse", "name": "ClickHouse", "context7_id": "/clickhouse/clickhouse-docs", "target_version": "25.x"},
+    {"topic": "tailwind", "name": "Tailwind", "context7_id": "/websites/tailwindcss", "target_version": "4.x"},
+    {"topic": "docker-compose", "name": "Docker Compose", "context7_id": "/docker/compose"},
+    {"topic": "prophet", "name": "Prophet", "context7_id": "/facebook/prophet"}
+  ]
+}

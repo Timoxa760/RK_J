@@ -1,13 +1,21 @@
-# 3.3 Машина времени (Time Machine)
+# Траектория цели (Time Machine)
 
-Симулятор «что если» на реальных паттернах трат.
+> Продукт: «если ничего не менять, путь будет таким» vs «если сократить X — цель ближе на N».
 
-## Формула
+## Смысл для пользователя
 
-```
-S = sum(delta_i × (1 + r)^(n-i))
-```
+Не симулятор ради графика — **сравнение двух будущих** с понятным выводом.
 
-## Визуализация
+## API
 
-График двух траекторий через Recharts.
+- `GET /api/v1/dashboard/timemachine` — receipt-service
+- `POST /api/v1/scenarios/simulate` — analytics-service (ипотека, крупные решения)
+
+## UI
+
+`front` — `ChartsTimeMachineChart` на `/dashboard`.
+
+## Связи
+
+- [predictive-ai.md](./predictive-ai.md)
+- [monetization.md](../product/monetization.md)

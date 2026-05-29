@@ -1,0 +1,11 @@
+---
+description: Context7 для стека «Поток» при правке docs
+globs: docs/**/*,Potok_plan.md,NAVI.md
+---
+
+# Context7 в «Поток»
+
+1. MCP **context7** — до 3× `query-docs` на задачу.
+2. ID — `.cursor/context7-libraries.json` или `potok-docs/libraries.md`.
+3. Front = **Nuxt 4**, не React.
+4. Skill: **potok-docs**. Карта: **NAVI.md**.
