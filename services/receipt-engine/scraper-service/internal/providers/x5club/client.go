@@ -11,13 +11,17 @@ import (
 )
 
 const (
-	baseURL   = "https://api.x5club.ru/api/v2"
+	baseURL   = "https://x5club.ru"
 	userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 )
 
-type LoginRequest struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+type SendCodeRequest struct {
+	Phone string `json:"phone"`
+}
+
+type VerifyCodeRequest struct {
+	Phone string `json:"phone"`
+	Code  string `json:"code"`
 }
 
 type LoginResponse struct {
@@ -67,30 +71,59 @@ func NewClient(demoMode bool) *Client {
 	}
 }
 
-func (c *Client) Login(phone, password string) error {
+func (c *Client) SendCode(phone string) error {
 	if c.demoMode {
 		return nil
 	}
 
-	body := LoginRequest{Phone: phone, Password: password}
+	body := SendCodeRequest{Phone: phone}
 	data, _ := json.Marshal(body)
 
-	req, err := http.NewRequest("POST", baseURL+"/auth/login", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", baseURL+"/auth/send-code", bytes.NewReader(data))
 	if err != nil {
-		return fmt.Errorf("x5: create login request: %w", err)
+		return fmt.Errorf("x5: create send-code request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := c.httpCli.Do(req)
 	if err != nil {
-		return fmt.Errorf("x5: login request: %w", err)
+		return fmt.Errorf("x5: send-code request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("x5: login failed (%d): %s", resp.StatusCode, string(body))
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("x5: send-code failed (%d): %s", resp.StatusCode, string(b))
+	}
+
+	return nil
+}
+
+func (c *Client) Login(phone, code string) error {
+	if c.demoMode {
+		return nil
+	}
+
+	body := VerifyCodeRequest{Phone: phone, Code: code}
+	data, _ := json.Marshal(body)
+
+	req, err := http.NewRequest("POST", baseURL+"/auth/verify-code", bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("x5: create verify request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err := c.httpCli.Do(req)
+	if err != nil {
+		return fmt.Errorf("x5: verify request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("x5: verify failed (%d): %s", resp.StatusCode, string(b))
 	}
 
 	return nil

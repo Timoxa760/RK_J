@@ -20,6 +20,10 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
+func (p *Provider) SendCode(_ context.Context, _ string) error {
+	return nil
+}
+
 func (p *Provider) Login(_ context.Context, _ map[string]string) error {
 	return nil
 }

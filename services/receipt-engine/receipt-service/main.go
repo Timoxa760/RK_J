@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	root "backend_project/internal"
+	"backend_project/services/receipt-engine/receipt-service/internal/dashboard"
 	svckafka "backend_project/services/receipt-engine/receipt-service/internal/kafka"
 	svc "backend_project/services/receipt-engine/receipt-service/internal"
 )
@@ -79,7 +80,20 @@ func main() {
 		}
 	}()
 
-	log.Printf("Service %s started on port %s...", serviceName, port)
+	demoMode := getEnv("DEMO_MODE", "true") == "true"
+	dash := dashboard.New(demoMode)
+	if !demoMode {
+		chHost := getEnv("CLICKHOUSE_HOST", "clickhouse")
+		chUser := getEnv("CLICKHOUSE_USER", "clickhouse_user")
+		chPass := getEnv("CLICKHOUSE_PASSWORD", "clickhouse_password")
+		chDB := getEnv("CLICKHOUSE_DB", "default")
+		if err := dash.ConnectClickHouse(ctx, chHost, chUser, chPass, chDB); err != nil {
+			log.Printf("clickhouse: %v (fallback to mock data)", err)
+		}
+	}
+	dash.Register(r)
+
+	log.Printf("Service %s started on port %s (demo=%v)...", serviceName, port, demoMode)
 	server := &http.Server{Addr: ":" + port, Handler: r}
 
 	go func() {

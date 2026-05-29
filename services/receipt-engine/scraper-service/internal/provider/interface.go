@@ -8,6 +8,7 @@ import (
 
 type Provider interface {
 	Name() string
+	SendCode(ctx context.Context, phone string) error
 	Login(ctx context.Context, creds map[string]string) error
 	Sync(ctx context.Context) ([]scrap.RawReceipt, error)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -76,12 +77,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CheckTicket(ctx interface{}, fn, fd, fp string) (*scrap.RawReceipt, error) {
 	if h.demoMode {
-		return h.mockReceipt(), nil
+		return h.mockReceipt(fn, fd), nil
 	}
 
-	url := fmt.Sprintf("https://proverkacheka.nalog.ru:8888/v1/inns/*/kkts/*/fss/%s/tickets/%s?fiscalSign=%s&sendToEmail=no", fn, fd, fp)
+	apiURL := fmt.Sprintf("https://proverkacheka.nalog.ru:8888/v1/inns/*/kkts/*/fss/%s/tickets/%s?fiscalSign=%s&sendToEmail=no", fn, fd, fp)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("fns: create request: %w", err)
 	}
@@ -111,7 +112,9 @@ func (h *Handler) CheckTicket(ctx interface{}, fn, fd, fp string) (*scrap.RawRec
 		return nil, fmt.Errorf("fns: parse response: %w", err)
 	}
 
-	return mapToReceipt(&fnsResp), nil
+	rp := mapToReceipt(&fnsResp)
+	rp.ID = fmt.Sprintf("fns-%s-%s", fn, fd)
+	return rp, nil
 }
 
 func mapToReceipt(fr *fnsResponse) *scrap.RawReceipt {
@@ -134,8 +137,9 @@ func mapToReceipt(fr *fnsResponse) *scrap.RawReceipt {
 	return rp
 }
 
-func (h *Handler) mockReceipt() *scrap.RawReceipt {
+func (h *Handler) mockReceipt(fn, fd string) *scrap.RawReceipt {
 	return &scrap.RawReceipt{
+		ID:       fmt.Sprintf("fns-%s-%s", fn, fd),
 		Provider: "fns",
 		Store:    "Пятёрочка",
 		Date:     time.Now().Add(-2 * time.Hour),
@@ -147,4 +151,67 @@ func (h *Handler) mockReceipt() *scrap.RawReceipt {
 			{Name: "Масло сливочное", Price: 150.00, Quantity: 1},
 		},
 	}
+}
+
+func ParseQRString(qrStr string) (fn, fd, fp string, err error) {
+	q, err := url.ParseQuery(qrStr)
+	if err != nil {
+		return "", "", "", fmt.Errorf("parse qr string: %w", err)
+	}
+
+	fn = q.Get("fn")
+	fd = q.Get("i")
+	if fd == "" {
+		fd = q.Get("fd")
+	}
+	fp = q.Get("fp")
+	if fp == "" {
+		fp = q.Get("fps")
+	}
+
+	if fn == "" || fd == "" || fp == "" {
+		return "", "", "", fmt.Errorf("qr string missing fn, fd (i), or fp fields")
+	}
+
+	return fn, fd, fp, nil
+}
+
+type QRRequest struct {
+	QR     string `json:"qr"`
+	UserID string `json:"user_id"`
+}
+
+func (h *Handler) ServeHTTPQR(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req QRRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.QR == "" {
+		http.Error(w, `{"error":"qr field required"}`, http.StatusBadRequest)
+		return
+	}
+
+	fn, fd, fp, err := ParseQRString(req.QR)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	receipt, err := h.CheckTicket(r.Context(), fn, fd, fp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	receipt.UserID = req.UserID
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(receipt)
 }

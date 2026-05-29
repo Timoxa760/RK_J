@@ -10,6 +10,7 @@ import (
 type testProvider struct{}
 
 func (p *testProvider) Name() string { return "test" }
+func (p *testProvider) SendCode(_ context.Context, _ string) error { return nil }
 func (p *testProvider) Login(_ context.Context, _ map[string]string) error { return nil }
 func (p *testProvider) Sync(_ context.Context) ([]scrap.RawReceipt, error) { return nil, nil }
 

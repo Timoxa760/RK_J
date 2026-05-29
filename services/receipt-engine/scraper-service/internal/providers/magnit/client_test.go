@@ -4,16 +4,23 @@ import (
 	"testing"
 )
 
+func TestSendCode_DemoMode(t *testing.T) {
+	c := NewClient(true)
+	if err := c.SendCode("+79990000001"); err != nil {
+		t.Fatalf("SendCode: %v", err)
+	}
+}
+
 func TestLogin_DemoMode(t *testing.T) {
 	c := NewClient(true)
-	if err := c.Login("+79990000001", "pass"); err != nil {
+	if err := c.Login("+79990000001", "0000"); err != nil {
 		t.Fatalf("Login: %v", err)
 	}
 }
 
 func TestGetReceipts_DemoMode(t *testing.T) {
 	c := NewClient(true)
-	if err := c.Login("+79990000001", "pass"); err != nil {
+	if err := c.Login("+79990000001", "0000"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -31,7 +38,7 @@ func TestGetReceipts_DemoMode(t *testing.T) {
 
 func TestGetReceipts_Pagination(t *testing.T) {
 	c := NewClient(true)
-	c.Login("+79990000001", "pass")
+	c.Login("+79990000001", "0000")
 
 	r1, pages, _ := c.GetReceipts(1)
 	r2, _, _ := c.GetReceipts(2)

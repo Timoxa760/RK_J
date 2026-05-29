@@ -6,13 +6,9 @@ import (
 	"sync"
 	"time"
 
+	scrap "backend_project/services/receipt-engine/scraper-service/internal"
 	"backend_project/services/receipt-engine/scraper-service/internal/provider"
 )
-
-type Runner interface {
-	Name() string
-	Sync(ctx context.Context) error
-}
 
 type Task struct {
 	Provider provider.Provider
@@ -21,13 +17,20 @@ type Task struct {
 }
 
 type Scheduler struct {
-	mu    sync.Mutex
-	tasks []Task
-	stop  chan struct{}
+	mu     sync.Mutex
+	tasks  []Task
+	stop   chan struct{}
+	onSync func(ctx context.Context, providerName string, receipts []scrap.RawReceipt) error
 }
 
 func New() *Scheduler {
 	return &Scheduler{stop: make(chan struct{})}
+}
+
+func (s *Scheduler) OnSync(f func(ctx context.Context, providerName string, receipts []scrap.RawReceipt) error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onSync = f
 }
 
 func (s *Scheduler) Add(p provider.Provider, typ provider.Type) {
@@ -59,14 +62,16 @@ func (s *Scheduler) Start(ctx context.Context) {
 			log.Printf("scheduler: started %s (interval=%v)", task.Provider.Name(), task.Interval)
 
 			for {
-				if err := task.Provider.Login(ctx, nil); err != nil {
-					log.Printf("scheduler: %s login error: %v", task.Provider.Name(), err)
-				}
 				receipts, err := task.Provider.Sync(ctx)
 				if err != nil {
 					log.Printf("scheduler: %s sync error: %v", task.Provider.Name(), err)
 				} else {
 					log.Printf("scheduler: %s synced %d receipts", task.Provider.Name(), len(receipts))
+					if s.onSync != nil {
+						if err := s.onSync(ctx, task.Provider.Name(), receipts); err != nil {
+							log.Printf("scheduler: %s onSync error: %v", task.Provider.Name(), err)
+						}
+					}
 				}
 
 				select {

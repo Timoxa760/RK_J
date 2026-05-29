@@ -4,9 +4,16 @@ import (
 	"testing"
 )
 
+func TestSendCode_DemoMode(t *testing.T) {
+	c := NewClient(true)
+	if err := c.SendCode("+79991234567"); err != nil {
+		t.Fatalf("SendCode in demo mode: %v", err)
+	}
+}
+
 func TestLogin_DemoMode(t *testing.T) {
 	c := NewClient(true)
-	if err := c.Login("+79991234567", "test"); err != nil {
+	if err := c.Login("+79991234567", "0000"); err != nil {
 		t.Fatalf("Login in demo mode: %v", err)
 	}
 }

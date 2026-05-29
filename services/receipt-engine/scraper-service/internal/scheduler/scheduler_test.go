@@ -15,6 +15,7 @@ type mockSchedProvider struct {
 }
 
 func (m *mockSchedProvider) Name() string { return m.name }
+func (m *mockSchedProvider) SendCode(_ context.Context, _ string) error { return nil }
 func (m *mockSchedProvider) Login(_ context.Context, _ map[string]string) error { return nil }
 func (m *mockSchedProvider) Sync(_ context.Context) ([]scrap.RawReceipt, error) {
 	m.synced++
