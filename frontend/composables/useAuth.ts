@@ -23,7 +23,7 @@ export function useAuth() {
       const user: AuthUser = {
         id: 'mock-user-1',
         phone,
-        name: 'Демо пользователь'
+        name: 'Пользователь'
       }
       authStore.setSession(MOCK_TOKEN, user)
       return { token: MOCK_TOKEN, user }
@@ -40,7 +40,7 @@ export function useAuth() {
       authStore.setSession(res.token, res.user)
       return res
     } catch {
-      throw new Error('Неверный код или сервер недоступен. Для демо используйте код 0000.')
+      throw new Error('Неверный код или сервер недоступен.')
     }
   }
 

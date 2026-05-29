@@ -22,15 +22,9 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 
 const meta = computed(() => pageTitles[route.path] ?? { title: 'Поток', subtitle: '' })
 
-const demoRef = ref<{ start: () => void } | null>(null)
-
 function logout() {
   authStore.logout()
   navigateTo('/')
-}
-
-function startDemo() {
-  demoRef.value?.start()
 }
 </script>
 
@@ -52,14 +46,6 @@ function startDemo() {
       </div>
 
       <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <button
-          v-if="authStore.isAuthenticated"
-          type="button"
-          class="rounded-full border border-[color:var(--mm-border)] px-2.5 py-1.5 text-xs text-[color:var(--mm-text-muted)] transition hover:bg-[color:var(--mm-bg-muted)] sm:px-3"
-          @click="startDemo"
-        >
-          Демо
-        </button>
         <slot name="actions" />
         <button
           v-if="authStore.isAuthenticated"
@@ -73,6 +59,5 @@ function startDemo() {
         </button>
       </div>
     </div>
-    <DemoDemoMode ref="demoRef" />
   </header>
 </template>

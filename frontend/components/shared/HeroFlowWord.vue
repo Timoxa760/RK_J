@@ -42,7 +42,6 @@ const viewBox = '0 298 358 114'
       class="mm-hero-flow-word__text"
       x="0"
       y="404"
-      font-family="Inter, ui-sans-serif, system-ui, sans-serif"
       font-size="106"
       font-weight="700"
       letter-spacing="-0.02em"

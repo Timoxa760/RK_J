@@ -86,7 +86,7 @@ async function submitCode() {
       {{
         step === 'phone'
           ? 'Войдите, чтобы сохранить историю разговоров с помощником'
-          : 'Введите код из SMS (демо: 0000)'
+          : 'Введите код из SMS'
       }}
     </p>
 
@@ -126,7 +126,7 @@ async function submitCode() {
           type="text"
           inputmode="numeric"
           maxlength="4"
-          placeholder="0000"
+          placeholder="Код из SMS"
           class="mt-1 w-full rounded-xl border border-[color:var(--mm-border)] bg-[color:var(--mm-bg-elevated)] px-3 py-2 text-[color:var(--mm-text)] focus:border-[color:var(--mm-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--mm-primary-muted)]"
         />
       </div>

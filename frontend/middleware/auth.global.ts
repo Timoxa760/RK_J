@@ -8,6 +8,10 @@ export default defineNuxtRouteMiddleware((to) => {
     authStore.hydrate()
   }
 
+  if (to.path === '/welcome') {
+    return navigateTo('/')
+  }
+
   if (PUBLIC_PATHS.includes(to.path)) {
     if (authStore.isAuthenticated && to.path === '/login') {
       return navigateTo('/dashboard')
@@ -16,6 +20,6 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (!authStore.isAuthenticated) {
-    return navigateTo('/')
+    return navigateTo('/login')
   }
 })
