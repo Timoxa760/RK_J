@@ -1,0 +1,345 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mm-bg: #fffcf9;
+  --mm-bg-elevated: #ffffff;
+  --mm-bg-muted: #f7f2ec;
+  --mm-border: #ece4da;
+  --mm-border-subtle: #f2ebe3;
+  --mm-text: #1c1c1a;
+  --mm-text-muted: #6d6760;
+  --mm-text-soft: #9a948c;
+  --mm-primary: #e8955f;
+  --mm-primary-hover: #d4824a;
+  --mm-primary-soft: #fdf3eb;
+  --mm-primary-muted: #f5dcc8;
+  --mm-flow-track: #e8e2da;
+  --mm-flow-accent: #d9cfc4;
+  --mm-flow-pulse: #b8997a;
+  --mm-sidebar-width: 16rem;
+  --mm-header-height: 4.5rem;
+  --mm-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.03);
+  --mm-shadow: 0 12px 40px -12px rgb(0 0 0 / 0.08);
+}
+
+html,
+body,
+#__nuxt {
+  min-height: 100%;
+  background: var(--mm-bg);
+}
+
+body {
+  margin: 0;
+  color: var(--mm-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  .mm-card {
+    @apply rounded-3xl border border-[color:var(--mm-border)] bg-[color:var(--mm-bg-elevated)] shadow-[var(--mm-shadow-sm)];
+  }
+
+  .mm-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition;
+    background-color: var(--mm-primary);
+    color: #ffffff;
+  }
+
+  .mm-btn-primary:hover {
+    background-color: var(--mm-primary-hover);
+  }
+
+  .mm-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--mm-border)] bg-[color:var(--mm-bg-elevated)] px-6 py-3 text-sm font-medium transition;
+    color: var(--mm-text);
+  }
+
+  .mm-btn-secondary:hover {
+    background-color: var(--mm-bg-muted);
+  }
+
+  .mm-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-[color:var(--mm-border)] bg-white px-4 py-2 text-sm text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-hero-title {
+    @apply font-bold uppercase leading-[0.95] tracking-[-0.02em];
+    font-size: clamp(2rem, 10vw, 5.5rem);
+  }
+
+  .mm-hero-title__flow-line {
+    display: block;
+    line-height: 0.95;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mm-hero-flow-word {
+    display: block;
+    font: inherit;
+    height: 1em;
+    width: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .mm-hero-flow-word__pattern {
+    animation: mm-hero-flow-pattern-shift 14s ease-in-out infinite;
+  }
+
+  .mm-hero-flow-word__line {
+    fill: none;
+    stroke: #fdf3eb;
+    stroke-opacity: 0.55;
+    stroke-width: 2;
+    stroke-miterlimit: 10;
+  }
+
+  .mm-hero-flow-word__line--pulse {
+    stroke: #ffffff;
+    stroke-opacity: 0.7;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 6 94;
+    animation: mm-hero-flow-word-pulse 14s linear infinite;
+  }
+
+  @keyframes mm-hero-flow-pattern-shift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(-10px, 5px, 0);
+    }
+  }
+
+  @keyframes mm-hero-flow-word-pulse {
+    to {
+      stroke-dashoffset: -100;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-hero-flow-word__pattern,
+    .mm-hero-flow-word__line--pulse {
+      animation: none;
+    }
+
+    .mm-hero-flow-word__line--pulse {
+      stroke-dasharray: none;
+    }
+  }
+
+  .mm-voice-demo__bars {
+    height: 1.25rem;
+  }
+
+  .mm-voice-demo__bars span {
+    display: block;
+    width: 3px;
+    border-radius: 9999px;
+    background: var(--mm-primary);
+    opacity: 0.45;
+    animation: mm-voice-bar 1.1s ease-in-out infinite;
+  }
+
+  .mm-voice-demo__bars span:nth-child(1) {
+    height: 40%;
+    animation-delay: 0s;
+  }
+
+  .mm-voice-demo__bars span:nth-child(2) {
+    height: 70%;
+    animation-delay: 0.15s;
+  }
+
+  .mm-voice-demo__bars span:nth-child(3) {
+    height: 100%;
+    animation-delay: 0.3s;
+  }
+
+  .mm-voice-demo__bars span:nth-child(4) {
+    height: 55%;
+    animation-delay: 0.45s;
+  }
+
+  .mm-voice-demo__bars span:nth-child(5) {
+    height: 80%;
+    animation-delay: 0.6s;
+  }
+
+  @keyframes mm-voice-bar {
+    0%,
+    100% {
+      transform: scaleY(0.45);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 0.75;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-voice-demo__bars span {
+      animation: none;
+      opacity: 0.4;
+    }
+  }
+
+  .mm-chart-wrap {
+    @apply w-full overflow-hidden;
+  }
+
+  .mm-chart-wrap :deep(.echarts),
+  .mm-chart-wrap :deep(canvas) {
+    min-height: 220px;
+  }
+
+  @media (min-width: 640px) {
+    .mm-chart-wrap :deep(.echarts),
+    .mm-chart-wrap :deep(canvas) {
+      min-height: 280px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mm-chart-wrap :deep(.echarts),
+    .mm-chart-wrap :deep(canvas) {
+      min-height: 300px;
+    }
+  }
+
+  .mm-safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .mm-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mm-page-shell {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  .mm-table-scroll {
+    @apply -mx-1 overflow-x-auto px-1;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mm-flow {
+    @apply pointer-events-none fixed inset-0 z-0 overflow-hidden select-none;
+    contain: layout style;
+    isolation: isolate;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .mm-flow__stage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .mm-flow__stage--anim {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .mm-flow__track {
+    fill: none;
+    stroke: var(--mm-flow-track);
+    stroke-opacity: 0.65;
+    stroke-width: 2;
+    stroke-miterlimit: 10;
+  }
+
+  .mm-flow__track--accent {
+    stroke: var(--mm-flow-accent);
+    stroke-opacity: 0.35;
+    stroke-width: 2;
+  }
+
+  .mm-flow__pulse {
+    fill: none;
+    stroke: var(--mm-flow-pulse);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-miterlimit: 10;
+    stroke-dasharray: 6 94;
+    stroke-opacity: 0.72;
+    animation: mm-flow-pulse var(--flow-duration, 16s) linear infinite;
+    animation-delay: var(--flow-delay, 0s);
+    animation-fill-mode: backwards;
+  }
+
+  @keyframes mm-flow-pulse {
+    0% {
+      stroke-dashoffset: 0;
+    }
+    100% {
+      stroke-dashoffset: -100;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mm-flow__pulse {
+      animation: none;
+      stroke-opacity: 0.4;
+      stroke-dasharray: none;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .mm-flow__track {
+      stroke-opacity: 0.55;
+    }
+
+    .mm-flow__track--accent {
+      stroke-opacity: 0.28;
+    }
+
+    .mm-flow__pulse {
+      stroke-width: 2;
+      stroke-opacity: 0.6;
+    }
+
+    .mm-card {
+      @apply rounded-2xl;
+    }
+
+    .mm-btn-primary,
+    .mm-btn-secondary {
+      @apply px-5 py-3.5 text-base;
+    }
+  }
+
+  .demo-highlight {
+    @apply ring-4 ring-offset-2;
+    --tw-ring-color: var(--mm-primary);
+  }
+}
+
+@media (min-width: 1280px) {
+  .projector-header {
+    min-height: var(--mm-header-height);
+  }
+
+  .projector-title {
+    font-size: 1.0625rem;
+  }
+}
+
+html {
+  font-size: 16px;
+}
