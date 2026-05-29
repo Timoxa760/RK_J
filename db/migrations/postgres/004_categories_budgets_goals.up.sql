@@ -1,0 +1,34 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    parent_id INT REFERENCES categories(id) ON DELETE SET NULL,
+    icon VARCHAR(50),
+    color VARCHAR(7),
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE(user_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS budgets (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    category_id INT REFERENCES categories(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    amount NUMERIC(12, 2) NOT NULL,
+    period VARCHAR(20) DEFAULT 'monthly' NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS goals (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    name VARCHAR(200) NOT NULL,
+    target_amount NUMERIC(12, 2) NOT NULL,
+    current_amount NUMERIC(12, 2) DEFAULT 0 NOT NULL,
+    deadline DATE,
+    status VARCHAR(20) DEFAULT 'active' NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);

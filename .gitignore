@@ -1,0 +1,21 @@
+# Temporary files from PM (PDF, etc.)
+/tmp_pm/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Binaries
+*.exe
+*.dll
+*.so
+bin/
+
+# Environment
+.env

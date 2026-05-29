@@ -1,0 +1,374 @@
+services:
+  # ============ INFRASTRUCTURE ============
+  postgres:
+    image: postgres:18.0
+    container_name: backend_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: moneymind
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.12
+    container_name: backend_clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: analytics_db
+      CLICKHOUSE_USER: clickhouse_user
+      CLICKHOUSE_PASSWORD: clickhouse_password
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.8.0
+    container_name: backend_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: backend_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:4.0.2
+    container_name: backend_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    container_name: backend_garage
+    ports:
+      - "3900:3900"
+      - "3901:3901"
+    environment:
+      RPC_SECRET: RPC_SECRET_FOR_GARAGE_STORAGE_BASE
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
+  # ============ CORE API (8000-8001) ============
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/core-api/api-gateway/Dockerfile
+    container_name: backend_api_gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/core-api/user-service/Dockerfile
+    container_name: backend_user_service
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+    restart: unless-stopped
+
+  # ============ RECEIPT ENGINE (8002-8003) ============
+  receipt-service:
+    build:
+      context: .
+      dockerfile: services/receipt-engine/receipt-service/Dockerfile
+    container_name: backend_receipt_service
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - REDIS_URL=redis:6379
+      - KAFKA_URL=kafka:9092
+    restart: unless-stopped
+
+  scraper-service:
+    build:
+      context: .
+      dockerfile: services/receipt-engine/scraper-service/Dockerfile
+    container_name: backend_scraper_service
+    ports:
+      - "8003:8003"
+    depends_on:
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - KAFKA_URL=kafka:9092
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-key-32-chars-long-for-aes256!}
+    restart: unless-stopped
+
+  # ============ FINANCE CORE (8004-8006, 8009, 8011) ============
+  category-service:
+    build:
+      context: .
+      dockerfile: services/finance-core/category-service/Dockerfile
+    container_name: backend_category_service
+    ports:
+      - "8004:8004"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+    restart: unless-stopped
+
+  budget-service:
+    build:
+      context: .
+      dockerfile: services/finance-core/budget-service/Dockerfile
+    container_name: backend_budget_service
+    ports:
+      - "8005:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+    restart: unless-stopped
+
+  goal-service:
+    build:
+      context: .
+      dockerfile: services/finance-core/goal-service/Dockerfile
+    container_name: backend_goal_service
+    ports:
+      - "8006:8006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+    restart: unless-stopped
+
+  credit-service:
+    build:
+      context: .
+      dockerfile: services/finance-core/credit-service/Dockerfile
+    container_name: backend_credit_service
+    ports:
+      - "8009:8009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - ONLYSQ_URL=${ONLYSQ_URL:-http://onlysq:3000}
+    restart: unless-stopped
+
+  bank-service:
+    build:
+      context: .
+      dockerfile: services/finance-core/bank-service/Dockerfile
+    container_name: backend_bank_service
+    ports:
+      - "8011:8011"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - KAFKA_URL=kafka:9092
+    restart: unless-stopped
+
+  # ============ MONEY INTELLIGENCE (8100-8101) ============
+  ai-processor:
+    build:
+      context: .
+      dockerfile: services/money-intelligence/ai-processor/Dockerfile
+    container_name: backend_ai_processor
+    ports:
+      - "8100:8100"
+    depends_on:
+      clickhouse:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - KAFKA_URL=kafka:9092
+      - ONLYSQ_URL=${ONLYSQ_URL:-http://onlysq:3000}
+    restart: unless-stopped
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/money-intelligence/analytics-service/Dockerfile
+    container_name: backend_analytics_service
+    ports:
+      - "8101:8101"
+    depends_on:
+      clickhouse:
+        condition: service_started
+      kafka:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - CLICKHOUSE_URL=http://clickhouse:8123
+      - KAFKA_URL=kafka:9092
+    restart: unless-stopped
+
+  # ============ SOCIAL & GAME (8007, 8102) ============
+  gamification:
+    build:
+      context: .
+      dockerfile: services/social-game/gamification/Dockerfile
+    container_name: backend_gamification
+    ports:
+      - "8007:8007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - REDIS_URL=redis:6379
+    restart: unless-stopped
+
+  social-service:
+    build:
+      context: .
+      dockerfile: services/social-game/social-service/Dockerfile
+    container_name: backend_social_service
+    ports:
+      - "8102:8102"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - REDIS_URL=redis:6379
+    restart: unless-stopped
+
+  # ============ REPORTING (8008, 8010) ============
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/reporting/notification-service/Dockerfile
+    container_name: backend_notification_service
+    ports:
+      - "8008:8008"
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - KAFKA_URL=kafka:9092
+    restart: unless-stopped
+
+  reporting-service:
+    build:
+      context: .
+      dockerfile: services/reporting/reporting-service/Dockerfile
+    container_name: backend_reporting_service
+    ports:
+      - "8010:8010"
+    depends_on:
+      clickhouse:
+        condition: service_started
+    networks:
+      - moneymind_network
+    environment:
+      - CLICKHOUSE_URL=http://clickhouse:8123
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+
+networks:
+  moneymind_network:
+    driver: bridge
