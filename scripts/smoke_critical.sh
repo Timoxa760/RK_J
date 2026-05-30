@@ -148,6 +148,14 @@ PP=$(http_code -X PATCH "$API/users/me/profile" -H 'Content-Type: application/js
   -d '{"goal_title":"Отпуск","goal_amount":150000,"goal_kind":"save"}')
 [[ "$PP" == "200" ]] && record important "PATCH /users/me/profile" PASS "" || record important "PATCH /users/me/profile" FAIL "HTTP $PP"
 
+# --- AI advisor ---
+PLAN=$(curl -sf "${AUTH[@]}" "$API/ai/plan" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('plan',{}).get('goalTitle') and d.get('diagnosis',{}).get('score') is not None else 1)" 2>/dev/null && echo ok || echo fail)
+[[ "$PLAN" == "ok" ]] && record important "GET /ai/plan" PASS "plan + diagnosis" || record important "GET /ai/plan" FAIL "shape"
+
+CHAT=$(http_code -X POST "$API/ai/chat" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"message":"Сколько могу отложить в месяц?","history":[]}')
+[[ "$CHAT" == "200" ]] && record important "POST /ai/chat" PASS "" || record important "POST /ai/chat" FAIL "HTTP $CHAT"
+
 # --- Analytics ---
 for ep in insights forecast; do
   CODE=$(http_code "${AUTH[@]}" "$API/$ep")
