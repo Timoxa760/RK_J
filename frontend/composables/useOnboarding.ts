@@ -420,6 +420,7 @@ export function useOnboarding() {
     canProceed,
     selectSurveyMode,
     completeVoiceSurvey,
+    syncProfileToApi,
     nextStep,
     prevStep,
     isComplete,

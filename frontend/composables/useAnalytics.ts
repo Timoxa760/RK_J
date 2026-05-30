@@ -9,7 +9,7 @@ import { formatScenarioResult } from '~/utils/analyticsNarrative'
 import { normalizeForecast, normalizeTimeMachine } from '~/utils/apiNormalize'
 
 export function useAnalytics() {
-  const { apiFetch, apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const timeMachine = ref<TimeMachineResponse | null>(null)
   const forecast = ref<ForecastResponse | null>(null)
@@ -24,17 +24,15 @@ export function useAnalytics() {
     error.value = null
     try {
       const [tmRaw, fcRaw] = await Promise.all([
-        apiFetchWithDemo('/dashboard/timemachine', mockTimeMachine),
-        apiFetchWithDemo<ForecastResponse>('/forecast?days=7', mockForecast)
+        apiFetch<TimeMachineResponse>('/dashboard/timemachine'),
+        apiFetch<ForecastResponse>('/forecast?days=7')
       ])
       timeMachine.value = normalizeTimeMachine(tmRaw)
       forecast.value = normalizeForecast(fcRaw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки аналитики'
-      if (demoMode.value) {
-        timeMachine.value = normalizeTimeMachine(mockTimeMachine)
-        forecast.value = normalizeForecast(mockForecast)
-      }
+      timeMachine.value = normalizeTimeMachine(mockTimeMachine)
+      forecast.value = normalizeForecast(mockForecast)
     } finally {
       loading.value = false
     }
@@ -61,7 +59,7 @@ export function useAnalytics() {
       scenarioSimulation.value = simulation
     }
 
-    const applyDemoResult = () => {
+    const applyFallback = () => {
       const monthlySaving = Math.round(4_500 * (params.reduction_percent / 20))
       const differenceFinal = monthlySaving * 80
       const base = normalizeTimeMachine(mockTimeMachine)
@@ -81,12 +79,6 @@ export function useAnalytics() {
     }
 
     try {
-      if (demoMode.value) {
-        await new Promise((r) => setTimeout(r, 250))
-        applyDemoResult()
-        return
-      }
-
       const body: SimulateScenarioRequest = {
         scenario: params.scenario,
         reduction_percent: params.reduction_percent,
@@ -101,7 +93,7 @@ export function useAnalytics() {
       applyResult(normalizeTimeMachine(res), res.difference_final, monthlySaving)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка симуляции'
-      if (demoMode.value) applyDemoResult()
+      applyFallback()
     } finally {
       scenarioLoading.value = false
     }

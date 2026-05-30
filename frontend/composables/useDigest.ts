@@ -2,7 +2,7 @@ import type { DigestResponse } from '~/types/api'
 import { mockDigest } from '~/store/mocks'
 
 export function useDigest() {
-  const { apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const digest = ref<DigestResponse | null>(null)
   const loading = ref(false)
@@ -12,12 +12,10 @@ export function useDigest() {
     loading.value = true
     error.value = null
     try {
-      digest.value = await apiFetchWithDemo<DigestResponse>('/digest/latest', mockDigest)
+      digest.value = await apiFetch<DigestResponse>('/digest/latest')
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить сводку'
-      if (demoMode.value) {
-        digest.value = mockDigest
-      }
+      digest.value = mockDigest
     } finally {
       loading.value = false
     }

@@ -3,7 +3,6 @@ import type {
   ReceiptManualResponse,
   ReceiptVoiceResponse
 } from '~/types/api'
-import { mockReceiptManual, mockReceiptVoice } from '~/store/mocks/receipts'
 import {
   appendStoredReceipt,
   receiptFromManual,
@@ -14,7 +13,7 @@ import { toReceiptIsoDate } from '~/utils/receiptDate'
 export type ReceiptSubmitResult = ReceiptManualResponse | ReceiptVoiceResponse
 
 export function useReceiptSubmit() {
-  const { apiFetch, demoMode } = useApi()
+  const { apiFetch } = useApi()
   const toast = useToast()
 
   const submitting = useState<boolean>('receipt-submitting', () => false)
@@ -37,22 +36,10 @@ export function useReceiptSubmit() {
     }
 
     try {
-      if (demoMode.value) {
-        await new Promise((r) => setTimeout(r, 700))
-        lastResult.value = {
-          ...mockReceiptManual,
-          receipt_id: `demo-${Date.now()}`,
-          store: body.store,
-          amount: body.amount,
-          category: body.category,
-          date: body.date
-        }
-      } else {
-        lastResult.value = await apiFetch<ReceiptManualResponse>('/receipt/manual', {
-          method: 'POST',
-          body
-        })
-      }
+      lastResult.value = await apiFetch<ReceiptManualResponse>('/receipt/manual', {
+        method: 'POST',
+        body
+      })
 
       appendStoredReceipt(receiptFromManual(lastResult.value as ReceiptManualResponse))
       toast.show(
@@ -74,22 +61,14 @@ export function useReceiptSubmit() {
     lastResult.value = null
 
     try {
-      if (demoMode.value) {
-        await new Promise((r) => setTimeout(r, 900))
-        lastResult.value = {
-          ...mockReceiptVoice,
-          receipt_id: `demo-voice-${Date.now()}`
-        }
-      } else {
-        const form = new FormData()
-        const ext = audio.type.includes('mp4') ? 'mp4' : 'webm'
-        form.append('audio', audio, `recording.${ext}`)
+      const form = new FormData()
+      const ext = audio.type.includes('mp4') ? 'mp4' : 'webm'
+      form.append('audio', audio, `recording.${ext}`)
 
-        lastResult.value = await apiFetch<ReceiptVoiceResponse>('/receipt/voice', {
-          method: 'POST',
-          body: form
-        })
-      }
+      lastResult.value = await apiFetch<ReceiptVoiceResponse>('/receipt/voice', {
+        method: 'POST',
+        body: form
+      })
 
       appendStoredReceipt(receiptFromVoice(lastResult.value as ReceiptVoiceResponse))
       const res = lastResult.value as ReceiptVoiceResponse

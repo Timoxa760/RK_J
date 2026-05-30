@@ -13,7 +13,7 @@ export const useDashboardStore = defineStore('dashboard', {
 
   actions: {
     async loadAll(options?: { silent?: boolean }) {
-      const { apiFetchWithDemo, demoMode } = useApi()
+      const { apiFetch } = useApi()
       if (!options?.silent) {
         this.loading = true
       }
@@ -21,18 +21,16 @@ export const useDashboardStore = defineStore('dashboard', {
 
       try {
         const [categoriesRaw, timemachineRaw] = await Promise.all([
-          apiFetchWithDemo('/dashboard/categories', mockCategories),
-          apiFetchWithDemo('/dashboard/timemachine', mockTimeMachine)
+          apiFetch<CategoriesResponse>('/dashboard/categories'),
+          apiFetch<TimeMachineResponse>('/dashboard/timemachine')
         ])
 
         this.categories = normalizeCategories(categoriesRaw)
         this.timemachine = normalizeTimeMachine(timemachineRaw)
       } catch (e) {
         this.error = e instanceof Error ? e.message : 'Ошибка загрузки дашборда'
-        if (demoMode.value) {
-          this.categories = normalizeCategories(mockCategories)
-          this.timemachine = normalizeTimeMachine(mockTimeMachine)
-        }
+        this.categories = normalizeCategories(mockCategories)
+        this.timemachine = normalizeTimeMachine(mockTimeMachine)
       } finally {
         if (!options?.silent) {
           this.loading = false

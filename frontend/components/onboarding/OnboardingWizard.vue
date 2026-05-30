@@ -21,16 +21,25 @@ const {
   skipSurveyStep,
   selectSurveyMode,
   completeVoiceSurvey,
+  syncProfileToApi,
   nextStep,
   prevStep,
   completeOnboarding
 } = useOnboarding()
+
+const { diagnosis, loading: diagnosisLoading, loadDiagnosis } = useOnboardingDiagnosis()
 
 const expenseAdded = ref(false)
 const voiceProgress = ref<{ current: number; total: number } | null>(null)
 
 onMounted(() => {
   hydrate()
+})
+
+watch(step, async (s) => {
+  if (s !== 7) return
+  await syncProfileToApi()
+  await loadDiagnosis()
 })
 
 const progressView = computed(() => {
@@ -131,6 +140,8 @@ function onVoiceProgress(current: number, total: number) {
           v-else-if="step === 7"
           :draft="draft"
           :summary="summary"
+          :diagnosis="diagnosis"
+          :diagnosis-loading="diagnosisLoading"
           @back="prevStep"
           @next="nextStep"
         />

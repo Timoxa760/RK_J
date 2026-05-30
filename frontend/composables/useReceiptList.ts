@@ -1,9 +1,8 @@
 import type { ReceiptListItem, ReceiptsListResponse } from '~/types/api'
-import { mockReceiptListItems } from '~/store/mocks/receiptList'
 import { readStoredReceipts } from '~/utils/receiptListStorage'
 
 export function useReceiptList() {
-  const { apiFetch, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const receipts = ref<ReceiptListItem[]>([])
   const selected = ref<ReceiptListItem | null>(null)
@@ -15,18 +14,11 @@ export function useReceiptList() {
     error.value = null
 
     try {
-      if (demoMode.value) {
-        const stored = readStoredReceipts()
-        receipts.value = stored.length ? stored : [...mockReceiptListItems]
-        return
-      }
-
       const remote = await apiFetch<ReceiptsListResponse>('/receipts')
       receipts.value = remote.receipts ?? []
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить расходы'
-      const stored = readStoredReceipts()
-      receipts.value = stored
+      receipts.value = readStoredReceipts()
     } finally {
       loading.value = false
     }

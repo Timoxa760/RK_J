@@ -71,13 +71,8 @@ watch(open, (v) => {
         <TabsContent value="fns" class="mt-4">
           <DashboardFnsExpensePanel @synced="onFnsSynced" />
         </TabsContent>
-        <TabsContent value="photo" class="mt-4 space-y-3 text-center">
-          <p class="text-sm text-muted-foreground">
-            Скан фото чека скоро появится. Сейчас — QR ФНС, голос или ручной ввод.
-          </p>
-          <Button variant="secondary" as-child>
-            <NuxtLink to="/dashboard" @click="open = false">Смотреть категории на главной</NuxtLink>
-          </Button>
+        <TabsContent value="photo" class="mt-4">
+          <DashboardPhotoReceiptPanel @synced="finish" />
         </TabsContent>
       </Tabs>
     </DialogContent>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight, Target, Wallet } from 'lucide-vue-next'
-import type { OnboardingDraft } from '~/types/api'
+import type { AiDiagnosisResponse, OnboardingDraft } from '~/types/api'
 
 defineProps<{
   draft: OnboardingDraft
@@ -12,6 +12,8 @@ defineProps<{
     goalForecast: string
     runwayMonths: number | null
   }
+  diagnosis?: AiDiagnosisResponse | null
+  diagnosisLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -94,7 +96,16 @@ const emit = defineEmits<{
       <ArrowRight class="mt-0.5 size-5 shrink-0 text-[color:var(--mm-primary)]" />
       <div class="text-sm">
         <p class="font-medium text-[color:var(--mm-primary)]">Первое действие</p>
-        <p class="mt-0.5 text-[color:var(--mm-text-muted)]">
+        <Skeleton v-if="diagnosisLoading" class="mt-2 h-10 w-full" />
+        <template v-else-if="diagnosis?.main_action">
+          <p class="mt-0.5 font-medium text-[color:var(--mm-text)]">
+            {{ diagnosis.main_action.title }}
+          </p>
+          <p class="mt-0.5 text-[color:var(--mm-text-muted)]">
+            {{ diagnosis.main_action.description }}
+          </p>
+        </template>
+        <p v-else class="mt-0.5 text-[color:var(--mm-text-muted)]">
           Добавьте одну покупку голосом или вручную. Чеки с кассы — по желанию; зарплату ФНС не
           видит.
         </p>

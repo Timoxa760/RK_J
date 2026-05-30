@@ -39,12 +39,17 @@ curl -sf -X POST "$API/expenses/manual" \
   -d "{\"user_id\":\"$PHONE\",\"raw_text\":\"купил продукты на 5000 и кроссовки за 16000\",\"source\":\"voice\"}" \
   | python3 -m json.tool 2>/dev/null || echo "(skip if ai-processor down)"
 
-step "4. ФНС ticket (demo receipt)"
+step "4. ФНС ticket + scan"
 curl -sf -X POST "$API/fns/ticket" \
   -H 'Content-Type: application/json' \
   "${AUTH[@]}" \
   -d '{"fn":"9289000100123456","fd":"12345","fp":"1234567890","sum":"999.99","date":"2026-05-01","time":"12:00"}' \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('store:', d.get('store_name','?'))" 2>/dev/null || echo "(skip FNS)"
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('store:', d.get('store_name','?'))" 2>/dev/null || echo "(skip FNS ticket)"
+curl -sf -X POST "$API/receipt/fns/scan" \
+  -H 'Content-Type: application/json' \
+  "${AUTH[@]}" \
+  -d '{"fn":"9289000100123456","fd":"12345","fp":"1234567890"}' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('scan:', d.get('store','?'), d.get('total','?'))" 2>/dev/null || echo "(skip fns scan)"
 
 step "5. Dashboard — sankey + timemachine"
 curl -sf "${AUTH[@]}" "$API/dashboard/sankey" | python3 -c "import sys,json; d=json.load(sys.stdin); print('nodes:', len(d.get('nodes',[])))" 2>/dev/null || echo "FAIL sankey"
