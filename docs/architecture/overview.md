@@ -12,10 +12,10 @@ API: `api-gateway:8000` → микросервисы.
 | Слой | Технология | Ветка |
 |------|------------|-------|
 | **Backend** | Go **1.25** (chi, pgx, segmentio/kafka-go, go-jwt, oauth2) | `back` |
-| **AI / enrichment** | Go `ai-processor` + YandexGPT (категоризация, голос/ручной ввод) | `back` |
+| **AI / enrichment** | Go `ai-processor` + OnlySQ (категоризация, голос/ручной ввод) | `back` |
 | **Analytics** | Go `analytics-service` (insights, forecast, scenarios) | `back` |
 | **Frontend** | **Nuxt 4.3** (Vue 3, Pinia, Tailwind, ECharts, PWA) | `front` |
-| **Scraping / ingest** | scraper-service: FNS, MCO, X5, Magnit, email/IMAP | `back` |
+| **Scraping / ingest** | scraper-service: FNS| `back` |
 | **Infra** | Docker Compose: PG 18, CH 25.12, Redis 8.8, Kafka 4.0.2, Garage S3 | `back` |
 | **Auth** | JWT HS256, OAuth Яндекс/Mail.ru (email receipts) | `back` |
 
