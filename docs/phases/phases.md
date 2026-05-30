@@ -7,13 +7,13 @@
 |---|------|-------------|--------|
 | **0** | Docs, CI, scope trim | Блокер | ✅ |
 | **1** | Infra + Auth + gateway | Блокер | ✅ |
-| **2** | Ingest расходов: голос, ручной, **ФНС** | Блокер | ✅ / 🟡 |
+| **2** | Ingest расходов: голос, ручной, **ФНС** | Блокер | ✅ |
 | **3** | Receipt pipeline (Kafka) + dashboard API | Блокер | ✅ |
 | **4** | Profile + onboarding (skip-flags, goal в profile) | Ключевая | ✅ |
 | **5** | Credits PDF-only + rates benchmark | Ключевая | ✅ |
 | **6** | **Финансовый ИИ-советник** | Ключевая | ✅ |
 | **7** | Dashboard UX: mega-plan, narrative, advisor UI | WOW | ✅ |
-| **8** | Demo polish + ипотечный сценарий | Финал | 🟡 |
+| **8** | Demo polish + ипотечный сценарий | Финал | ✅ |
 
 **Out of scope (не фазы):** X5 Club, Magnit, LK ритейлеров, social/challenges — см. [scope.md](../product/scope.md). Код X5/Magnit в `scraper-service` — legacy, не продуктовый ingest.
 
@@ -130,26 +130,22 @@ flowchart LR
 | `useInsights` → `GET /insights` | ✅ |
 | `useAdvisorChat` → `POST /ai/chat` (local fallback при ошибке) | ✅ |
 | Dashboard: один источник diagnosis (из plan), без дублирующих fetch | ✅ |
-| Charts/timemachine в demo — `apiFetchWithDemo` (отдельно от advisor) | 🟡 |
-
-**Осталось:** polish narrative, scenario UX, demo tour — см. фазу 8.
+| Charts/timemachine — API first, mock только при ошибке | ✅ |
 
 ---
 
-## Фаза 8 — Demo polish (актуальные задачи)
+## Фаза 8 — Demo polish
 
 | Задача | Статус |
 |--------|--------|
-| `/onboarding` wizard | ✅ |
-| Кнопка «Добавить» → голос / чек / ФНС | ✅ (photo tab — stub) |
-| Narrative на dashboard | ✅ + tour `[data-demo="narrative"]` |
-| Seed + `demo_flow.sh` (profile, AI, mortgage, FNS) | ✅ |
-| Ипотечный сценарий — `POST /credits/mortgage/analyze` | ✅ |
-| Demo tour (`?tour=1`) — narrative, add, mortgage, banks | ✅ |
+| `/onboarding` wizard + summary из `/ai/diagnosis` | ✅ |
+| «Добавить» → голос / ручной / ФНС QR / фото QR / MCO | ✅ |
+| Narrative + demo tour | ✅ |
+| Seed + `demo_flow.sh` | ✅ |
+| Ипотечный разбор API | ✅ |
+| `POST /receipt/fns/scan` | ✅ |
 
-**Осталось:** photo receipt tab, FNS MCO OAuth, onboarding summary из `/ai/diagnosis`.
-
-**Не в demo:** social, auction — [гипотезы](../features/social.md).
+**Не в MVP:** social, auction — [гипотезы](../features/social.md).
 
 ---
 
