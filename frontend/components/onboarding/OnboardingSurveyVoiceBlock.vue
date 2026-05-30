@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { OnboardingDraft } from '~/types/api'
 import { getVoiceQuestionForSurveyStep } from '~/constants/onboardingSurvey'
+import { isMeaningfulOnboardingPatch } from '~/utils/onboardingVoiceValidation'
 
 const props = defineProps<{
   surveyStep: number
@@ -9,7 +10,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   patch: [partial: Partial<OnboardingDraft>]
-  answered: [text: string]
 }>()
 
 const { parsing, parseStep } = useOnboardingParse()
@@ -67,33 +67,13 @@ async function submitAnswer(rawText: string) {
   parseError.value = ''
   try {
     const patch = await parseStep(question.value.id, text)
-    if (!isMeaningfulPatch(question.value.id, patch)) {
+    if (!isMeaningfulOnboardingPatch(question.value.id, patch)) {
       parseError.value = 'Не удалось разобрать ответ. Попробуйте иначе или введите вручную.'
       return
     }
     emit('patch', patch)
-    emit('answered', text)
   } catch {
     parseError.value = 'Не удалось разобрать ответ. Повторите или введите вручную.'
-  }
-}
-
-function isMeaningfulPatch(
-  step: string,
-  patch: Partial<OnboardingDraft>
-): boolean {
-  if (!patch || Object.keys(patch).length === 0) return false
-  switch (step) {
-    case 'income':
-      return (patch.active_income ?? 0) > 0 || (patch.passive_income ?? 0) > 0
-    case 'cushion':
-      return (patch.emergency_fund ?? 0) > 0
-    case 'goal':
-      return (patch.goal_amount ?? 0) >= 1000
-    case 'expenses':
-      return Boolean(patch.skipped_expenses) || (patch.fixed_expenses?.length ?? 0) > 0
-    default:
-      return Object.keys(patch).length > 0
   }
 }
 

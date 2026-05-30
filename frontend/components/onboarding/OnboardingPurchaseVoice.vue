@@ -9,21 +9,12 @@ const emit = defineEmits<{
   done: []
 }>()
 
-const {
-  status,
-  errorMessage,
-  supported,
-  start,
-  stop,
-  reset
-} = useAudioRecorder()
-
+const transcript = ref('')
+const listening = ref(false)
+const speechSupported = ref(false)
 const submitError = ref('')
-const parseError = ref('')
-const { transcribing, lastTranscript, transcribeAudio, clearLastTranscript } = useVoiceTranscribe()
-const { submitting, submitVoiceTranscript, lastResult } = useReceiptSubmit()
 
-const busy = computed(() => submitting.value || transcribing.value)
+const { submitting, submitVoiceTranscript, lastResult } = useReceiptSubmit()
 
 const addedHint = computed(() => {
   const res = lastResult.value
@@ -34,130 +25,132 @@ const addedHint = computed(() => {
   return `${res.store} — ${res.amount.toLocaleString('ru-RU')} ₽ · ${res.category}`
 })
 
-async function toggleRecording() {
-  if (busy.value) return
-  if (status.value === 'recording') {
-    const audio = await stop()
-    if (!audio || audio.size === 0) return
-    await processAudio(audio)
+type SpeechRecognitionCtor = new () => {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  start: () => void
+  stop: () => void
+  abort: () => void
+  onresult: ((event: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null
+  onend: (() => void) | null
+  onerror: (() => void) | null
+}
+
+let recognition: InstanceType<SpeechRecognitionCtor> | null = null
+
+function toggleListen() {
+  if (!recognition || submitting.value) return
+  if (listening.value) {
+    recognition.stop()
     return
   }
   submitError.value = ''
-  parseError.value = ''
-  clearLastTranscript()
-  reset()
-  await start()
+  transcript.value = ''
+  listening.value = true
+  recognition.start()
 }
 
-async function processAudio(audio: Blob) {
+async function submitPhrase(rawText: string) {
+  const text = rawText.trim()
+  if (!text || submitting.value) return
   submitError.value = ''
-  parseError.value = ''
   try {
-    const text = await transcribeAudio(audio, PURCHASE_VOICE_EXAMPLES[0])
-    await submitTranscript(text)
-  } catch (e) {
-    clearLastTranscript()
-    const code = (e as { statusCode?: number })?.statusCode
-    if (code === 503) {
-      parseError.value =
-        'Сервис распознавания речи недоступен. Запустите Whisper или выберите пример ниже.'
-    } else {
-      parseError.value = e instanceof Error ? e.message : 'Не удалось распознать голос'
-    }
-  }
-}
-
-async function submitTranscript(text: string) {
-  const trimmed = text.trim()
-  if (!trimmed) {
-    parseError.value = 'Не расслышали — попробуйте ещё раз или выберите пример.'
-    return
-  }
-  try {
-    await submitVoiceTranscript(trimmed)
+    await submitVoiceTranscript(text)
     emit('done')
   } catch (e) {
-    const code = (e as { statusCode?: number })?.statusCode
-    if (code === 503) {
-      submitError.value = 'Сервис обработки речи недоступен.'
-    } else {
-      submitError.value = e instanceof Error ? e.message : 'Не удалось добавить покупку'
-    }
+    submitError.value = e instanceof Error ? e.message : 'Не удалось добавить покупку'
   }
 }
 
 function pickExample(example: string) {
-  reset()
-  clearLastTranscript()
-  void submitTranscript(example)
+  void submitPhrase(example)
 }
+
+onMounted(() => {
+  if (!import.meta.client) return
+  const win = window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor }
+  const SR = win.SpeechRecognition ?? win.webkitSpeechRecognition
+  speechSupported.value = Boolean(SR)
+  if (SR) {
+    recognition = new SR()
+    recognition.lang = 'ru-RU'
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.onresult = (event) => {
+      let chunk = ''
+      for (let i = 0; i < event.results.length; i++) {
+        chunk += event.results[i]?.[0]?.transcript ?? ''
+      }
+      transcript.value = chunk.trim()
+    }
+    recognition.onend = () => {
+      const wasListening = listening.value
+      listening.value = false
+      if (!wasListening) return
+      const said = transcript.value.trim()
+      if (said) void submitPhrase(said)
+    }
+    recognition.onerror = () => {
+      listening.value = false
+    }
+  }
+})
+
+onUnmounted(() => {
+  recognition?.abort()
+})
 </script>
 
 <template>
   <div class="space-y-4">
     <p class="text-center text-sm leading-relaxed text-[color:var(--mm-text)]">
-      Скажите, что купили — Поток разберёт сумму и категорию.
+      Скажите, что купили — как в опросе: нажмите микрофон и говорите.
     </p>
 
-    <div class="flex justify-center py-2">
-      <button
-        type="button"
-        class="mm-onb-mic-orb-hit mm-onb-mic-orb-hit--preview border-0 bg-transparent p-0"
-        :class="{
-          'mm-onb-mic-orb-hit--listen': status === 'recording' && !busy,
-          'mm-onb-mic-orb-hit--parse': busy && status !== 'recording'
-        }"
-        :disabled="!supported || busy"
-        :aria-pressed="status === 'recording'"
-        :aria-label="status === 'recording' ? 'Остановить и отправить' : 'Нажмите и скажите покупку'"
-        @click="toggleRecording"
-      >
-        <OnboardingMicOrbVisual
-          :listening="status === 'recording'"
-          :parsing="busy"
-          compact
-          gentle
-          :ambient="status !== 'recording' && !busy"
-        />
-      </button>
+    <div v-if="speechSupported" class="mm-onboarding-voice__hero flex justify-center py-2">
+      <OnboardingMicOrb
+        :listening="listening"
+        :parsing="submitting"
+        label="Нажмите микрофон и назовите покупку"
+        @click="toggleListen"
+      />
     </div>
 
-    <p class="text-center text-xs text-[color:var(--mm-text-muted)]">
-      {{
-        busy
-          ? 'Распознаём…'
-          : status === 'recording'
-            ? 'Поток слушает — нажмите ещё раз, чтобы отправить'
-            : supported
-              ? 'Нажмите на орб, скажите покупку и нажмите ещё раз'
-              : 'Голос недоступен — выберите пример ниже'
-      }}
+    <p
+      v-else
+      class="text-center text-sm text-[color:var(--mm-text-muted)]"
+    >
+      Голос недоступен в этом браузере — выберите пример:
     </p>
 
-    <p v-if="errorMessage" class="text-center text-xs text-destructive">{{ errorMessage }}</p>
-    <p v-if="submitError" class="text-center text-xs text-destructive">{{ submitError }}</p>
-
-    <p v-if="lastTranscript && !parseError" class="mm-onb-transcript-bubble">
-      «{{ lastTranscript }}»
+    <p
+      v-if="listening && transcript"
+      class="mm-onb-transcript-bubble"
+    >
+      «{{ transcript }}»
     </p>
 
-    <p v-if="parseError" class="text-center text-sm text-destructive">{{ parseError }}</p>
+    <p v-if="submitError" class="text-center text-sm text-destructive">{{ submitError }}</p>
 
     <div
-      v-if="addedHint && !busy"
+      v-if="addedHint && !submitting"
       class="rounded-xl border border-[color:var(--mm-primary)]/25 bg-[color:var(--mm-primary-soft)]/60 px-4 py-3 text-center text-sm text-[color:var(--mm-text)]"
     >
       <span class="font-medium text-[color:var(--mm-primary)]">Записали: </span>
       {{ addedHint }}
     </div>
 
-    <div v-if="!addedHint && (!supported || parseError)" class="flex flex-wrap justify-center gap-2">
+    <div
+      v-if="!addedHint && (!speechSupported || submitError)"
+      class="mm-onboarding-voice__chips flex flex-wrap justify-center gap-2"
+    >
       <button
         v-for="example in PURCHASE_VOICE_EXAMPLES"
         :key="example"
         type="button"
         class="mm-onb-chip"
-        :disabled="busy"
+        :disabled="submitting"
         @click="pickExample(example)"
       >
         {{ example }}
