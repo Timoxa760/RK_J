@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,6 +15,8 @@ import (
 )
 
 const demoSMSCode = "0000"
+
+const defaultAccessTokenTTL = 4 * time.Hour
 
 // LoginRequest — тело POST /api/v1/auth/login (API_Contract).
 type LoginRequest struct {
@@ -95,12 +99,13 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	secret := getJWTSecret()
+	accessTTL := accessTokenTTL()
 	userID := phone
 
 	accessClaims := jwt.MapClaims{
 		"sub": userID,
 		"iat": time.Now().Unix(),
-		"exp": time.Now().Add(15 * time.Minute).Unix(),
+		"exp": time.Now().Add(accessTTL).Unix(),
 		"typ": "access",
 	}
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(secret))
@@ -126,7 +131,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		AccessToken:  accessToken,
 		Token:        accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    900,
+		ExpiresIn:    int(accessTTL.Seconds()),
 		User: LoginUser{
 			ID:    userID,
 			Phone: phone,
@@ -146,4 +151,18 @@ func getJWTSecret() string {
 		return s
 	}
 	return "money-mind-demo-secret-key-2026"
+}
+
+func accessTokenTTL() time.Duration {
+	if raw := strings.TrimSpace(os.Getenv("JWT_ACCESS_TTL")); raw != "" {
+		if d, err := time.ParseDuration(raw); err == nil && d > 0 {
+			return d
+		}
+	}
+	if mins := strings.TrimSpace(os.Getenv("JWT_ACCESS_TTL_MINUTES")); mins != "" {
+		if n, err := strconv.Atoi(mins); err == nil && n > 0 {
+			return time.Duration(n) * time.Minute
+		}
+	}
+	return defaultAccessTokenTTL
 }

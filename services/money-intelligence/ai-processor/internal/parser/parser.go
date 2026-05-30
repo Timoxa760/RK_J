@@ -2,95 +2,94 @@ package parser
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
+
+	"backend_project/internal/rublang"
 )
 
 type ParsedExpense struct {
 	Amount      float64
 	Category    string
 	Description string
+	Store       string
 }
 
-var (
-	amountRe      = regexp.MustCompile(`(\d+(?:[\s.,]?\d*)?)\s*(?:тыщ|тысяч|тысячи|руб|₽|рублей|рубля)?`)
-	amountOnlyRe   = regexp.MustCompile(`^\d+$`)
-	amountCleanRe = regexp.MustCompile(`[\s.,]`)
-)
+var nonLettersRe = regexp.MustCompile(`[^a-zа-яё0-9]+`)
+
+var storePatterns = []struct {
+	match func(string) bool
+	name  string
+}{
+	{
+		match: func(n string) bool {
+			return strings.Contains(n, "пятероч") ||
+				strings.Contains(n, "терочк") ||
+				strings.Contains(n, "spiteroc") ||
+				strings.Contains(n, "piteroc")
+		},
+		name: "Пятёрочка",
+	},
+	{match: func(n string) bool { return strings.Contains(n, "перекрест") }, name: "Перекрёсток"},
+	{match: func(n string) bool { return strings.Contains(n, "магнит") }, name: "Магнит"},
+	{match: func(n string) bool { return strings.Contains(n, "lenta") || strings.Contains(n, "лента") }, name: "Лента"},
+	{match: func(n string) bool { return strings.Contains(n, "ашан") || strings.Contains(n, "auchan") }, name: "Ашан"},
+	{match: func(n string) bool { return strings.Contains(n, "dixi") || strings.Contains(n, "diksi") || strings.Contains(n, "дикси") }, name: "Дикси"},
+}
 
 var categoryWords = []struct {
 	keyword string
 	cat     string
 }{
-	{"зарплата", "Доход"},
-	{"аванс", "Доход"},
-	{"зп", "Доход"},
-	{"получил", "Доход"},
+	{"пятёроч", "Продукты"},
+	{"пятероч", "Продукты"},
+	{"терочк", "Продукты"},
+	{"перекрест", "Продукты"},
+	{"магнит", "Продукты"},
+	{"лента", "Продукты"},
+	{"ашан", "Продукты"},
+	{"дикси", "Продукты"},
 	{"продукт", "Продукты"},
 	{"еда", "Продукты"},
 	{"продукты", "Продукты"},
 	{"кофе", "Кафе и рестораны"},
 	{"кафе", "Кафе и рестораны"},
 	{"ресторан", "Кафе и рестораны"},
-	{"столовая", "Кафе и рестораны"},
-	{"доставка", "Доставка"},
 	{"такси", "Транспорт"},
 	{"бензин", "Транспорт"},
 	{"транспорт", "Транспорт"},
-	{"метро", "Транспорт"},
-	{"автобус", "Транспорт"},
-	{"проезд", "Транспорт"},
-	{"подписк", "Подписки"},
-	{"инет", "Подписки"},
-	{"интернет", "Подписки"},
-	{"связь", "Подписки"},
-	{"телефон", "Подписки"},
-	{"коммуналк", "ЖКХ"},
-	{"жкх", "ЖКХ"},
-	{"квартир", "ЖКХ"},
-	{"электричеств", "ЖКХ"},
-	{"развлечен", "Развлечения"},
-	{"кино", "Развлечения"},
-	{"игр", "Развлечения"},
-	{"кредит", "Кредиты"},
-	{"ипотек", "Кредиты"},
-	{"долг", "Кредиты"},
-	{"здоровь", "Здоровье"},
-	{"аптек", "Здоровье"},
-	{"врач", "Здоровье"},
-	{"лекарств", "Здоровье"},
-	{"спорт", "Здоровье"},
-	{"одежд", "Одежда"},
-	{"обувь", "Одежда"},
-	{"проебал", "Прочие расходы"},
-	{"потерял", "Прочие расходы"},
-	{"сломал", "Прочие расходы"},
-	{"ремонт", "Прочие расходы"},
-	{"подарк", "Прочие расходы"},
 	{"купил", "Прочие расходы"},
-	{"прочее", "Прочие расходы"},
 }
 
+var storeWords = []struct {
+	keyword string
+	name    string
+}{
+	{"пятёроч", "Пятёрочка"},
+	{"пятероч", "Пятёрочка"},
+	{"перекрест", "Перекрёсток"},
+	{"магнит", "Магнит"},
+	{"лента", "Лента"},
+	{"ашан", "Ашан"},
+	{"дикси", "Дикси"},
+}
+
+// normalizeFuzzy приводит текст к виду для нечёткого поиска магазинов (Whisper-опечатки).
+func normalizeFuzzy(text string) string {
+	text = strings.ToLower(text)
+	text = strings.ReplaceAll(text, "ё", "е")
+	text = nonLettersRe.ReplaceAllString(text, "")
+	return text
+}
+
+// Parse извлекает сумму, категорию и короткое название из текста (regex fallback для voice/manual).
 func Parse(rawText string) *ParsedExpense {
-	text := strings.ToLower(strings.TrimSpace(rawText))
+	text := rublang.Normalize(rawText)
 	if text == "" {
 		return nil
 	}
 
-	if amountOnlyRe.MatchString(text) {
-		amt, _ := strconv.ParseFloat(text, 64)
-		return &ParsedExpense{Amount: amt, Category: "Прочие расходы", Description: rawText}
-	}
-
-	m := amountRe.FindStringSubmatch(text)
-	if m == nil {
-		return nil
-	}
-
-	rawAmt := strings.TrimSpace(m[1])
-	rawAmt = amountCleanRe.ReplaceAllString(rawAmt, "")
-	amount, _ := strconv.ParseFloat(rawAmt, 64)
-	if amount == 0 {
+	amount, ok := rublang.ExtractPrimary(rawText)
+	if !ok || amount == 0 {
 		return nil
 	}
 
@@ -102,11 +101,38 @@ func Parse(rawText string) *ParsedExpense {
 		}
 	}
 
-	desc := strings.TrimSpace(rawText)
+	store := detectStore(text)
+	desc := shortDescription(store, category)
 
 	return &ParsedExpense{
 		Amount:      amount,
 		Category:    category,
 		Description: desc,
+		Store:       store,
 	}
+}
+
+func shortDescription(store, category string) string {
+	if store != "" {
+		return store
+	}
+	if category != "" && category != "Прочие расходы" {
+		return category
+	}
+	return "Покупка"
+}
+
+func detectStore(text string) string {
+	n := normalizeFuzzy(text)
+	for _, sp := range storePatterns {
+		if sp.match(n) {
+			return sp.name
+		}
+	}
+	for _, sw := range storeWords {
+		if strings.Contains(text, sw.keyword) {
+			return sw.name
+		}
+	}
+	return ""
 }

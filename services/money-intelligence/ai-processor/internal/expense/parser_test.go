@@ -16,6 +16,17 @@ func TestParser_RegexSingle(t *testing.T) {
 	}
 }
 
+func TestParser_VoiceSlang(t *testing.T) {
+	p := NewParser(nil)
+	res := p.Parse(context.Background(), ParseInput{RawText: "вышел с пятерочки, оставил 10 тыщ"})
+	if len(res.Expenses) != 1 || res.Expenses[0].Amount != 10000 {
+		t.Fatalf("unexpected %+v", res)
+	}
+	if res.Expenses[0].Category != "Продукты" {
+		t.Fatalf("category=%q", res.Expenses[0].Category)
+	}
+}
+
 func TestParser_ExplicitAmount(t *testing.T) {
 	p := NewParser(nil)
 	res := p.Parse(context.Background(), ParseInput{Amount: 1200, Category: "Транспорт"})

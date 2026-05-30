@@ -12,6 +12,7 @@ if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Path $dataDir | O
 
 $env:DEMO_MODE = "false"
 $env:JWT_SECRET = "test-secret"
+$env:JWT_ACCESS_TTL = "4h"
 $env:DATABASE_URL = "postgres://postgres:postgres@127.0.0.1:5432/moneymind?sslmode=disable"
 $env:EXPENSE_STORE_PATH = Join-Path $dataDir "expenses.json"
 
@@ -28,7 +29,7 @@ $env:CLICKHOUSE_DB = "default"
 # OnlySQ и Whisper — опционально; без ключей manual работает через regex
 $env:ONLYSQ_BASE_URL = "https://api.onlysq.ru/v1"
 if (-not $env:ONLYSQ_API_KEY) { $env:ONLYSQ_API_KEY = "" }
-$env:WHISPER_URL = "http://127.0.0.1:9001/v1/audio/transcriptions"
+$env:WHISPER_URL = "http://127.0.0.1:9001"
 
 # URL upstream-сервисов для api-gateway (локальный запуск без Docker DNS)
 $env:USER_SERVICE_URL = "http://127.0.0.1:8001"

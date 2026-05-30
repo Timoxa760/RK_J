@@ -21,6 +21,7 @@ import (
 	"backend_project/services/money-intelligence/ai-processor/internal/clickhouse"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
 	"backend_project/services/money-intelligence/ai-processor/internal/manual"
+	"backend_project/services/money-intelligence/ai-processor/internal/onboarding"
 	"backend_project/services/money-intelligence/ai-processor/internal/receipt"
 	svckafka "backend_project/services/money-intelligence/ai-processor/internal/kafka"
 	"backend_project/services/money-intelligence/ai-processor/internal/voice"
@@ -140,6 +141,12 @@ func main() {
 	receiptHandler := receipt.NewHandler(whisperClient, proc)
 	r.Post("/api/v1/receipt/manual", receiptHandler.ManualCreate)
 	r.Post("/api/v1/receipt/voice", receiptHandler.VoiceCreate)
+
+	voiceHandler := voice.NewHandler(whisperClient, proc)
+	r.Post("/api/v1/voice/transcribe", voiceHandler.Transcribe)
+
+	onboardingHandler := onboarding.NewHandler()
+	r.Post("/api/v1/onboarding/parse", onboardingHandler.Parse)
 
 	srv := &http.Server{
 		Addr:         ":" + port,

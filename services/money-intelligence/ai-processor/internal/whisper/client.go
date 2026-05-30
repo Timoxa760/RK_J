@@ -14,11 +14,19 @@ import (
 
 const maxAudioBytes = 10 << 20
 
-// Client — HTTP-клиент OpenAI-совместимого Whisper API.
+type apiMode int
+
+const (
+	modeOpenAI apiMode = iota
+	modeASR
+)
+
+// Client — HTTP-клиент транскрипции (OpenAI или whisper-asr-webservice /asr).
 type Client struct {
 	url        string
 	apiKey     string
 	model      string
+	mode       apiMode
 	httpClient *http.Client
 }
 
@@ -27,10 +35,16 @@ func NewClient(url, apiKey, model string) *Client {
 	if model == "" {
 		model = "whisper-1"
 	}
+	url = strings.TrimSpace(url)
+	mode := modeASR
+	if strings.Contains(url, "/v1/audio/transcriptions") {
+		mode = modeOpenAI
+	}
 	return &Client{
-		url:    strings.TrimSpace(url),
+		url:    url,
 		apiKey: strings.TrimSpace(apiKey),
 		model:  model,
+		mode:   mode,
 		httpClient: &http.Client{
 			Timeout: 90 * time.Second,
 		},
@@ -40,6 +54,17 @@ func NewClient(url, apiKey, model string) *Client {
 // Enabled возвращает true, если задан URL сервиса.
 func (c *Client) Enabled() bool {
 	return c != nil && c.url != ""
+}
+
+func (c *Client) requestURL() string {
+	if c.mode == modeOpenAI {
+		return c.url
+	}
+	if strings.Contains(c.url, "/asr") {
+		return c.url
+	}
+	base := strings.TrimRight(c.url, "/")
+	return base + "/asr?output=json&language=ru&task=transcribe"
 }
 
 // Transcribe отправляет аудио и возвращает текст.
@@ -54,22 +79,29 @@ func (c *Client) Transcribe(ctx context.Context, filename string, audio []byte) 
 		return "", fmt.Errorf("whisper: file too large")
 	}
 
+	fieldName := "file"
+	if c.mode == modeASR {
+		fieldName = "audio_file"
+	}
+
 	var body bytes.Buffer
 	w := multipart.NewWriter(&body)
-	part, err := w.CreateFormFile("file", filename)
+	part, err := w.CreateFormFile(fieldName, filename)
 	if err != nil {
 		return "", fmt.Errorf("whisper: form file: %w", err)
 	}
 	if _, err := part.Write(audio); err != nil {
 		return "", fmt.Errorf("whisper: write audio: %w", err)
 	}
-	_ = w.WriteField("model", c.model)
-	_ = w.WriteField("language", "ru")
+	if c.mode == modeOpenAI {
+		_ = w.WriteField("model", c.model)
+		_ = w.WriteField("language", "ru")
+	}
 	if err := w.Close(); err != nil {
 		return "", fmt.Errorf("whisper: close form: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.requestURL(), &body)
 	if err != nil {
 		return "", fmt.Errorf("whisper: request: %w", err)
 	}
@@ -92,15 +124,29 @@ func (c *Client) Transcribe(ctx context.Context, filename string, audio []byte) 
 		return "", fmt.Errorf("whisper: status %d: %s", resp.StatusCode, string(raw))
 	}
 
-	var parsed struct {
-		Text string `json:"text"`
+	text, err := parseTranscript(raw)
+	if err != nil {
+		return "", err
 	}
-	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return "", fmt.Errorf("whisper: decode: %w", err)
-	}
-	text := strings.TrimSpace(parsed.Text)
 	if text == "" {
 		return "", fmt.Errorf("whisper: empty transcript")
 	}
 	return text, nil
+}
+
+func parseTranscript(raw []byte) (string, error) {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" {
+		return "", nil
+	}
+	if strings.HasPrefix(trimmed, "{") {
+		var parsed struct {
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal(raw, &parsed); err != nil {
+			return "", fmt.Errorf("whisper: decode: %w", err)
+		}
+		return strings.TrimSpace(parsed.Text), nil
+	}
+	return trimmed, nil
 }

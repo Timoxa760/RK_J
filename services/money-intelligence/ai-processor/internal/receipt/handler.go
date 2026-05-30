@@ -141,15 +141,15 @@ func (h *Handler) VoiceCreate(w http.ResponseWriter, r *http.Request) {
 func mapVoiceResponse(resp manual.CreateResponse, transcript string) VoiceResponse {
 	items := make([]VoiceLineItem, 0, len(resp.Expenses))
 	var total float64
-	store := "Магазин"
+	store := ""
 
 	for _, e := range resp.Expenses {
 		name := strings.TrimSpace(e.Description)
-		if name == "" {
+		if name == "" || len(name) > 80 {
 			name = e.Category
 		}
 		if name == "" {
-			name = "Позиция"
+			name = "Покупка"
 		}
 		items = append(items, VoiceLineItem{
 			Name:     name,
@@ -158,9 +158,12 @@ func mapVoiceResponse(resp manual.CreateResponse, transcript string) VoiceRespon
 			Category: e.Category,
 		})
 		total += e.Amount
-		if store == "Магазин" && e.Description != "" {
-			store = e.Description
+		if store == "" && name != "" && len(name) <= 40 {
+			store = name
 		}
+	}
+	if store == "" {
+		store = "Покупка"
 	}
 	if total == 0 {
 		total = resp.Amount

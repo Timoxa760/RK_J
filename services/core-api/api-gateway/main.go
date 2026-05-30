@@ -36,6 +36,8 @@ var routes = []route{
 	{prefix: "/api/v1/goals/",      target: svcURL("GOAL_SERVICE_URL", "http://goal-service:8006")},
 	{prefix: "/api/v1/expenses/",   target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/receipt/",    target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
+	{prefix: "/api/v1/voice/",      target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
+	{prefix: "/api/v1/onboarding/", target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/insights/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/scenarios/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/forecast/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},

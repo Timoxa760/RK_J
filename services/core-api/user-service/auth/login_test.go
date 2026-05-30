@@ -36,8 +36,8 @@ func TestLogin_Success(t *testing.T) {
 	if resp.RefreshToken == "" {
 		t.Error("expected refresh_token")
 	}
-	if resp.ExpiresIn != 900 {
-		t.Errorf("expected 900s, got %d", resp.ExpiresIn)
+	if resp.ExpiresIn != int(defaultAccessTokenTTL.Seconds()) {
+		t.Errorf("expected %ds, got %d", int(defaultAccessTokenTTL.Seconds()), resp.ExpiresIn)
 	}
 	if resp.User.Phone != "+79991111111" || resp.User.Role != "user" {
 		t.Errorf("unexpected user: %+v", resp.User)
