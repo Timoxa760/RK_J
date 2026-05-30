@@ -14,6 +14,7 @@ import (
 
 	iroot "backend_project/internal/auth"
 	"backend_project/internal/creditstore"
+	"backend_project/internal/mortgage"
 	"backend_project/internal/onlysq"
 	"backend_project/internal/pdfextract"
 	"backend_project/internal/profile"
@@ -46,6 +47,7 @@ func NewHandler(credits *creditstore.FileStore, profiles *profile.FileStore, llm
 func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/credits/dashboard", h.dashboard)
 	r.Post("/api/v1/credits/scan", h.scan)
+	r.Post("/api/v1/credits/mortgage/analyze", h.analyzeMortgage)
 	r.Delete("/api/v1/credits/{id}", h.delete)
 }
 
@@ -83,6 +85,58 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	}
 	dash := h.credits.Dashboard(uid, h.monthlyIncome(uid), h.emergencyFund(uid))
 	writeJSON(w, http.StatusOK, dash)
+}
+
+type mortgageAnalyzeRequest struct {
+	MortgageAmount     float64 `json:"mortgage_amount"`
+	MonthlyIncome      float64 `json:"monthly_income"`
+	Savings            float64 `json:"savings"`
+	ExistingDTI        float64 `json:"existing_dti"`
+	StressTestMonths   float64 `json:"stress_test_months"`
+}
+
+func (h *Handler) analyzeMortgage(w http.ResponseWriter, r *http.Request) {
+	uid, err := h.userID(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	var req mortgageAnalyzeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.MortgageAmount <= 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "mortgage_amount required"})
+		return
+	}
+
+	income := req.MonthlyIncome
+	savings := req.Savings
+	dti := req.ExistingDTI
+	stress := req.StressTestMonths
+	existingPayments := float64(0)
+
+	if income <= 0 {
+		income = h.monthlyIncome(uid)
+	}
+	if savings <= 0 {
+		savings = h.emergencyFund(uid)
+	}
+	if dti <= 0 && income > 0 {
+		dash := h.credits.Dashboard(uid, income, savings)
+		dti = dash.DTI
+		stress = dash.StressTestMonths
+		existingPayments = dash.MonthlyPayments
+	}
+
+	bench, _ := h.rates.Fetch(r.Context(), "mortgage", req.MortgageAmount, 240)
+	resp := mortgage.BuildBreakdown(mortgage.AnalyzeInput{
+		MortgageAmount:   req.MortgageAmount,
+		MonthlyIncome:    income,
+		Savings:          savings,
+		ExistingDTI:      dti,
+		StressTestMonths: stress,
+		BenchmarkRate:    bench.BenchmarkRate,
+		ExistingPayments: existingPayments,
+	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {

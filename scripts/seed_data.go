@@ -55,7 +55,17 @@ var demoExpenses = []expense{
 func main() {
 	baseURL := os.Getenv("SEED_API_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8100"
+		baseURL = "http://localhost:8000"
+	}
+	api := baseURL + "/api/v1"
+	phone := envStr("SEED_DEMO_PHONE", "+79991234567")
+	code := envStr("SEED_DEMO_CODE", "0000")
+
+	token := login(api, phone, code)
+	if token != "" {
+		seedProfile(api, token)
+	} else {
+		log.Println("warn: no JWT — profile seed skipped")
 	}
 
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -70,7 +80,17 @@ func main() {
 		e.Source = "seed"
 
 		body, _ := json.Marshal(e)
-		resp, err := http.Post(baseURL+"/api/v1/expenses/manual", "application/json", bytes.NewReader(body))
+		req, err := http.NewRequest(http.MethodPost, api+"/expenses/manual", bytes.NewReader(body))
+		if err != nil {
+			log.Printf("error: %v", err)
+			continue
+		}
+		req.Header.Set("Content-Type", "application/json")
+		if token != "" {
+			req.Header.Set("Authorization", "Bearer "+token)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Printf("error: %s %s: %v", e.UserID, e.Description, err)
 			continue
@@ -88,4 +108,55 @@ func main() {
 	fmt.Println("\nseed complete!")
 }
 
-var _ = fmt.Sprintf
+func login(api, phone, code string) string {
+	body, _ := json.Marshal(map[string]string{"phone": phone, "code": code})
+	resp, err := http.Post(api+"/auth/login", "application/json", bytes.NewReader(body))
+	if err != nil {
+		log.Printf("login error: %v", err)
+		return ""
+	}
+	defer resp.Body.Close()
+	var out struct {
+		AccessToken string `json:"access_token"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&out) != nil || out.AccessToken == "" {
+		return ""
+	}
+	fmt.Println("demo profile seed: JWT ok")
+	return out.AccessToken
+}
+
+func seedProfile(api, token string) {
+	payload := map[string]any{
+		"active_income":          150_000,
+		"passive_income":         30_000,
+		"emergency_fund":         340_000,
+		"goal_title":             "Отпуск",
+		"goal_amount":            150_000,
+		"goal_kind":              "save",
+		"onboarding_completed":   true,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest(http.MethodPatch, api+"/users/me/profile", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("profile seed error: %v", err)
+		return
+	}
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		fmt.Println("demo profile seeded")
+	} else {
+		log.Printf("profile seed HTTP %d", resp.StatusCode)
+	}
+}
+
+func envStr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}

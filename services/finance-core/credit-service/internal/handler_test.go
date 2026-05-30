@@ -84,6 +84,35 @@ func TestScan_MissingFile(t *testing.T) {
 	}
 }
 
+func TestAnalyzeMortgage_OK(t *testing.T) {
+	credits, _ := creditstore.NewFileStore(t.TempDir())
+	profiles, _ := profile.NewFileStore(t.TempDir())
+	if err := profiles.Save("+79991234567", profile.FinancialProfile{
+		ActiveIncome: 150_000,
+		EmergencyFund: 340_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	h := NewHandler(credits, profiles, nil)
+
+	body := `{"mortgage_amount":12000000}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/credits/mortgage/analyze", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testToken(t, "+79991234567"))
+	w := httptest.NewRecorder()
+	h.analyzeMortgage(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp map[string]any
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp["approval_level"] == nil || resp["banks"] == nil {
+		t.Fatalf("incomplete response: %+v", resp)
+	}
+}
+
 func TestScan_DemoModeFallback(t *testing.T) {
 	t.Setenv("DEMO_MODE", "true")
 	credits, _ := creditstore.NewFileStore(t.TempDir())
