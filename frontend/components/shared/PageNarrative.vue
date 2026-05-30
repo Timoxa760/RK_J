@@ -42,7 +42,7 @@ const isHero = computed(
 </script>
 
 <template>
-  <section class="w-full" aria-label="Кратко о странице">
+  <section class="w-full" aria-label="Кратко о странице" data-demo="narrative">
     <div v-if="$slots.actions" class="mb-3 flex justify-center">
       <slot name="actions" />
     </div>

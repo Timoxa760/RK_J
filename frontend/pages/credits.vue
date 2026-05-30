@@ -17,6 +17,7 @@ const {
   scanResult,
   scanLoading,
   hasCredits,
+  canAnalyzeMortgage,
   fetchDashboard,
   scanContract
 } = useCredits()
@@ -30,7 +31,7 @@ const pageNarrative = computed(() => buildCreditsPageNarrative(dashboard.value, 
 
 onMounted(async () => {
   await fetchDashboard()
-  if (hasCredits.value && dashboard.value) {
+  if (canAnalyzeMortgage.value && dashboard.value) {
     await runMortgageAnalysis(mortgageAmount.value)
   }
 })
@@ -52,7 +53,7 @@ function onFileChange(event: Event) {
   const file = input.files?.[0]
   if (file) {
     void scanContract(file).then(() => {
-      if (hasCredits.value && dashboard.value) {
+      if (canAnalyzeMortgage.value && dashboard.value) {
         void runMortgageAnalysis(mortgageAmount.value)
       }
     })
@@ -77,11 +78,11 @@ function openFilePicker() {
 
     <Skeleton v-if="creditsLoading && !dashboard" class="h-[360px] w-full" />
 
-    <Card v-else-if="dashboard && !hasCredits" class="border-dashed">
+    <Card v-else-if="dashboard && !canAnalyzeMortgage" class="border-dashed">
       <CardHeader>
-        <CardTitle class="text-base">Загрузите кредитный договор</CardTitle>
+        <CardTitle class="text-base">Нужен доход для ипотечного разбора</CardTitle>
         <CardDescription>
-          Данные по кредитам появятся после PDF-скана. До этого DTI и список обязательств пусты.
+          Заполните доход в онбординге или профиле — или загрузите PDF кредитного договора для DTI.
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
@@ -99,18 +100,16 @@ function openFilePicker() {
           <p><strong>Банк:</strong> {{ scanResult.parsed.bank }}</p>
           <p><strong>Ставка:</strong> {{ scanResult.parsed.rate }}%</p>
           <p><strong>Платёж:</strong> {{ scanResult.parsed.monthly_payment.toLocaleString('ru-RU') }} ₽</p>
-          <p v-if="scanResult.rate_vs_market" class="text-xs text-muted-foreground">
-            vs рынок: {{ scanResult.rate_vs_market }}
-          </p>
         </div>
       </CardContent>
     </Card>
 
-    <template v-else-if="dashboard && hasCredits">
-      <CreditsHealthCards :dashboard="dashboard" />
+    <template v-else-if="dashboard && canAnalyzeMortgage">
+      <CreditsHealthCards v-if="hasCredits" :dashboard="dashboard" />
 
       <CreditsMortgageAnalyzerForm
         v-model:amount="mortgageAmount"
+        data-demo="mortgage-form"
         :monthly-income="dashboard.monthly_income"
         :savings="dashboard.savings"
         :loading="mortgageLoading"
@@ -125,7 +124,7 @@ function openFilePicker() {
         </section>
       </template>
 
-      <Card>
+      <Card v-if="hasCredits">
         <CardHeader>
           <CardTitle class="text-base">Текущие кредиты</CardTitle>
           <CardDescription>Учитываются при расчёте доли дохода на кредиты</CardDescription>
@@ -157,10 +156,18 @@ function openFilePicker() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card class="border-dashed">
         <CardHeader>
-          <CardTitle class="text-base">Добавить договор (PDF)</CardTitle>
-          <CardDescription>Загрузите ещё один PDF — обновим расчёт DTI</CardDescription>
+          <CardTitle class="text-base">
+            {{ hasCredits ? 'Добавить договор (PDF)' : 'Кредитный договор (PDF, опционально)' }}
+          </CardTitle>
+          <CardDescription>
+            {{
+              hasCredits
+                ? 'Загрузите ещё один PDF — обновим расчёт DTI'
+                : 'PDF уточнит DTI и список обязательств; ипотечный разбор уже доступен по доходу из профиля'
+            }}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Input type="file" accept="application/pdf" @change="onFileChange" />

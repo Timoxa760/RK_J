@@ -2,14 +2,16 @@
 import { isAppFeatureEnabled } from '~/constants/featureFlags'
 
 const ACTS = [
-  { path: '/dashboard', label: 'Советник', selector: '[data-demo="advisor-chat"]' },
+  { path: '/dashboard', label: 'Картина недели', selector: '[data-demo="narrative"]' },
   { path: '/dashboard', label: 'Финансовый план', selector: '[data-demo="financial-plan"]' },
+  { path: '/dashboard', label: 'Советник', selector: '[data-demo="advisor-chat"]' },
+  { path: '/dashboard', label: 'Добавить трату', selector: '[data-demo="add-expense"]' },
   { path: '/receipts', label: 'Лента чеков', selector: '[data-demo="receipts"]' },
-  { path: '/dashboard', label: 'Категории', selector: '[data-demo="categories"]' },
-  { path: '/dashboard', label: 'Советы', selector: '[data-demo="insights"]' },
-  { path: '/dashboard', label: 'Накопления', selector: '[data-demo="timemachine"]' },
   ...(isAppFeatureEnabled('creditsNav')
-    ? [{ path: '/credits', label: 'Кредиты', selector: '[data-demo="credits-dti"]' } as const]
+    ? [
+        { path: '/credits', label: 'Ипотека', selector: '[data-demo="mortgage-form"]' } as const,
+        { path: '/credits', label: 'Сравнение банков', selector: '[data-demo="bank-compare"]' } as const
+      ]
     : [])
 ] as const
 

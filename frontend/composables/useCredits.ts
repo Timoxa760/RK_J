@@ -21,6 +21,10 @@ export function useCredits() {
 
   const hasCredits = computed(() => (dashboard.value?.credits?.length ?? 0) > 0)
 
+  const canAnalyzeMortgage = computed(
+    () => (dashboard.value?.monthly_income ?? 0) > 0
+  )
+
   async function fetchDashboard() {
     loading.value = true
     error.value = null
@@ -61,6 +65,7 @@ export function useCredits() {
     scanResult,
     scanLoading,
     hasCredits,
+    canAnalyzeMortgage,
     fetchDashboard,
     scanContract,
     emptyDashboard

@@ -12,8 +12,8 @@
 | **4** | Profile + onboarding (skip-flags, goal в profile) | Ключевая | ✅ |
 | **5** | Credits PDF-only + rates benchmark | Ключевая | ✅ |
 | **6** | **Финансовый ИИ-советник** | Ключевая | ✅ |
-| **7** | Dashboard UX: mega-plan, narrative, advisor UI | WOW | 🟡 |
-| **8** | Demo polish + ипотечный сценарий | Финал | ⏳ |
+| **7** | Dashboard UX: mega-plan, narrative, advisor UI | WOW | ✅ |
+| **8** | Demo polish + ипотечный сценарий | Финал | 🟡 |
 
 **Out of scope (не фазы):** X5 Club, Magnit, LK ритейлеров, social/challenges — см. [scope.md](../product/scope.md). Код X5/Magnit в `scraper-service` — legacy, не продуктовый ingest.
 
@@ -138,11 +138,16 @@ flowchart LR
 
 ## Фаза 8 — Demo polish (актуальные задачи)
 
-1. **`/onboarding`** — wizard по [onboarding.md](../product/onboarding.md)
-2. Кнопка «Добавить» → голос / чек / ФНС
-3. Narrative на dashboard: ответы вместо голых графиков
-4. Seed + [demo_flow.sh](../deployment/scripts/demo_flow.sh)
-5. Ипотечный сценарий ([monetization.md](../product/monetization.md))
+| Задача | Статус |
+|--------|--------|
+| `/onboarding` wizard | ✅ |
+| Кнопка «Добавить» → голос / чек / ФНС | ✅ (photo tab — stub) |
+| Narrative на dashboard | ✅ + tour `[data-demo="narrative"]` |
+| Seed + `demo_flow.sh` (profile, AI, mortgage, FNS) | ✅ |
+| Ипотечный сценарий — `POST /credits/mortgage/analyze` | ✅ |
+| Demo tour (`?tour=1`) — narrative, add, mortgage, banks | ✅ |
+
+**Осталось:** photo receipt tab, FNS MCO OAuth, onboarding summary из `/ai/diagnosis`.
 
 **Не в demo:** social, auction — [гипотезы](../features/social.md).
 
