@@ -12,26 +12,61 @@ const emit = defineEmits<{
 }>()
 
 const { parsing, parseStep } = useOnboardingParse()
+const { transcribing, lastTranscript, transcribeAudio, clearLastTranscript } = useVoiceTranscribe()
 const parseError = ref('')
-const lastAnswer = ref('')
 
 const question = computed(() => getVoiceQuestionForSurveyStep(props.surveyStep))
 
-const { transcript, listening, speechSupported, toggleListen, clearTranscript } =
-  useOnboardingSpeech((text) => {
-    void submitAnswer(text)
-  })
+const {
+  status,
+  errorMessage,
+  supported,
+  start,
+  stop,
+  reset
+} = useAudioRecorder()
+
+const busy = computed(() => parsing.value || transcribing.value)
+
+async function toggleRecording() {
+  if (busy.value) return
+  if (status.value === 'recording') {
+    const audio = await stop()
+    if (!audio || audio.size === 0) return
+    parseError.value = ''
+    try {
+      const text = await transcribeAudio(audio, question.value?.examples[0])
+      await submitAnswer(text)
+    } catch (e) {
+      clearLastTranscript()
+      const status = (e as { statusCode?: number })?.statusCode
+      if (status === 503) {
+        parseError.value =
+          'Сервис распознавания речи недоступен. Запустите Whisper или выберите пример ниже.'
+      } else {
+        parseError.value = e instanceof Error ? e.message : 'Не удалось распознать голос'
+      }
+    }
+    return
+  }
+  parseError.value = ''
+  clearLastTranscript()
+  reset()
+  await start()
+}
 
 async function submitAnswer(rawText: string) {
-  if (!question.value || parsing.value) return
+  if (!question.value) return
   const text = rawText.trim()
-  if (!text) return
+  if (!text) {
+    parseError.value = 'Не расслышали — попробуйте ещё раз или выберите пример.'
+    return
+  }
 
   parseError.value = ''
-  lastAnswer.value = text
   try {
     const patch = await parseStep(question.value.id, text)
-    if (Object.keys(patch).length === 0) {
+    if (!isMeaningfulPatch(question.value.id, patch)) {
       parseError.value = 'Не удалось разобрать ответ. Попробуйте иначе или введите вручную.'
       return
     }
@@ -41,12 +76,36 @@ async function submitAnswer(rawText: string) {
   }
 }
 
+function isMeaningfulPatch(
+  step: string,
+  patch: Partial<OnboardingDraft>
+): boolean {
+  if (!patch || Object.keys(patch).length === 0) return false
+  switch (step) {
+    case 'income':
+      return (patch.active_income ?? 0) > 0 || (patch.passive_income ?? 0) > 0
+    case 'cushion':
+      return (patch.emergency_fund ?? 0) > 0
+    case 'goal':
+      return (patch.goal_amount ?? 0) >= 1000
+    case 'expenses':
+      return Boolean(patch.skipped_expenses) || (patch.fixed_expenses?.length ?? 0) > 0
+    default:
+      return Object.keys(patch).length > 0
+  }
+}
+
 function pickExample(example: string) {
-  clearTranscript()
+  reset()
   void submitAnswer(example)
 }
 
 const resultHint = computed(() => formatVoiceResult(props.surveyStep, props.draft))
+
+const displayTranscript = computed(() => {
+  if (lastTranscript.value) return lastTranscript.value
+  return ''
+})
 
 function formatRub(n: number) {
   return n.toLocaleString('ru-RU')
@@ -57,9 +116,18 @@ function formatVoiceResult(step: number, draft: OnboardingDraft): string | null 
     case 1:
       if (draft.active_income <= 0 && draft.passive_income <= 0) return null
       return `Основной доход ${formatRub(draft.active_income)} ₽/мес · ещё ${formatRub(draft.passive_income)} ₽/мес`
-    case 2:
+    case 2: {
       if (draft.emergency_fund <= 0) return null
+      const b = draft.emergency_breakdown
+      const parts: string[] = []
+      if (b.cash > 0) parts.push(`наличные ${formatRub(b.cash)} ₽`)
+      if (b.deposit > 0) parts.push(`вклад ${formatRub(b.deposit)} ₽`)
+      if (b.investments > 0) parts.push(`инвестиции ${formatRub(b.investments)} ₽`)
+      if (parts.length > 0) {
+        return `Запас ${formatRub(draft.emergency_fund)} ₽ (${parts.join(' · ')})`
+      }
       return `Запас ${formatRub(draft.emergency_fund)} ₽`
+    }
     case 3:
       if (draft.goal_amount < 1000) return null
       return `${draft.goal_title} — ${formatRub(draft.goal_amount)} ₽`
@@ -84,35 +152,40 @@ function formatVoiceResult(step: number, draft: OnboardingDraft): string | null 
     <div class="flex justify-center py-1">
       <button
         type="button"
-        class="mm-onb-mic-orb-hit mm-onb-mic-orb-hit--preview border-0 bg-transparent p-0"
-        :disabled="!speechSupported || parsing"
-        :aria-pressed="listening"
-        :aria-label="listening ? 'Остановить запись' : 'Нажмите и ответьте вслух'"
-        @click="toggleListen(parsing)"
+        class="mm-onb-mic-orb-hit border-0 bg-transparent p-0"
+        :class="{ 'mm-onb-mic-orb-hit--listen': status === 'recording' && !busy }"
+        :disabled="!supported || busy"
+        :aria-pressed="status === 'recording'"
+        :aria-label="status === 'recording' ? 'Остановить и отправить' : 'Нажмите и ответьте вслух'"
+        @click="toggleRecording"
       >
         <OnboardingMicOrbVisual
-          :listening="listening"
-          :parsing="parsing"
+          :listening="status === 'recording'"
+          :parsing="busy"
           compact
-          :ambient="!listening && !parsing"
+          :ambient="status !== 'recording' && !busy"
         />
       </button>
     </div>
 
     <p class="text-center text-xs text-[color:var(--mm-text-muted)]">
       {{
-        parsing
-          ? 'Записываем…'
-          : listening
-            ? 'Поток слушает'
-            : speechSupported
-              ? 'Нажмите на орб и расскажите'
+        busy
+          ? 'Распознаём…'
+          : status === 'recording'
+            ? 'Поток слушает — нажмите ещё раз, чтобы отправить'
+            : supported
+              ? 'Нажмите на орб, скажите ответ и нажмите ещё раз'
               : 'Голос недоступен — выберите пример ниже'
       }}
     </p>
 
-    <p v-if="listening && transcript" class="mm-onb-transcript-bubble">
-      «{{ transcript }}»
+    <p v-if="errorMessage" class="text-center text-xs text-destructive">
+      {{ errorMessage }}
+    </p>
+
+    <p v-if="displayTranscript && !parseError" class="mm-onb-transcript-bubble">
+      «{{ displayTranscript }}»
     </p>
 
     <p v-if="parseError" class="text-center text-sm text-destructive">
@@ -127,20 +200,20 @@ function formatVoiceResult(step: number, draft: OnboardingDraft): string | null 
       {{ resultHint }}
     </div>
 
-    <div v-if="!speechSupported || parseError" class="flex flex-wrap justify-center gap-2">
+    <div v-if="!supported || parseError" class="flex flex-wrap justify-center gap-2">
       <button
         v-for="example in question.examples"
         :key="example"
         type="button"
         class="mm-onb-chip"
-        :disabled="parsing"
+        :disabled="busy"
         @click="pickExample(example)"
       >
         {{ example }}
       </button>
     </div>
 
-    <p v-if="lastAnswer && resultHint" class="text-center text-xs text-[color:var(--mm-text-muted)]">
+    <p v-if="resultHint" class="text-center text-xs text-[color:var(--mm-text-muted)]">
       Можно перейти на «Вручную» и поправить цифры
     </p>
   </div>

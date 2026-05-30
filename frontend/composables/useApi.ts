@@ -30,8 +30,12 @@ export function useApi() {
     } catch (error: unknown) {
       const status = (error as { statusCode?: number })?.statusCode
       if (import.meta.client && status === 401) {
-        authStore.logout()
-        await navigateTo('/login')
+        const route = useRoute()
+        // На онбординге не выбрасываем на login — покажем toast вызывающему коду.
+        if (route.path !== '/onboarding') {
+          authStore.logout()
+          await navigateTo('/login')
+        }
       }
       throw error
     }

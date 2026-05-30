@@ -280,6 +280,10 @@ export interface ReceiptManualResponse {
   status: string
 }
 
+export interface VoiceTranscribeResponse {
+  text: string
+}
+
 export interface ReceiptVoiceResponse {
   receipt_id: string
   store: string

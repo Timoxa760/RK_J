@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PenLine, Receipt } from 'lucide-vue-next'
+import type { ReceiptManualResponse, ReceiptVoiceResponse } from '~/types/api'
 
 defineProps<{
   finishing: boolean
@@ -17,10 +18,21 @@ const tabOrder = ['voice', 'manual', 'fns'] as const
 
 const activeTabIndex = computed(() => tabOrder.indexOf(inputTab.value))
 
-const { submitting, submitManual, submitVoiceAudio } = useReceiptSubmit()
+const { submitting, submitManual, lastResult } = useReceiptSubmit()
 
-async function onVoice(audio: Blob) {
-  await submitVoiceAudio(audio)
+const addedPurchaseHint = computed(() => formatPurchaseResult(lastResult.value))
+
+function formatPurchaseResult(
+  result: ReceiptManualResponse | ReceiptVoiceResponse | null
+): string | null {
+  if (!result) return null
+  if ('total' in result) {
+    return `${result.store} — ${result.total.toLocaleString('ru-RU')} ₽ · ${result.category}`
+  }
+  return `${result.store} — ${result.amount.toLocaleString('ru-RU')} ₽ · ${result.category}`
+}
+
+function onVoiceDone() {
   emit('added')
 }
 
@@ -97,7 +109,7 @@ function selectTab(id: (typeof tabOrder)[number]) {
     </div>
 
     <div v-show="inputTab === 'voice'" role="tabpanel">
-      <OnboardingPurchaseVoice :busy="submitting" @submit="onVoice" />
+      <OnboardingPurchaseVoice @done="onVoiceDone" />
     </div>
 
     <div v-show="inputTab === 'manual'" role="tabpanel">
@@ -116,8 +128,16 @@ function selectTab(id: (typeof tabOrder)[number]) {
       <DashboardFnsExpensePanel @synced="onFnsSynced" />
     </div>
 
+    <div
+      v-if="addedPurchaseHint"
+      class="mt-4 rounded-xl border border-[color:var(--mm-primary)]/25 bg-[color:var(--mm-primary-soft)]/60 px-4 py-3 text-center text-sm text-[color:var(--mm-text)]"
+    >
+      <span class="font-medium text-[color:var(--mm-primary)]">Записали: </span>
+      {{ addedPurchaseHint }}
+    </div>
+
     <p
-      v-if="expenseAdded"
+      v-else-if="expenseAdded"
       class="mt-4 text-center text-sm font-medium text-[color:var(--mm-primary)]"
     >
       Покупка добавлена — можно открыть дашборд

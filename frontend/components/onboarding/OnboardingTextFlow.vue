@@ -58,7 +58,16 @@ const canProceed = computed(() => {
 })
 
 function onVoicePatch(patch: Partial<OnboardingDraft>) {
-  emit('patch', patch)
+  if (patch.emergency_breakdown) {
+    const b = patch.emergency_breakdown
+    emit('patch', {
+      ...patch,
+      emergency_fund:
+        patch.emergency_fund ?? b.cash + b.deposit + b.investments
+    })
+  } else {
+    emit('patch', patch)
+  }
   if (patch.goal_kind) {
     emit('setGoalKind', patch.goal_kind)
   }

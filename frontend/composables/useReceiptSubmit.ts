@@ -17,8 +17,8 @@ export function useReceiptSubmit() {
   const { apiFetch, demoMode } = useApi()
   const toast = useToast()
 
-  const submitting = ref(false)
-  const lastResult = ref<ReceiptSubmitResult | null>(null)
+  const submitting = useState<boolean>('receipt-submitting', () => false)
+  const lastResult = useState<ReceiptSubmitResult | null>('receipt-last-result', () => null)
 
   async function submitManual(payload: {
     store: string

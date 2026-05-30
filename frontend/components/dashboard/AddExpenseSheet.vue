@@ -4,16 +4,11 @@ import { Camera, Mic, PenLine, Receipt } from 'lucide-vue-next'
 const open = defineModel<boolean>('open', { default: false })
 
 const tab = ref('voice')
-const { submitting, submitManual, submitVoiceAudio } = useReceiptSubmit()
+const { submitting, submitManual } = useReceiptSubmit()
 
 const emit = defineEmits<{
   added: []
 }>()
-
-async function onVoice(audio: Blob) {
-  await submitVoiceAudio(audio)
-  finish()
-}
 
 async function onManual(payload: {
   store: string
@@ -68,7 +63,7 @@ watch(open, (v) => {
         </TabsList>
 
         <TabsContent value="voice" class="mt-4">
-          <DashboardVoiceExpenseInput :busy="submitting" @submit="onVoice" />
+          <DashboardVoiceExpenseInput @done="finish" />
         </TabsContent>
         <TabsContent value="manual" class="mt-4">
           <DashboardManualExpenseForm :busy="submitting" @submit="onManual" />

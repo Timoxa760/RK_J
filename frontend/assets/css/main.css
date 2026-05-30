@@ -1291,7 +1291,6 @@ body {
   .mm-onb-mic-orb-hit--preview {
     width: 8rem;
     height: 8rem;
-    cursor: default;
   }
 
   .mm-onb-mic-orb-hit:hover:not(:disabled) {

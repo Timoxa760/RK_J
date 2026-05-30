@@ -133,7 +133,7 @@ async function submitCode() {
             v-model="phone"
             type="tel"
             inputmode="numeric"
-            pattern="[0-9+() -]*"
+            pattern="[0-9+\\(\\) -]*"
             autocomplete="tel"
             maxlength="18"
             placeholder="+7 (999) 123-45-67"

@@ -3,7 +3,7 @@
  * На `back` планируется `POST /api/v1/onboarding/parse` (user-service / ai-processor).
  * В prod вызывается через `useOnboardingParse`; здесь — demo и откат при 404.
  */
-import type { FixedExpense, GoalKind } from '~/types/api'
+import type { FixedExpense, GoalKind, EmergencyFundBreakdown } from '~/types/api'
 import { GOAL_KIND_LABELS } from '~/constants/onboardingGoals'
 
 function normalizeText(text: string) {
@@ -19,7 +19,8 @@ export function extractRubles(text: string): number[] {
   const normalized = normalizeText(text)
   const found: number[] = []
 
-  const thousandRe = /(\d[\d\s.,]*)\s*(?:тыс|тр\.?|k\b)/gi
+  const thousandRe =
+    /(\d[\d\s.,]*)\s*(?:тысяч(?:и|ей|а)?|тыс(?:яч(?:и|ей|a)?|и|ч)?|тыщ(?:a|и|ей|у)?|т(?:р|р\.|\.р\.?)|k(?=\s|$|[^a-z0-9])|к(?=\s|$|[^0-9а-яё]))/gi
   let match: RegExpExecArray | null
   while ((match = thousandRe.exec(normalized)) !== null) {
     const base = Number(match[1].replace(/\s/g, '').replace(',', '.'))
@@ -54,12 +55,56 @@ export function parseIncomeAnswer(text: string) {
   if (nums.length === 1) {
     return { active_income: nums[0], passive_income: 0 }
   }
-  return { active_income: 0, passive_income: 0 }
+  return {}
 }
 
 export function parseCushionAnswer(text: string) {
+  const breakdown = parseEmergencyBreakdownLocal(text)
+  if (breakdown.cash > 0 || breakdown.deposit > 0 || breakdown.investments > 0) {
+    const total = breakdown.cash + breakdown.deposit + breakdown.investments
+    return { emergency_fund: total, emergency_breakdown: breakdown }
+  }
   const nums = extractRubles(text)
-  return { emergency_fund: nums[0] ?? 0 }
+  if (!nums.length) return {}
+  return { emergency_fund: nums[0] }
+}
+
+function parseEmergencyBreakdownLocal(text: string): EmergencyFundBreakdown {
+  const out = { cash: 0, deposit: 0, investments: 0 }
+  const normalized = normalizeText(text)
+  const segments = splitVoiceSegmentsLocal(normalized)
+
+  const cashKw = ['налич', 'налик', 'наличк', 'кэш', 'cash', 'на руках', 'дома']
+  const depKw = ['вклад', 'депозит', 'счет', 'счёт', 'банк', 'сбер', 'вкладах']
+  const invKw = ['инвест', 'акци', 'облига', 'брокер', 'фонд', 'крипт']
+
+  for (const seg of segments) {
+    const nums = extractRubles(seg)
+    if (!nums.length) continue
+    const amount = nums[0]
+    const n = normalizeText(seg)
+    if (cashKw.some((k) => n.includes(k))) out.cash += amount
+    else if (depKw.some((k) => n.includes(k))) out.deposit += amount
+    else if (invKw.some((k) => n.includes(k))) out.investments += amount
+  }
+  return out
+}
+
+function splitVoiceSegmentsLocal(text: string): string[] {
+  const withCommas = text.replace(/;/g, ',').replace(/\s+и\s+/g, ',')
+  const parts = withCommas
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  if (parts.length > 1) return parts
+
+  const chunks = text.match(
+    /\d[\d\s.,]*\s*(?:тысяч(?:и|ей|a)?|тыс(?:яч(?:и|ей|a)?|и|ч)?|тыщ(?:a|и|ей|u)?|т(?:р|р\.|\.р\.?)?|₽|руб(?:лей|ля)?)[^.]*?(?=,\s*\d|\s+и\s+\d|$)/gi
+  )
+  if (chunks?.length) return chunks.map((c) => c.trim())
+
+  return [text]
 }
 
 export function parseGoalAnswer(text: string) {
