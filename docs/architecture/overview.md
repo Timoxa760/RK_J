@@ -15,7 +15,7 @@ API: `api-gateway:8000` → микросервисы.
 | **AI / enrichment** | Go `ai-processor` + YandexGPT (категоризация, голос/ручной ввод) | `back` |
 | **Analytics** | Go `analytics-service` (insights, forecast, scenarios) | `back` |
 | **Frontend** | **Nuxt 4.3** (Vue 3, Pinia, Tailwind, ECharts, PWA) | `front` |
-| **Scraping / ingest** | scraper-service: FNS, MCO, X5, Magnit, email/IMAP | `back` |
+| **Scraping / ingest** | scraper-service: **FNS**, MCO, email/IMAP (X5/Magnit — legacy, не MVP) | `back` |
 | **Infra** | Docker Compose: PG 18, CH 25.12, Redis 8.8, Kafka 4.0.2, Garage S3 | `back` |
 | **Auth** | JWT HS256, OAuth Яндекс/Mail.ru (email receipts) | `back` |
 
@@ -38,7 +38,7 @@ API: `api-gateway:8000` → микросервисы.
 | api-gateway | 8000 | core-api | Единый вход, JWT, reverse proxy |
 | user-service | 8001 | core-api | Регистрация, login, providers |
 | receipt-service | 8002 | receipt-engine | Чеки, дедуп, **dashboard API** |
-| scraper-service | 8003 | receipt-engine | FNS, X5, Magnit, email |
+| scraper-service | 8003 | receipt-engine | **FNS**, email (X5/Magnit — legacy) |
 | category-service | 8004 | finance-core | CRUD категорий |
 | budget-service | 8005 | finance-core | Бюджеты (legacy, не core UX) |
 | credit-service | 8009 | finance-core | PDF scan, DTI, rates client |
