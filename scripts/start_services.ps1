@@ -37,7 +37,6 @@ $env:RECEIPT_SERVICE_URL = "http://127.0.0.1:8002"
 $env:SCRAPER_SERVICE_URL = "http://127.0.0.1:8003"
 $env:CATEGORY_SERVICE_URL = "http://127.0.0.1:8004"
 $env:BUDGET_SERVICE_URL = "http://127.0.0.1:8005"
-$env:GOAL_SERVICE_URL = "http://127.0.0.1:8006"
 $env:CREDIT_SERVICE_URL = "http://127.0.0.1:8009"
 $env:REPORTING_SERVICE_URL = "http://127.0.0.1:8010"
 $env:BANK_SERVICE_URL = "http://127.0.0.1:8011"
@@ -63,7 +62,6 @@ $services = @(
     @("scraper-service", "scraper-service.exe"),
     @("category-service", "category-service.exe"),
     @("budget-service", "budget-service.exe"),
-    @("goal-service", "goal-service.exe"),
     @("credit-service", "credit-service.exe"),
     @("bank-service", "bank-service.exe"),
     @("ai-processor", "ai-processor.exe"),

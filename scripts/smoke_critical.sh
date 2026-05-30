@@ -15,7 +15,6 @@ export SCRAPER_SERVICE_URL=http://127.0.0.1:8003
 export AI_PROCESSOR_URL=http://127.0.0.1:8100
 export CREDIT_SERVICE_URL=http://127.0.0.1:8009
 export ANALYTICS_SERVICE_URL=http://127.0.0.1:8101
-export GOAL_SERVICE_URL=http://127.0.0.1:8006
 export REPORTING_SERVICE_URL=http://127.0.0.1:8010
 
 API="http://127.0.0.1:8000/api/v1"
@@ -32,7 +31,7 @@ http_code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 
 cleanup() {
   kill "${USPID:-}" "${RSPID:-}" "${SCPID:-}" "${CRPID:-}" "${ANPID:-}" \
-    "${GLPID:-}" "${RPPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
+    "${RPPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -42,14 +41,13 @@ build() {
 }
 
 for svc in user-service receipt-service scraper-service credit-service \
-  analytics-service goal-service reporting-service ai-processor api-gateway; do
+  analytics-service reporting-service ai-processor api-gateway; do
   case $svc in
     user-service) build user-service "$ROOT/services/core-api/user-service/" ;;
     receipt-service) build receipt-service "$ROOT/services/receipt-engine/receipt-service/" ;;
     scraper-service) build scraper-service "$ROOT/services/receipt-engine/scraper-service/" ;;
     credit-service) build credit-service "$ROOT/services/finance-core/credit-service/" ;;
     analytics-service) build analytics-service "$ROOT/services/money-intelligence/analytics-service/" ;;
-    goal-service) build goal-service "$ROOT/services/finance-core/goal-service/" ;;
     reporting-service) build reporting-service "$ROOT/services/reporting/reporting-service/" ;;
     ai-processor) build ai-processor "$ROOT/services/money-intelligence/ai-processor/" ;;
     api-gateway) build api-gateway "$ROOT/services/core-api/api-gateway/" ;;
@@ -61,7 +59,6 @@ done
 "$ROOT/bin/scraper-service" & SCPID=$!
 "$ROOT/bin/credit-service" & CRPID=$!
 "$ROOT/bin/analytics-service" & ANPID=$!
-"$ROOT/bin/goal-service" & GLPID=$!
 "$ROOT/bin/reporting-service" & RPPID=$!
 "$ROOT/bin/ai-processor" & AIPID=$!
 sleep 2
@@ -140,8 +137,16 @@ CD=$(http_code "${AUTH[@]}" "$API/credits/dashboard")
 CS=$(http_code -X POST "$API/credits/scan" "${AUTH[@]}" -F 'file=@/dev/null;filename=contract.pdf;type=application/pdf')
 [[ "$CS" == "200" ]] && record important "POST /credits/scan" PASS "multipart demo" || record important "POST /credits/scan" FAIL "HTTP $CS"
 
-DTI=$(curl -sf "${AUTH[@]}" "$API/credits/dashboard" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 0<=d.get('dti',-1)<=1 else 1)" 2>/dev/null && echo ok || echo fail)
-[[ "$DTI" == "ok" ]] && record important "credits DTI 0..1 (доля)" PASS "" || record important "credits DTI 0..1" FAIL "проверить front %"
+DTI=$(curl -sf "${AUTH[@]}" "$API/credits/dashboard" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if 0<=d.get('dti',-1)<=100 else 1)" 2>/dev/null && echo ok || echo fail)
+[[ "$DTI" == "ok" ]] && record important "credits DTI 0..100 (%)" PASS "" || record important "credits DTI 0..100" FAIL "проверить API"
+
+# --- Profile (goal in profile, not goal-service) ---
+PG=$(http_code "${AUTH[@]}" "$API/users/me/profile")
+[[ "$PG" == "200" ]] && record important "GET /users/me/profile" PASS "" || record important "GET /users/me/profile" FAIL "HTTP $PG"
+
+PP=$(http_code -X PATCH "$API/users/me/profile" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"goal_title":"Отпуск","goal_amount":150000,"goal_kind":"save"}')
+[[ "$PP" == "200" ]] && record important "PATCH /users/me/profile" PASS "" || record important "PATCH /users/me/profile" FAIL "HTTP $PP"
 
 # --- Analytics ---
 for ep in insights forecast; do
@@ -154,18 +159,6 @@ ACODE=$(http_code "${AUTH[@]}" "$API/analytics/insights")
 SIM=$(curl -sf -X POST "$API/scenarios/simulate" -H 'Content-Type: application/json' "${AUTH[@]}" \
   -d '{"scenario":"reduce_delivery","reduction_percent":50,"months":3}' | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if len(d.get('months',[]))==3 else 1)" 2>/dev/null && echo ok || echo fail)
 [[ "$SIM" == "ok" ]] && record important "POST /scenarios/simulate" PASS "" || record important "POST /scenarios/simulate" FAIL ""
-
-# --- Goals ---
-GCREATE=$(curl -sf -X POST "$API/goals" -H 'Content-Type: application/json' "${AUTH[@]}" \
-  -d '{"title":"Отпуск","target_amount":150000,"target_date":"2026-12-01"}' 2>/dev/null || echo '{}')
-GID=$(echo "$GCREATE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
-if [[ -n "$GID" ]]; then
-  record important "POST /goals" PASS "id=$GID"
-  GGET=$(http_code "${AUTH[@]}" "$API/goals/$GID")
-  [[ "$GGET" == "200" ]] && record important "GET /goals/{id}" PASS "" || record important "GET /goals/{id}" FAIL "HTTP $GGET"
-else
-  record important "POST /goals" FAIL ""
-fi
 
 # --- Digest ---
 DCODE=$(http_code "${AUTH[@]}" "$API/digest/latest")

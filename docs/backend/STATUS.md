@@ -24,7 +24,7 @@
 
 **Ограничения (честно):**
 
-- Dashboard, credits, goals, digest в smoke — **demo/in-memory** или заглушки, не live PG.
+- Dashboard, credits, profile, digest в smoke — **file/demo** или заглушки, не live PG.
 - `POST /fns/mco/sync` с валидным `phone` отвечает **500**, если Kafka недоступен — это ожидаемо в локальном прогоне без брокера.
 - `POST /credits/scan` требует **multipart** с полем `file`; JSON-тело даёт 400 (не баг API).
 - Полный **docker compose** (PG + Kafka + все 15 сервисов) в CI этого прогона **не гонялся**.
@@ -213,7 +213,7 @@ env -u JWT_SECRET go test \
 | scraper-service | 8003 | `/fns/`, `/x5club/`, `/magnit/`, `/email/` |
 | category-service | 8004 | `/categories/` |
 | budget-service | 8005 | `/budgets/` |
-| goal-service | 8006 | `/goals/` |
+| goal-service | 8006 | **removed** — use `/users/me/profile` |
 | credit-service | 8009 | `/credits/` |
 | reporting-service | 8010 | `/digest/` |
 | bank-service | 8011 | `/banks/` |

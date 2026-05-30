@@ -84,7 +84,7 @@ func (s *FileStore) Delete(userID, creditID string) error {
 	return s.writeLocked(userID, next)
 }
 
-func (s *FileStore) Dashboard(userID string, monthlyIncome float64) Dashboard {
+func (s *FileStore) Dashboard(userID string, monthlyIncome, emergencyFund float64) Dashboard {
 	items, _ := s.List(userID)
 	var totalDebt, monthlyPayments float64
 	for _, c := range items {
@@ -100,13 +100,13 @@ func (s *FileStore) Dashboard(userID string, monthlyIncome float64) Dashboard {
 		dti = monthlyPayments / monthlyIncome * 100
 	}
 	stress := float64(0)
-	if monthlyPayments > 0 {
-		stress = 340000 / monthlyPayments // placeholder cushion for stress demo
+	if monthlyPayments > 0 && emergencyFund > 0 {
+		stress = emergencyFund / monthlyPayments
 	}
 	return Dashboard{
 		DTI:              dti,
 		StressTestMonths: stress,
-		Savings:          0,
+		Savings:          emergencyFund,
 		TotalDebt:        totalDebt,
 		MonthlyPayments:  monthlyPayments,
 		MonthlyIncome:    monthlyIncome,

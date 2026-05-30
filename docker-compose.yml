@@ -214,22 +214,6 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
     restart: unless-stopped
 
-  goal-service:
-    build:
-      context: .
-      dockerfile: services/finance-core/goal-service/Dockerfile
-    container_name: backend_goal_service
-    ports:
-      - "8006:8006"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - moneymind_network
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
-    restart: unless-stopped
-
   credit-service:
     build:
       context: .

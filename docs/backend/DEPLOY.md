@@ -35,7 +35,7 @@ cp .env.example .env
 # инфраструктура + AI + gateway
 docker compose up -d --build postgres redis clickhouse kafka zookeeper \
   whisper api-gateway user-service ai-processor \
-  receipt-service analytics-service credit-service goal-service reporting-service
+  receipt-service analytics-service credit-service reporting-service
 
 # миграции (при DEMO_MODE=false)
 make migrate

@@ -32,7 +32,7 @@
 | scraper-service | 8003 | receipt-engine |
 | category-service | 8004 | finance-core |
 | budget-service | 8005 | finance-core |
-| goal-service | 8006 | finance-core |
+| ~~goal-service~~ | ~~8006~~ | **removed** — цель в profile |
 | credit-service | 8007 | finance-core |
 | bank-service | 8008 | finance-core |
 | ai-processor | 8009 | money-intelligence |

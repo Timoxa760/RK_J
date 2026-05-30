@@ -15,7 +15,6 @@ build:
 	go build -v -o ./bin/scraper-service.exe ./services/receipt-engine/scraper-service/
 	go build -v -o ./bin/category-service.exe ./services/finance-core/category-service/
 	go build -v -o ./bin/budget-service.exe ./services/finance-core/budget-service/
-	go build -v -o ./bin/goal-service.exe ./services/finance-core/goal-service/
 	go build -v -o ./bin/credit-service.exe ./services/finance-core/credit-service/
 	go build -v -o ./bin/bank-service.exe ./services/finance-core/bank-service/
 	go build -v -o ./bin/ai-processor.exe ./services/money-intelligence/ai-processor/
@@ -24,7 +23,7 @@ build:
 	go build -v -o ./bin/social-service.exe ./services/social-game/social-service/
 	go build -v -o ./bin/notification-service.exe ./services/reporting/notification-service/
 	go build -v -o ./bin/reporting-service.exe ./services/reporting/reporting-service/
-	@echo All 15 services built.
+	@echo All 14 services built.
 
 test:
 	go test -v ./internal/... ./services/...

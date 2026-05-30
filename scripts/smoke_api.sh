@@ -14,7 +14,6 @@ export RECEIPT_SERVICE_URL=http://127.0.0.1:8002
 export AI_PROCESSOR_URL=http://127.0.0.1:8100
 export CREDIT_SERVICE_URL=http://127.0.0.1:8009
 export ANALYTICS_SERVICE_URL=http://127.0.0.1:8101
-export GOAL_SERVICE_URL=http://127.0.0.1:8006
 export REPORTING_SERVICE_URL=http://127.0.0.1:8010
 
 API="http://127.0.0.1:8000/api/v1"
@@ -27,7 +26,7 @@ fail() { echo "FAIL: $1"; FAIL=1; }
 http_code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 
 cleanup() {
-  kill "${USPID:-}" "${RSPID:-}" "${CRPID:-}" "${ANPID:-}" "${GLPID:-}" "${RPPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
+  kill "${USPID:-}" "${RSPID:-}" "${CRPID:-}" "${ANPID:-}" "${RPPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -40,7 +39,6 @@ build user-service "$ROOT/services/core-api/user-service/"
 build receipt-service "$ROOT/services/receipt-engine/receipt-service/"
 build credit-service "$ROOT/services/finance-core/credit-service/"
 build analytics-service "$ROOT/services/money-intelligence/analytics-service/"
-build goal-service "$ROOT/services/finance-core/goal-service/"
 build reporting-service "$ROOT/services/reporting/reporting-service/"
 build api-gateway "$ROOT/services/core-api/api-gateway/"
 
@@ -52,8 +50,6 @@ RSPID=$!
 CRPID=$!
 "$ROOT/bin/analytics-service" &
 ANPID=$!
-"$ROOT/bin/goal-service" &
-GLPID=$!
 "$ROOT/bin/reporting-service" &
 RPPID=$!
 
@@ -124,10 +120,14 @@ SIM=$(curl -sf -X POST "$API/scenarios/simulate" -H 'Content-Type: application/j
 CODE=$(http_code "${AUTH[@]}" "$API/analytics/insights")
 [[ "$CODE" == "200" ]] && pass "GET /analytics/insights (front alias)" || fail "GET /analytics/insights ($CODE)"
 
-echo "=== 7. Goals + digest ==="
-GCODE=$(http_code -X POST "$API/goals" -H 'Content-Type: application/json' "${AUTH[@]}" \
-  -d '{"title":"Отпуск","target_amount":150000,"target_date":"2026-12-01"}')
-[[ "$GCODE" == "200" ]] && pass "POST /goals" || fail "POST /goals ($GCODE)"
+echo "=== 7. Profile + digest ==="
+PCODE=$(http_code "${AUTH[@]}" "$API/users/me/profile")
+[[ "$PCODE" == "200" ]] && pass "GET /users/me/profile" || fail "GET /users/me/profile ($PCODE)"
+PPATCH=$(http_code -X PATCH "$API/users/me/profile" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"goal_title":"Отпуск","goal_amount":150000}')
+[[ "$PPATCH" == "200" ]] && pass "PATCH /users/me/profile" || fail "PATCH /users/me/profile ($PPATCH)"
+SCODE=$(http_code -X POST "$API/credits/scan" "${AUTH[@]}" -F 'file=@/dev/null;filename=contract.pdf;type=application/pdf')
+[[ "$SCODE" == "200" ]] && pass "POST /credits/scan (demo)" || fail "POST /credits/scan ($SCODE)"
 DCODE=$(http_code "${AUTH[@]}" "$API/digest/latest")
 [[ "$DCODE" == "200" ]] && pass "GET /digest/latest" || fail "GET /digest/latest ($DCODE)"
 

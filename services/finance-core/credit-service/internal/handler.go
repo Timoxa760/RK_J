@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 	iroot "backend_project/internal/auth"
 	"backend_project/internal/creditstore"
 	"backend_project/internal/onlysq"
+	"backend_project/internal/pdfextract"
 	"backend_project/internal/profile"
 	"backend_project/internal/rates"
 
@@ -62,13 +64,24 @@ func (h *Handler) monthlyIncome(uid string) float64 {
 	return p.ActiveIncome + p.PassiveIncome
 }
 
+func (h *Handler) emergencyFund(uid string) float64 {
+	if h.profiles == nil {
+		return 0
+	}
+	p, err := h.profiles.Get(uid)
+	if err != nil || p.SkippedCushion {
+		return 0
+	}
+	return p.EmergencyFund
+}
+
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 	uid, err := h.userID(r)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 		return
 	}
-	dash := h.credits.Dashboard(uid, h.monthlyIncome(uid))
+	dash := h.credits.Dashboard(uid, h.monthlyIncome(uid), h.emergencyFund(uid))
 	writeJSON(w, http.StatusOK, dash)
 }
 
@@ -100,7 +113,8 @@ func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
 	hash := sha256.Sum256(body)
 	hashStr := hex.EncodeToString(hash[:])
 
-	parsed, confidence, err := h.parseContract(r.Context(), string(body))
+	text, extractErr := pdfextract.TextFromPDF(body)
+	parsed, confidence, err := h.parseContract(r.Context(), text, extractErr)
 	if err != nil {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
@@ -162,10 +176,11 @@ type scanParsed struct {
 	Bank           string  `json:"bank"`
 }
 
-func (h *Handler) parseContract(ctx context.Context, text string) (scanParsed, float64, error) {
+func (h *Handler) parseContract(ctx context.Context, text string, extractErr error) (scanParsed, float64, error) {
 	confidence := 0.75
-	if h.llm != nil && h.llm.Enabled() && len(strings.TrimSpace(text)) > 20 {
-		raw, err := h.llm.Complete(ctx, creditScanPrompt, text)
+	trimmed := strings.TrimSpace(text)
+	if h.llm != nil && h.llm.Enabled() && len(trimmed) > 20 {
+		raw, err := h.llm.Complete(ctx, creditScanPrompt, trimmed)
 		if err == nil {
 			var p scanParsed
 			if json.Unmarshal([]byte(extractJSON(raw)), &p) == nil {
@@ -175,18 +190,22 @@ func (h *Handler) parseContract(ctx context.Context, text string) (scanParsed, f
 			}
 		}
 	}
-	// MVP fallback when PDF text extraction not wired — demo parse from env
-	p := scanParsed{
-		Amount:         envFloat("CREDIT_SCAN_DEMO_AMOUNT", 1200000),
-		Rate:           envFloat("CREDIT_SCAN_DEMO_RATE", 14.5),
-		TermMonths:     envInt("CREDIT_SCAN_DEMO_TERM", 36),
-		MonthlyPayment: envFloat("CREDIT_SCAN_DEMO_PAYMENT", 42000),
-		Bank:           envStr("CREDIT_SCAN_DEMO_BANK", "Т-Банк"),
+	if demoMode() {
+		p := scanParsed{
+			Amount:         envFloat("CREDIT_SCAN_DEMO_AMOUNT", 1200000),
+			Rate:           envFloat("CREDIT_SCAN_DEMO_RATE", 14.5),
+			TermMonths:     envInt("CREDIT_SCAN_DEMO_TERM", 36),
+			MonthlyPayment: envFloat("CREDIT_SCAN_DEMO_PAYMENT", 42000),
+			Bank:           envStr("CREDIT_SCAN_DEMO_BANK", "Т-Банк"),
+		}
+		if err := creditstore.ValidateScan(p.Amount, p.Rate, p.TermMonths); err == nil {
+			return p, confidence, nil
+		}
 	}
-	if err := creditstore.ValidateScan(p.Amount, p.Rate, p.TermMonths); err != nil {
-		return scanParsed{}, 0, err
+	if extractErr != nil {
+		return scanParsed{}, 0, fmt.Errorf("could not extract text from pdf: %v", extractErr)
 	}
-	return p, confidence, nil
+	return scanParsed{}, 0, fmt.Errorf("could not parse contract fields from pdf")
 }
 
 func extractJSON(s string) string {
@@ -221,6 +240,10 @@ func envStr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func demoMode() bool {
+	return os.Getenv("DEMO_MODE") == "true"
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
