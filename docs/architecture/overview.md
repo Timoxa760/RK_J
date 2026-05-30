@@ -38,7 +38,7 @@ API: `api-gateway:8000` → микросервисы.
 | api-gateway | 8000 | core-api | Единый вход, JWT, reverse proxy |
 | user-service | 8001 | core-api | Регистрация, login, providers |
 | receipt-service | 8002 | receipt-engine | Чеки, дедуп, **dashboard API** |
-| scraper-service | 8003 | receipt-engine | FNS, X5, Magnit, email |
+| scraper-service | 8003 | receipt-engine | FNS|
 | category-service | 8004 | finance-core | CRUD категорий |
 | budget-service | 8005 | finance-core | Бюджеты (legacy, не core UX) |
 | goal-service | 8006 | finance-core | Цели, прогресс |
