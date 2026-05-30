@@ -1,30 +1,117 @@
 <script setup lang="ts">
-import type { ReceiptItem } from '~/types/api'
+import { Plus } from 'lucide-vue-next'
+import { PURCHASES } from '~/constants/productCopy'
+import type { ReceiptListItem } from '~/types/api'
+import { formatGoalImpact } from '~/utils/receiptImpact'
 
-const receipts = ref<ReceiptItem[]>([
-  { id: '1', store: 'Пятёрочка', amount: 1240, date: '2026-05-28', category: 'Продукты' },
-  { id: '2', store: 'Starbucks', amount: 420, date: '2026-05-28', category: 'Кафе' },
-  { id: '3', store: 'Ozon', amount: 3890, date: '2026-05-27', category: 'Покупки' }
-])
+const { receipts, selected, selectReceipt, closeDetail, refresh } = useReceiptList()
+
+const addOpen = ref(false)
+
+const totals = computed(() => {
+  const total = receipts.value.reduce((sum, r) => sum + r.amount, 0)
+  const impulse = receipts.value.reduce((sum, r) => sum + (r.impulse_count ?? 0), 0)
+  return { total, impulse, count: receipts.value.length }
+})
+
+function impactFor(receipt: ReceiptListItem) {
+  return formatGoalImpact(receipt.amount)
+}
 </script>
 
 <template>
-  <section class="mm-card overflow-hidden" data-demo="receipts">
-    <div class="border-b border-[color:var(--mm-border-subtle)] px-4 py-3 sm:px-6 sm:py-4">
-      <h2 class="text-sm font-semibold text-[color:var(--mm-text)]">Расходы</h2>
-    </div>
-    <ul class="divide-y divide-[color:var(--mm-border-subtle)]">
-      <li
-        v-for="r in receipts"
-        :key="r.id"
-        class="flex flex-col gap-1 px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-6"
-      >
-        <div class="min-w-0">
-          <p class="font-medium text-[color:var(--mm-text)]">{{ r.store }}</p>
-          <p class="text-xs text-[color:var(--mm-text-soft)]">{{ r.date }} · {{ r.category }}</p>
+  <div class="mx-auto w-full max-w-4xl space-y-6">
+    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Расходы</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Добавляйте покупки — они учтутся в вашей картине.</p>
+      </div>
+      <Button class="w-full shrink-0 sm:w-auto" data-demo="add-expense" @click="addOpen = true">
+        <Plus class="size-4" />
+        Добавить
+      </Button>
+    </header>
+
+    <ClientOnly>
+      <DashboardAddExpenseSheet v-model:open="addOpen" @added="refresh" />
+    </ClientOnly>
+
+    <Card v-if="receipts.length" class="overflow-hidden" data-demo="receipts">
+      <CardHeader class="pb-2">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle class="text-base">Лента покупок</CardTitle>
+            <CardDescription>Нажмите на покупку — детализация по позициям</CardDescription>
+          </div>
+          <p class="text-sm text-muted-foreground">
+            {{ totals.count }} шт. · {{ totals.total.toLocaleString('ru-RU') }} ₽
+            <span v-if="totals.impulse"> · {{ PURCHASES.impulseCount(totals.impulse) }}</span>
+          </p>
         </div>
-        <p class="shrink-0 font-semibold text-[color:var(--mm-text)]">{{ r.amount.toLocaleString('ru-RU') }} ₽</p>
-      </li>
-    </ul>
-  </section>
+      </CardHeader>
+      <CardContent class="p-0">
+        <ul class="divide-y">
+          <li
+            v-for="r in receipts"
+            :key="r.id"
+            class="flex cursor-pointer flex-col gap-2 px-4 py-4 text-sm transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            @click="selectReceipt(r)"
+          >
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="font-medium">{{ r.store }}</p>
+                <Badge v-if="r.impulse_count" variant="secondary" class="text-[10px]">
+                  {{ PURCHASES.impulseBadge }}
+                </Badge>
+              </div>
+              <p class="mt-0.5 text-xs text-muted-foreground">
+                {{ r.date }}
+                <span v-if="r.category"> · {{ r.category }}</span>
+              </p>
+              <p v-if="impactFor(r)" class="mt-1 text-xs text-primary">{{ impactFor(r) }}</p>
+            </div>
+            <p class="shrink-0 text-base font-semibold">{{ r.amount.toLocaleString('ru-RU') }} ₽</p>
+          </li>
+        </ul>
+      </CardContent>
+    </Card>
+
+    <Card v-else class="text-center">
+      <CardContent class="py-12">
+        <p class="text-sm text-muted-foreground">Покупок пока нет.</p>
+        <Button class="mt-4" @click="addOpen = true">
+          <Plus class="size-4" />
+          Добавить
+        </Button>
+      </CardContent>
+    </Card>
+
+    <Dialog :open="Boolean(selected)" @update:open="(v) => !v && closeDetail()">
+      <DialogContent v-if="selected" class="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{{ selected.store }}</DialogTitle>
+          <DialogDescription>{{ selected.date }}</DialogDescription>
+        </DialogHeader>
+        <p class="text-xl font-bold">{{ selected.amount.toLocaleString('ru-RU') }} ₽</p>
+        <p v-if="impactFor(selected)" class="text-sm text-primary">
+          {{ PURCHASES.goalDelay }} {{ impactFor(selected).replace('≈ ', '') }}.
+        </p>
+        <ul v-if="selected.items?.length" class="space-y-2">
+          <li
+            v-for="item in selected.items"
+            :key="item.name"
+            class="flex justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-sm"
+          >
+            <span>
+              {{ item.name }}
+              <Badge v-if="item.impulse" variant="secondary" class="ml-1 text-[10px]">{{ PURCHASES.impulseBadge }}</Badge>
+            </span>
+            <span class="shrink-0 text-muted-foreground">
+              {{ (item.price * (item.quantity ?? 1)).toLocaleString('ru-RU') }} ₽
+            </span>
+          </li>
+        </ul>
+      </DialogContent>
+    </Dialog>
+  </div>
 </template>

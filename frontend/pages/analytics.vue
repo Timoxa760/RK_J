@@ -1,84 +1,103 @@
 <script setup lang="ts">
+import { buildGoalForecast } from '~/utils/dashboardSummary'
+import { buildAnalyticsPageNarrative } from '~/utils/pageNarrative'
+import { forecastAnomalyAlert } from '~/utils/analyticsNarrative'
+
 const {
   timeMachine,
   forecast,
-  insights,
   loading,
+  error,
   scenarioResult,
+  scenarioSimulation,
+  scenarioLoading,
   loadAll,
   simulateScenario
 } = useAnalytics()
 
-const cutCategory = ref('Кафе')
+const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
+
+const scenario = ref<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
+  'reduce_cafe'
+)
 const percent = ref(20)
 
-onMounted(() => {
-  loadAll()
+const pageLoading = computed(() => loading.value || insightsLoading.value)
+
+const goalForecast = computed(() => buildGoalForecast(timeMachine.value))
+
+const pageNarrative = computed(() =>
+  buildAnalyticsPageNarrative({
+    forecast: forecast.value,
+    topInsight: topInsight.value,
+    scenarioResult: scenarioResult.value,
+    goalForecast: goalForecast.value
+  })
+)
+
+const anomalyAlert = computed(() => forecastAnomalyAlert(forecast.value))
+
+onMounted(async () => {
+  await Promise.all([loadAll(), fetchInsights()])
 })
 
 async function runSimulation() {
-  await simulateScenario({ cutCategory: cutCategory.value, percent: percent.value })
+  await simulateScenario({
+    scenario: scenario.value,
+    reduction_percent: percent.value,
+    months: 60
+  })
 }
 </script>
 
 <template>
-  <div class="mm-page-shell">
-    <SharedSkeletonLoader v-if="loading" height="480px" />
+  <div class="mx-auto w-full max-w-6xl space-y-6">
+    <SharedPageNarrative :narrative="pageNarrative" :loading="pageLoading && !forecast" />
+
+    <Alert v-if="error" variant="destructive">
+      <AlertDescription>{{ error }}</AlertDescription>
+    </Alert>
+
+    <Skeleton v-if="pageLoading && !forecast" class="h-[480px] w-full" />
 
     <template v-else>
-      <article class="mm-card p-3 sm:p-4" data-demo="timemachine">
-        <h2 class="mb-2 text-sm font-semibold text-[color:var(--mm-text)] sm:mb-3">Машина времени</h2>
-        <p v-if="timeMachine" class="mb-2 text-xs text-[color:var(--mm-primary)]">
-          Разница с оптимистичным сценарием: +{{ timeMachine.delta.toLocaleString('ru-RU') }} ₽
-        </p>
-        <div class="mm-chart-wrap">
-          <ChartsTimeMachineChart :data="timeMachine" />
-        </div>
-      </article>
-
-      <article class="mm-card p-3 sm:p-4">
-        <h2 class="mb-2 text-sm font-semibold text-[color:var(--mm-text)] sm:mb-3">Прогноз трат</h2>
-        <div class="mm-chart-wrap">
-          <ChartsForecastChart :data="forecast" />
-        </div>
-      </article>
-
-      <article class="mm-card p-4 sm:p-5">
-        <h2 class="mb-3 text-sm font-semibold text-[color:var(--mm-text)]">Симулятор «что если»</h2>
-        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <select
-            v-model="cutCategory"
-            class="w-full rounded-lg border border-[color:var(--mm-border)] bg-white px-3 py-2.5 text-sm sm:w-auto"
-          >
-            <option>Кафе</option>
-            <option>Продукты</option>
-            <option>Развлечения</option>
-          </select>
-          <div class="flex items-center gap-2">
-            <input
-              v-model.number="percent"
-              type="number"
-              min="5"
-              max="50"
-              class="w-full rounded-lg border border-[color:var(--mm-border)] px-3 py-2.5 text-sm sm:w-24"
-            />
-            <span class="shrink-0 text-sm text-[color:var(--mm-text-soft)]">%</span>
+      <Card>
+        <CardHeader>
+          <CardTitle class="text-base">Прогноз трат (7 дней)</CardTitle>
+          <CardDescription v-if="goalForecast">{{ goalForecast }}</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-3">
+          <Alert v-if="anomalyAlert" variant="default">
+            <AlertTitle>Необычно много потратили</AlertTitle>
+            <AlertDescription>{{ anomalyAlert }}</AlertDescription>
+          </Alert>
+          <div class="mm-chart-wrap mm-chart-wrap--md">
+            <ChartsForecastChart :data="forecast" />
           </div>
-          <button
-            type="button"
-            class="mm-btn-primary w-full !py-2.5 sm:w-auto sm:!px-4"
-            @click="runSimulation"
-          >
-            Симулировать
-          </button>
-        </div>
-        <p v-if="scenarioResult" class="mt-3 text-sm text-[color:var(--mm-text-muted)]">{{ scenarioResult }}</p>
-      </article>
+        </CardContent>
+      </Card>
 
-      <article class="mm-card p-4 sm:p-6">
-        <h2 class="mb-4 text-sm font-semibold text-[color:var(--mm-text)]">Инсайты</h2>
-        <InsightsInsightsPanel v-if="insights" :insights="insights.insights" />
-      </article>
+      <AnalyticsScenarioSimulator
+        v-model:scenario="scenario"
+        v-model:percent="percent"
+        :result="scenarioResult"
+        :simulation="scenarioSimulation"
+        :loading="scenarioLoading"
+        @simulate="runSimulation"
+      />
+
+      <Card class="border-dashed">
+        <CardContent class="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-muted-foreground">
+            Полная картина «если ничего не менять» — на главной.
+          </p>
+          <Button variant="outline" size="sm" as-child>
+            <NuxtLink to="/dashboard" data-demo="timemachine">Смотреть накопления →</NuxtLink>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <AnalyticsDetective v-if="insights?.insights.length" :insights="insights.insights" />
     </template>
   </div>
 </template>

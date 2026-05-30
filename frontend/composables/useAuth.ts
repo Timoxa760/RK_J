@@ -1,47 +1,46 @@
-import { useAuthStore, type AuthUser } from '~/store/authStore'
+import type { AuthUser, LoginResponse } from '~/types/api'
+import { useAuthStore } from '~/store/authStore'
+
+const MOCK_CODE = '0000'
 
 export function useAuth() {
-  const config = useRuntimeConfig()
+  const { apiFetch, demoMode } = useApi()
   const authStore = useAuthStore()
 
-  const MOCK_CODE = '0000'
-  const MOCK_TOKEN = 'mock-jwt-demo-token'
-
   async function register(phone: string) {
-    try {
-      await $fetch(`${config.public.apiBase}/auth/register`, {
-        method: 'POST',
-        body: { phone }
-      })
-    } catch {
-      // mock: registration always succeeds offline
-    }
+    if (demoMode.value) return
+    await apiFetch<{ message: string; expires_in?: number }>('/auth/register', {
+      method: 'POST',
+      body: { phone }
+    })
   }
 
   async function login(phone: string, code: string) {
-    if (code === MOCK_CODE) {
+    if (demoMode.value && code === MOCK_CODE) {
+      const phoneKey = phone.replace(/\D/g, '') || String(Date.now())
       const user: AuthUser = {
-        id: 'mock-user-1',
+        id: `demo-${phoneKey}`,
         phone,
+        role: 'user',
         name: 'Пользователь'
       }
-      authStore.setSession(MOCK_TOKEN, user)
-      return { token: MOCK_TOKEN, user }
+      authStore.setSession(`mock-jwt-demo-${phoneKey}`, user)
+      return { token: `mock-jwt-demo-${phoneKey}`, user }
     }
 
-    try {
-      const res = await $fetch<{ token: string; user: AuthUser }>(
-        `${config.public.apiBase}/auth/login`,
-        {
-          method: 'POST',
-          body: { phone, code }
-        }
-      )
-      authStore.setSession(res.token, res.user)
-      return res
-    } catch {
-      throw new Error('Неверный код или сервер недоступен.')
+    const res = await apiFetch<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: { phone, code }
+    })
+
+    const user: AuthUser = {
+      id: res.user.id,
+      phone: res.user.phone,
+      role: res.user.role,
+      name: res.user.name ?? 'Пользователь'
     }
+    authStore.setSession(res.access_token, user, res.refresh_token)
+    return { token: res.access_token, user }
   }
 
   function logout() {

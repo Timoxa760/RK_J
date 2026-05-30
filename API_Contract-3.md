@@ -1,11 +1,33 @@
-# API Contract — MoneyMind
+# API Contract — Поток
 
-> **Единый источник правды. Любые изменения API вносятся сюда.**
-> **Базовый URL:** `http://localhost:8000/api/v1`
-> **Авторизация:** `Authorization: Bearer <jwt>` (кроме `/auth/*`)
-> **Форматы:** JSON, даты ISO 8601, числа без валют (копейки как Float64)
+> **Единый источник правды (ветка `docs`).** Любые изменения API — сначала здесь, затем код в `back` / `front`.  
+> **Machine-readable:** [openapi.yaml](../contracts/openapi.yaml) (OpenAPI 3.1)  
+> **Карта проекта:** [NAVI.md](../../NAVI.md)
+
+| | |
+|--|--|
+| **Base URL** | `http://localhost:8000/api/v1` |
+| **Gateway** | `api-gateway:8000` → reverse proxy |
+| **Auth** | `Authorization: Bearer <jwt>` (кроме `/auth/register`, `/auth/login`) |
+| **Форматы** | JSON; даты ISO 8601; суммы в **рублях** (`float64`) |
+
+## Маршрутизация gateway → сервис (обновлённая)
+
+| Префикс | Сервис | Порт |
+|---------|--------|------|
+| `/auth/` | user-service | 8001 |
+| `/dashboard/`, `/receipts/` | receipt-service | 8002 |
+| `/receipt/manual`, `/receipt/voice`, `/receipt/fns/` | scraper-service | 8003 |
+| `/ai/` | ai-processor | 8100 |
+| `/credits/` | credit-service | 8009 |
+| `/banks/` | bank-service | 8011 |
+| `/goals/`, `/budgets/`, `/categories/` | finance-core | 8006–8005–8004 |
+| `/insights/`, `/forecast/`, `/scenarios/` | analytics-service | 8101 |
+| `/digest/` | reporting-service | 8010 |
 
 ---
+
+## СУММАРНАЯ ТАБЛИЦА ЭНДПОИНТОВ
 
 ## СУММАРНАЯ ТАБЛИЦА ЭНДПОИНТОВ
 
@@ -13,23 +35,25 @@
 |-----------|-------|------|----------|--------|
 | 🔴 critical | POST | `/auth/register` | Регистрация по телефону | Core API |
 | 🔴 critical | POST | `/auth/login` | Вход, получение JWT | Core API |
-| 🔴 critical | POST | `/providers/connect` | Привязать магазин | Core API |
+| 🔴 critical | POST | `/receipt/manual` | Ручной ввод расхода | Receipt Engine |
+| 🔴 critical | POST | `/receipt/fns/scan` | Чек по QR ФНС | Receipt Engine |
+| 🟢 optional | POST | `/receipt/voice` | Голосовой ввод расхода | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/sankey` | Санки-диаграмма | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/categories` | Круговая с детализацией | Receipt Engine |
 | 🟡 important | GET | `/dashboard/timemachine` | Накопления за 60 мес | Receipt Engine |
 | 🟡 important | GET | `/dashboard/stores` | Пузырьковая по магазинам | Receipt Engine |
 | 🟡 important | GET | `/dashboard/compare` | Сравнение месяцев | Receipt Engine |
+| 🔴 critical | GET | `/ai/diagnosis` | Финансовый диагноз | Money Intelligence |
+| 🔴 critical | POST | `/ai/chat` | Чат с AI-ассистентом | Money Intelligence |
+| 🟡 important | GET | `/ai/goal/{goal_id}/forecast` | Прогноз достижения цели | Money Intelligence |
+| 🟢 optional | GET | `/ai/recommendation/daily` | Ежедневная рекомендация | Money Intelligence |
 | 🟡 important | GET | `/credits/dashboard` | DTI, подушка, stress-test | Finance Core |
 | 🟡 important | POST | `/credits/scan` | AI-скан договора | Finance Core |
-| 🟡 important | GET | `/insights` | Инсайты (подписки, дубли) | Money Intelligence |
+| 🟡 important | POST | `/goals` | Создать цель | Finance Core |
+| 🟡 important | GET | `/insights` | Инсайты (подписки, дубли, переплаты) | Money Intelligence |
 | 🟡 important | POST | `/scenarios/simulate` | Time Machine симуляция | Money Intelligence |
 | 🟢 optional | GET | `/forecast` | Прогноз трат на 7 дней | Money Intelligence |
-| 🟢 optional | POST | `/challenges` | Создать челлендж | Social & Game |
-| 🟢 optional | GET | `/challenges/{id}/leaderboard` | Лидерборд челленджа | Social & Game |
 | 🟢 optional | GET | `/digest/latest` | Ежемесячный дайджест | Reporting |
-| 🟢 optional | POST | `/providers/{name}/sync` | Форсировать синхронизацию | Receipt Engine |
-| 🟢 optional | GET | `/banks/accounts` | Счета из банка | Finance Core |
-| 🟢 optional | GET | `/banks/transactions` | Транзакции из банка | Finance Core |
 
 ---
 
@@ -192,37 +216,82 @@
 
 ---
 
-## 3. Providers API (Core API)
+## 3. Receipt API (Receipt Engine)
 
-### POST /api/v1/providers/connect — 🔴 critical
+### POST /api/v1/receipt/manual — 🔴 critical
 
-Привязать магазин/провайдера.
-
-**Query:** `?provider=x5club`
+Добавить расход вручную.
 
 **Body:**
 ```json
 {
-  "credentials": {"phone": "+79991234567", "password": "***"}
+  "store": "Пятёрочка",
+  "amount": 1032.50,
+  "category": "Продукты",
+  "date": "2026-05-30T14:32:00Z"
 }
 ```
-**200 OK:**
+200 OK:
 ```json
-{"message": "Provider connected", "provider": "x5club", "status": "active"}
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "amount": 1032.50,
+  "category": "Продукты",
+  "date": "2026-05-30T14:32:00Z",
+  "status": "saved"
+}
 ```
-**400** — неверные credentials | **409** — уже привязан
+400 — неверный формат суммы или категории | 401
 
-### POST /api/v1/providers/{name}/sync — 🟢 optional
+### POST /api/v1/receipt/voice — 🟢 optional
+Добавить расход голосом. Аудио распознаётся через Whisper API, AI извлекает магазин, товары и сумму.
 
-Форсировать синхронизацию провайдера.
+Body: multipart/form-data — поле audio (mp3/wav)
 
-**Path:** `x5club | magnit | lenta | vkusvill | ozon | wb | email | fns`
-
-**200 OK:**
+200 OK:
 ```json
-{"message": "Sync started", "provider": "x5club"}
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "items": [
+    {"name": "Молоко", "price": 89.90, "quantity": 1},
+    {"name": "Хлеб", "price": 45.50, "quantity": 1}
+  ],
+  "total": 135.40,
+  "category": "Продукты",
+  "confidence": 0.92
+}
 ```
-**202** — уже синхронизируется | **404** — провайдер не привязан
+400 — аудио не распознано | 401
+
+### POST /api/v1/receipt/fns/scan — 🔴 critical
+Отсканировать QR-код чека ФНС.
+
+Body:
+```json
+{
+  "fn": "9285000100351475",
+  "fd": "1234567890",
+  "fp": "1234567890"
+}
+```
+200 OK:
+```json
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "inn": "7725007364",
+  "date": "2026-05-30T14:32:00Z",
+  "total": 1032.50,
+  "items": [
+    {"name": "Молоко", "price": 89.90, "quantity": 1},
+    {"name": "Хлеб", "price": 45.50, "quantity": 2}
+  ],
+  "category": "Продукты"
+}
+```
+00 — неверные fn/fd/fp | 401 | 404 — чек не найден в ФНС
 
 ---
 
@@ -476,7 +545,143 @@
 
 ---
 
-## 9. Типы данных (TypeScript для Vue)
+## 9. Expenses API (AI Processor) — 🔴 critical для «Поток»
+
+### POST /api/v1/expenses/manual
+
+Голосовой или ручной ввод. Текст в `raw_text` парсится на бэкенде (`parser.Parse`).
+
+**Body:**
+```json
+{
+  "user_id": "uuid-or-phone-id",
+  "raw_text": "купил продукты на 5000 и кроссовки за 16000",
+  "amount": 0,
+  "category": "",
+  "description": "",
+  "date": "2026-05-30",
+  "source": "voice"
+}
+```
+
+| Поле | Обязательно | Описание |
+|------|-------------|----------|
+| `user_id` | да | ID пользователя |
+| `raw_text` | нет* | Текст для LLM/парсера |
+| `amount` | нет* | Если задан — используется напрямую |
+| `source` | нет | `manual` (default) \| `voice` |
+
+\* Нужен `raw_text` с распознанной суммой **или** `amount` > 0.
+
+**200 OK:**
+```json
+{
+  "success": true,
+  "id": "uuid",
+  "amount": 5000,
+  "category": "Продукты",
+  "parsed": true
+}
+```
+
+**400** — `user_id required`, `amount required`, invalid JSON | **500** — save failed
+
+> **Roadmap:** один запрос → несколько транзакций из одной фразы (сейчас — одна запись).
+
+---
+
+## 10. FNS & Ingest API (Scraper Service)
+
+Опциональный автослой. ФНС не обязательна для MVP.
+
+### POST /api/v1/fns/ticket — 🔴 critical
+
+Проверка чека по QR / ticket data.
+
+**Body:**
+```json
+{
+  "qr": "t=20260530T1200&s=5000.00&fn=...&i=...&fp=...&n=1"
+}
+```
+
+**200 OK:** нормализованный чек → Kafka `receipt.raw` → `receipt-service`.
+
+**400** | **502** — ФНС недоступна
+
+### POST /api/v1/fns/qr
+
+Fallback по QR-строке (аналог ticket).
+
+### POST /api/v1/fns/mco/auth
+
+Начало OAuth-потока MCO (мобильный кабинет налогоплательщика).
+
+### POST /api/v1/fns/mco/auth/verify
+
+Подтверждение кода MCO.
+
+---
+
+## 11. Goals API (Finance Core)
+
+### POST /api/v1/goals — 🟡 important
+
+Создание цели (онбординг, сценарий №2).
+
+**Body (ориентир):**
+```json
+{
+  "title": "Отпуск",
+  "target_amount": 150000,
+  "target_date": "2026-12-01",
+  "auto_save_percent": 10
+}
+```
+
+**200 OK:**
+```json
+{
+  "id": "uuid",
+  "title": "Отпуск",
+  "target_amount": 150000,
+  "current_amount": 0,
+  "progress_percent": 0
+}
+```
+
+Проксируется через gateway → `goal-service:8006`. CRUD: `/goals/{id}`.
+
+---
+
+## 12. Onboarding Profile — ⏳ roadmap
+
+Эндпоинты для wizard `/onboarding` (ещё не в `back`):
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| PATCH | `/users/me/profile` | active_income, passive_income, emergency_fund |
+| POST | `/users/me/onboarding/complete` | `onboarding_completed: true` |
+
+До реализации — данные можно собирать локально на front + `POST /goals` + `POST /expenses/manual`.
+
+---
+
+## 13. Согласование с `front`
+
+Типы в `frontend/types/api.ts` — эталон для dashboard. Отличия от примеров ниже:
+
+| Endpoint | Контракт (legacy) | Front (`types/api.ts`) |
+|----------|-------------------|------------------------|
+| `/dashboard/timemachine` | `months`, `real_savings[]` | `points[]` с `actual`, `optimistic`, `delta` |
+| `/dashboard/compare` | `label`, nested categories | `month`, `categories[]` с `share` |
+| `/credits/dashboard` | `dti: 0.28` (доля) | `dti: 38` (**проценты** 0–100) |
+
+При интеграции без demo-mode — **привести back к front-типам** или обновить composables.
+
+---
+
+## 14. Типы данных (TypeScript для Nuxt)
 
 ```typescript
 // Все типы строго соответствуют JSON-ответам выше.

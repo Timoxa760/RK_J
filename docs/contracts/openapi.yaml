@@ -1,0 +1,671 @@
+openapi: 3.1.0
+info:
+  title: Potok API
+  description: |
+    Финансовый навигатор «Поток». Единый вход через api-gateway.
+    Полная спецификация — docs/api/API_Contract.md
+  version: 1.0.0
+  contact:
+    name: RK_J / Potok hackathon
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local api-gateway
+
+tags:
+  - name: auth
+  - name: dashboard
+  - name: receipt
+  - name: expenses
+  - name: fns
+  - name: credits
+  - name: goals
+  - name: analytics
+  - name: ai
+  - name: profile
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          example: "+79991234567"
+
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        expires_in:
+          type: integer
+
+    LoginRequest:
+      type: object
+      required: [phone, code]
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+          example: "0000"
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            phone:
+              type: string
+            role:
+              type: string
+
+    SankeyNode:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+
+    SankeyLink:
+      type: object
+      properties:
+        source:
+          type: string
+        target:
+          type: string
+        value:
+          type: number
+
+    SankeyResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/SankeyNode"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/SankeyLink"
+
+    ManualExpenseRequest:
+      type: object
+      required: [user_id]
+      properties:
+        user_id:
+          type: string
+        raw_text:
+          type: string
+          example: "купил продукты на 5000 и кроссовки за 16000"
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        source:
+          type: string
+          enum: [manual, voice]
+          default: manual
+
+    ManualExpenseResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        id:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        parsed:
+          type: boolean
+
+    ReceiptManualRequest:
+      type: object
+      required: [store, amount, category, date]
+      properties:
+        store:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        date:
+          type: string
+          format: date-time
+
+    ReceiptManualResponse:
+      type: object
+      properties:
+        receipt_id:
+          type: string
+        store:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        date:
+          type: string
+        status:
+          type: string
+
+    ReceiptVoiceResponse:
+      type: object
+      properties:
+        receipt_id:
+          type: string
+        store:
+          type: string
+        total:
+          type: number
+        category:
+          type: string
+        confidence:
+          type: number
+
+    ReceiptFnsScanRequest:
+      type: object
+      required: [fn, fd, fp]
+      properties:
+        fn:
+          type: string
+        fd:
+          type: string
+        fp:
+          type: string
+
+    ReceiptFnsScanResponse:
+      type: object
+      properties:
+        receipt_id:
+          type: string
+        store:
+          type: string
+        total:
+          type: number
+        category:
+          type: string
+
+    ProfilePatchRequest:
+      type: object
+      properties:
+        active_income:
+          type: number
+        passive_income:
+          type: number
+        emergency_fund:
+          type: number
+        fixed_expenses:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              amount:
+                type: number
+
+    FnsTicketRequest:
+      type: object
+      properties:
+        qr:
+          type: string
+
+    CreditsDashboardResponse:
+      type: object
+      description: Front ожидает dti в процентах (0–100)
+      properties:
+        dti:
+          type: number
+          example: 38
+        stress_test_dti:
+          type: number
+          example: 52
+        monthly_income:
+          type: number
+        credits:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              balance:
+                type: number
+              payment:
+                type: number
+              rate:
+                type: number
+
+    GoalCreateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        target_amount:
+          type: number
+        target_date:
+          type: string
+          format: date
+        auto_save_percent:
+          type: number
+
+    ScenarioSimulateRequest:
+      type: object
+      properties:
+        scenario:
+          type: string
+          enum: [reduce_delivery, reduce_cafe, reduce_entertainment, custom]
+        reduction_percent:
+          type: number
+        months:
+          type: integer
+
+    AiDiagnosisIndicator:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: number
+        norm:
+          type: string
+        status:
+          type: string
+          enum: [good, warning, critical]
+
+    AiDiagnosisMainAction:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        potential_savings:
+          type: number
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+
+    AiDiagnosisResponse:
+      type: object
+      properties:
+        score:
+          type: number
+          example: 72
+        grade:
+          type: string
+          example: B
+        indicators:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiDiagnosisIndicator"
+        main_action:
+          $ref: "#/components/schemas/AiDiagnosisMainAction"
+        next_check_days:
+          type: integer
+          example: 30
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Регистрация по телефону
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "200":
+          description: SMS отправлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          description: Неверный телефон
+        "409":
+          description: Пользователь существует
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Вход, JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Неверный код
+
+  /dashboard/sankey:
+    get:
+      tags: [dashboard]
+      summary: Sankey доход → категории
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SankeyResponse"
+        "401":
+          description: Unauthorized
+
+  /dashboard/categories:
+    get:
+      tags: [dashboard]
+      summary: Категории с детализацией
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+
+  /dashboard/timemachine:
+    get:
+      tags: [dashboard]
+      summary: Траектория накоплений
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+
+  /expenses/manual:
+    post:
+      tags: [expenses]
+      summary: Голос / ручной ввод расхода (legacy, §9)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualExpenseRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManualExpenseResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /receipt/manual:
+    post:
+      tags: [receipt]
+      summary: Ручной ввод расхода
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptManualRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiptManualResponse"
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+
+  /receipt/voice:
+    post:
+      tags: [receipt]
+      summary: Голосовой ввод расхода (multipart audio)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [audio]
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiptVoiceResponse"
+        "400":
+          description: Audio not recognized
+        "401":
+          description: Unauthorized
+
+  /receipt/fns/scan:
+    post:
+      tags: [receipt]
+      summary: Чек ФНС по fn/fd/fp
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReceiptFnsScanRequest"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReceiptFnsScanResponse"
+        "400":
+          description: Invalid fn/fd/fp
+        "401":
+          description: Unauthorized
+        "404":
+          description: Receipt not found in FNS
+
+  /fns/ticket:
+    post:
+      tags: [fns]
+      summary: Проверка чека ФНС по QR
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FnsTicketRequest"
+      responses:
+        "200":
+          description: Чек принят в pipeline
+        "400":
+          description: Bad request
+        "502":
+          description: ФНС недоступна
+
+  /fns/mco/sync:
+    post:
+      tags: [fns]
+      summary: Синхронизация истории MCO (deprecated in v3)
+      deprecated: true
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Sync started
+
+  /users/me/profile:
+    patch:
+      tags: [profile]
+      summary: Обновить финансовый профиль (onboarding)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfilePatchRequest"
+      responses:
+        "200":
+          description: Profile updated
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not implemented yet
+
+  /users/me/onboarding/complete:
+    post:
+      tags: [profile]
+      summary: Завершить онбординг
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+        "404":
+          description: Not implemented yet
+
+  /ai/diagnosis:
+    get:
+      tags: [ai]
+      summary: Финансовая картина пользователя
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiDiagnosisResponse"
+        "401":
+          description: Unauthorized
+
+  /credits/dashboard:
+    get:
+      tags: [credits]
+      summary: Кредитный светофор, DTI
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditsDashboardResponse"
+        "401":
+          description: Unauthorized
+
+  /goals:
+    post:
+      tags: [goals]
+      summary: Создать финансовую цель
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoalCreateRequest"
+      responses:
+        "200":
+          description: Goal created
+        "401":
+          description: Unauthorized
+
+  /insights:
+    get:
+      tags: [analytics]
+      summary: Поведенческие инсайты
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+
+  /scenarios/simulate:
+    post:
+      tags: [analytics]
+      summary: Симуляция «что если»
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScenarioSimulateRequest"
+      responses:
+        "200":
+          description: OK
+
+  /digest/latest:
+    get:
+      tags: [analytics]
+      summary: Дайджест, действие недели
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK

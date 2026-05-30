@@ -5,39 +5,59 @@ import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { TimeMachineResponse } from '~/types/api'
-import { chartThemeLight } from '~/types/api'
+import {
+  baseGrid,
+  chartThemeLight,
+  formatAxisMoney,
+  formatMonthLabel,
+  sparseLabelInterval
+} from '~/utils/chartTheme'
 
 use([CanvasRenderer, LineChart, TooltipComponent, LegendComponent, GridComponent])
 
 const props = defineProps<{
   data: TimeMachineResponse | null
+  size?: 'sm' | 'md' | 'lg' | 'full'
 }>()
 
-const chartTheme = chartThemeLight
+const { containerRef, isCompact } = useChartViewport()
 
 const option = computed(() => {
   if (!props.data?.points.length) return null
   const months = props.data.points.map((p) => p.month)
+  const grid = baseGrid(isCompact.value)
+  grid.bottom = isCompact.value ? 56 : 40
+  grid.top = 48
+
   return {
-    backgroundColor: chartTheme.backgroundColor,
+    backgroundColor: chartThemeLight.backgroundColor,
     tooltip: { trigger: 'axis' },
     legend: {
       data: ['Факт', 'Оптимистичный'],
-      textStyle: { color: chartTheme.textStyle.color }
+      top: 0,
+      left: 'center',
+      textStyle: { color: chartThemeLight.textStyle.color, fontSize: 11 }
     },
-    grid: { left: 48, right: 24, top: 40, bottom: 32 },
+    grid,
     xAxis: {
       type: 'category',
       data: months,
-      axisLabel: { color: chartTheme.textStyle.color, rotate: 45, fontSize: 10 }
+      axisLabel: {
+        color: chartThemeLight.textStyle.color,
+        rotate: isCompact.value ? 0 : 45,
+        fontSize: 10,
+        interval: sparseLabelInterval(months.length, isCompact.value),
+        formatter: (value: string) => formatMonthLabel(value)
+      }
     },
     yAxis: {
       type: 'value',
       axisLabel: {
-        color: chartTheme.textStyle.color,
-        formatter: (v: number) => `${Math.round(v / 1000)}k`
+        color: chartThemeLight.textStyle.color,
+        fontSize: 10,
+        formatter: (v: number) => formatAxisMoney(v)
       },
-      splitLine: { lineStyle: { color: chartTheme.splitLine } }
+      splitLine: { lineStyle: { color: chartThemeLight.splitLine } }
     },
     series: [
       {
@@ -58,18 +78,19 @@ const option = computed(() => {
     ]
   }
 })
+
 </script>
 
 <template>
   <ClientOnly>
-    <VChart
-      v-if="option"
-      class="h-full min-h-[220px] max-h-[420px] w-full sm:min-h-[280px] lg:min-h-[300px]"
-      :option="option"
-      autoresize
-    />
-    <p v-else class="flex min-h-[220px] items-center justify-center text-sm text-slate-500 sm:min-h-[280px] lg:min-h-[300px]">
-      Нет данных
-    </p>
+    <div ref="containerRef" class="h-full w-full min-h-0">
+      <VChart v-if="option" class="h-full w-full" :option="option" autoresize />
+      <p
+        v-else
+        class="flex h-full w-full items-center justify-center text-sm text-[color:var(--mm-text-soft)]"
+      >
+        Нет данных
+      </p>
+    </div>
   </ClientOnly>
 </template>

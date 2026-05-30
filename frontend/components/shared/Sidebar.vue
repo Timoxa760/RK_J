@@ -22,7 +22,7 @@ defineEmits<{
 const authStore = useAuthStore()
 
 const mainNav = [
-  { to: '/dashboard', label: 'Диагноз', icon: Home },
+  { to: '/dashboard', label: 'Моя картина', icon: Home },
   { to: '/receipts', label: 'Расходы', icon: ReceiptText },
   { to: '/analytics', label: 'Прогноз', icon: BarChart3 },
   { to: '/credits', label: 'Кредиты', icon: CreditCard },
@@ -34,7 +34,7 @@ const mainNav = [
 
 <template>
   <aside
-    class="fixed inset-y-0 left-0 z-40 flex w-[min(20rem,88vw)] flex-col border-r border-[color:var(--mm-border)] bg-white transition-transform duration-200 mm-safe-top mm-safe-bottom lg:z-30 lg:w-64 lg:translate-x-0"
+    class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,88vw)] flex-col border-r border-[color:var(--mm-border)] bg-background transition-transform duration-200 mm-safe-top mm-safe-bottom lg:static lg:z-auto lg:h-[100dvh] lg:w-64 lg:shrink-0 lg:translate-x-0"
     :class="mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
   >
     <div class="flex h-16 items-center border-b border-[color:var(--mm-border-subtle)] px-4">

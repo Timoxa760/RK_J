@@ -2,10 +2,10 @@
 const ACTS = [
   { path: '/receipts', label: 'Лента чеков', selector: '[data-demo="receipts"]' },
   { path: '/dashboard', label: 'Категории', selector: '[data-demo="categories"]' },
-  { path: '/analytics', label: 'Инсайты', selector: '[data-demo="insights"]' },
-  { path: '/analytics', label: 'Time Machine', selector: '[data-demo="timemachine"]' },
-  { path: '/credits', label: 'Credit Health', selector: '[data-demo="credits-dti"]' },
-  { path: '/social', label: 'Лидерборд', selector: '[data-demo="leaderboard"]' }
+  { path: '/analytics', label: 'Советы', selector: '[data-demo="insights"]' },
+  { path: '/dashboard', label: 'Накопления', selector: '[data-demo="timemachine"]' },
+  { path: '/credits', label: 'Кредиты', selector: '[data-demo="credits-dti"]' },
+  { path: '/social', label: 'Рейтинг', selector: '[data-demo="leaderboard"]' }
 ] as const
 
 const active = ref(false)
@@ -78,11 +78,14 @@ defineExpose({ start, stop })
 </script>
 
 <template>
-  <div v-if="active" class="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+  <div
+    v-if="active"
+    class="fixed inset-x-0 bottom-0 z-50 border-t border-[color:var(--mm-border)] bg-[color:var(--mm-surface)]/95 px-4 py-3 backdrop-blur mm-safe-bottom"
+  >
     <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <span class="text-xs font-medium uppercase tracking-wide text-[color:var(--mm-primary)]">Режим демо</span>
-        <span class="text-sm text-slate-700">{{ ACTS[step]?.label }}</span>
+        <span class="text-sm text-[color:var(--mm-text)]">{{ ACTS[step]?.label }}</span>
       </div>
       <div class="flex gap-1">
         <button
@@ -90,14 +93,14 @@ defineExpose({ start, stop })
           :key="i"
           type="button"
           class="h-2 w-8 rounded-full transition-colors"
-          :class="i === step ? 'bg-[color:var(--mm-primary)]' : i < step ? 'bg-[color:var(--mm-primary-muted)]' : 'bg-slate-200'"
+          :class="i === step ? 'bg-[color:var(--mm-primary)]' : i < step ? 'bg-[color:var(--mm-primary-muted)]' : 'bg-[color:var(--mm-border)]'"
           :aria-label="`Шаг ${i + 1}`"
           @click="goToStep(i)"
         />
       </div>
       <button
         type="button"
-        class="text-xs text-slate-500 hover:text-slate-800"
+        class="text-xs text-[color:var(--mm-text-soft)] hover:text-[color:var(--mm-text)]"
         @click="stop"
       >
         Esc — выход

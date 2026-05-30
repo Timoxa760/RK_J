@@ -55,9 +55,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
-  if (import.meta.client) {
-    document.body.style.overflow = ''
-  }
+  closeMobileNav()
 })
 </script>
 

@@ -1,8 +1,44 @@
+import { createRequire } from 'node:module'
+import { vueSfcRegisterTs } from './plugins/vue-sfc-register-ts'
+import { patchVueRouterDevtools } from './plugins/vite/patch-vue-router-devtools'
+
+// Vue SFC compiler needs TypeScript to resolve defineProps<ImportedType>() from reka-ui
+createRequire(import.meta.url)('vue/compiler-sfc')
+
 export default defineNuxtConfig({
   srcDir: '.',
   compatibilityDate: '2025-07-15',
-  modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', '@pinia/nuxt'],
-  css: ['~/assets/css/main.css'],
+  devtools: { enabled: true },
+  experimental: {
+    appManifest: false
+  },
+  modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', '@pinia/nuxt', 'shadcn-nuxt'],
+  build: {
+    transpile: ['reka-ui', 'vue-sonner']
+  },
+  typescript: {
+    strict: true,
+    typeCheck: false
+  },
+  vite: {
+    plugins: [patchVueRouterDevtools(), vueSfcRegisterTs()],
+    optimizeDeps: {
+      include: ['typescript'],
+    },
+    vue: {
+      features: {
+        prodDevtools: false
+      }
+    }
+  },
+  tailwindcss: {
+    configPath: './tailwind.config.ts',
+    cssPath: '~/assets/css/main.css'
+  },
+  shadcn: {
+    prefix: '',
+    componentDir: './components/ui'
+  },
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000',
@@ -10,6 +46,8 @@ export default defineNuxtConfig({
     }
   },
   app: {
+    pageTransition: false,
+    layoutTransition: false,
     head: {
       title: 'Поток — голосовой помощник по тратам',
       meta: [

@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { use } from 'echarts/core'
 import { ScatterChart } from 'echarts/charts'
-import { GridComponent, TooltipComponent, VisualMapComponent } from 'echarts/components'
+import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { StoresResponse } from '~/types/api'
-import { chartThemeLight } from '~/types/api'
+import { baseGrid, chartThemeLight } from '~/utils/chartTheme'
 
-use([CanvasRenderer, ScatterChart, TooltipComponent, GridComponent, VisualMapComponent])
+use([CanvasRenderer, ScatterChart, TooltipComponent, GridComponent])
 
 const props = defineProps<{
   data: StoresResponse | null
+  size?: 'sm' | 'md' | 'lg' | 'full'
 }>()
 
-const chartTheme = chartThemeLight
+const { containerRef, isCompact } = useChartViewport()
 
 function impulseColor(ratio: number) {
   if (ratio < 0.33) return '#e8955f'
@@ -25,61 +26,61 @@ const option = computed(() => {
   if (!props.data?.stores.length) return null
   const seriesData = props.data.stores.map((s) => ({
     name: s.name,
-    value: [s.avg_check, s.visits, s.total, s.impulse_ratio],
+    value: [s.avg_check, s.visits ?? s.purchases ?? 0, s.total, s.impulse_ratio],
     itemStyle: { color: impulseColor(s.impulse_ratio) }
   }))
   const maxTotal = Math.max(...props.data.stores.map((s) => s.total))
+  const grid = baseGrid(isCompact.value)
+  grid.top = isCompact.value ? 16 : 24
+  grid.bottom = isCompact.value ? 56 : 56
+  grid.left = isCompact.value ? 36 : 48
 
   return {
-    backgroundColor: chartTheme.backgroundColor,
+    backgroundColor: chartThemeLight.backgroundColor,
     tooltip: {
       formatter: (p: { data: { name: string; value: number[] } }) => {
         const [avg, visits, total, impulse] = p.data.value
-        return `${p.data.name}<br/>Средний чек: ${avg} ₽<br/>Покупок: ${visits}<br/>Всего: ${total} ₽<br/>Импульсивность: ${Math.round(impulse * 100)}%`
+        return `${p.data.name}<br/>Средний чек: ${avg} ₽<br/>Покупок: ${visits}<br/>Всего: ${total} ₽<br/>Покупок «на эмоциях»: ${Math.round((impulse ?? 0) * 100)}%`
       }
     },
-    grid: { left: 48, right: 24, top: 24, bottom: 48 },
+    grid,
     xAxis: {
-      name: 'Средний чек',
+      name: isCompact.value ? '' : 'Средний чек',
       nameLocation: 'middle',
       nameGap: 28,
-      axisLine: { lineStyle: { color: chartTheme.axisColor } },
-      axisLabel: { color: chartTheme.textStyle.color }
+      axisLine: { lineStyle: { color: chartThemeLight.axisColor } },
+      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 }
     },
     yAxis: {
-      name: 'Покупки',
-      axisLine: { lineStyle: { color: chartTheme.axisColor } },
-      axisLabel: { color: chartTheme.textStyle.color },
-      splitLine: { lineStyle: { color: chartTheme.splitLine } }
+      name: isCompact.value ? '' : 'Покупки',
+      nameGap: 12,
+      axisLine: { lineStyle: { color: chartThemeLight.axisColor } },
+      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 },
+      splitLine: { lineStyle: { color: chartThemeLight.splitLine } }
     },
     series: [
       {
         type: 'scatter',
-        symbolSize: (val: number[]) => Math.max(12, (val[2] / maxTotal) * 60),
+        symbolSize: (val: number[]) => Math.max(12, (val[2]! / maxTotal) * 60),
         data: seriesData,
-        label: {
-          show: true,
-          formatter: '{b}',
-          position: 'top',
-          fontSize: 10,
-          color: chartTheme.textStyle.color
-        }
+        label: { show: false }
       }
     ]
   }
 })
+
 </script>
 
 <template>
   <ClientOnly>
-    <VChart
-      v-if="option"
-      class="h-full min-h-[220px] w-full sm:min-h-[280px] lg:min-h-[300px]"
-      :option="option"
-      autoresize
-    />
-    <p v-else class="flex min-h-[220px] items-center justify-center text-sm text-slate-500 sm:min-h-[280px] lg:min-h-[300px]">
-      Нет данных
-    </p>
+    <div ref="containerRef" class="h-full w-full min-h-0">
+      <VChart v-if="option" class="h-full w-full" :option="option" autoresize />
+      <p
+        v-else
+        class="flex h-full w-full items-center justify-center text-sm text-[color:var(--mm-text-soft)]"
+      >
+        Нет данных
+      </p>
+    </div>
   </ClientOnly>
 </template>

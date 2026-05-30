@@ -1,87 +1,120 @@
-import type { ForecastResponse, InsightsResponse, TimeMachineResponse } from '~/types/api'
-import { useAuthStore } from '~/store/authStore'
-
-const mockTimeMachine: TimeMachineResponse = {
-  points: Array.from({ length: 12 }, (_, i) => ({
-    month: `2025-${String(i + 1).padStart(2, '0')}`,
-    actual: 50000 + i * 4200,
-    optimistic: 52000 + i * 4800
-  })),
-  delta: 18400
-}
-
-const mockForecast: ForecastResponse = {
-  points: [
-    { month: '2026-06', amount: 72000 },
-    { month: '2026-07', amount: 68500 },
-    { month: '2026-08', amount: 71000 }
-  ]
-}
-
-const mockInsights: InsightsResponse = {
-  insights: [
-    {
-      id: '1',
-      title: 'Рост трат в кафе',
-      body: 'Расходы на кофе выросли на 18%.',
-      severity: 'warning'
-    },
-    {
-      id: '2',
-      title: 'Накопления в норме',
-      body: 'Вы откладываете 22% дохода.',
-      severity: 'success'
-    }
-  ]
-}
+import type {
+  ForecastResponse,
+  SimulateScenarioRequest,
+  SimulateScenarioResponse,
+  TimeMachineResponse
+} from '~/types/api'
+import { mockForecast, mockTimeMachine } from '~/store/mocks'
+import { formatScenarioResult } from '~/utils/analyticsNarrative'
+import { normalizeForecast, normalizeTimeMachine } from '~/utils/apiNormalize'
 
 export function useAnalytics() {
-  const config = useRuntimeConfig()
-  const authStore = useAuthStore()
+  const { apiFetch, apiFetchWithDemo, demoMode } = useApi()
 
   const timeMachine = ref<TimeMachineResponse | null>(null)
   const forecast = ref<ForecastResponse | null>(null)
-  const insights = ref<InsightsResponse | null>(null)
   const loading = ref(false)
+  const error = ref<string | null>(null)
   const scenarioResult = ref<string | null>(null)
-
-  async function fetchJson<T>(path: string, mock: T): Promise<T> {
-    if (config.public.demoMode) return mock
-    try {
-      return await $fetch<T>(path, {
-        baseURL: config.public.apiBase,
-        headers: authStore.token
-          ? { Authorization: `Bearer ${authStore.token}` }
-          : undefined
-      })
-    } catch {
-      return mock
-    }
-  }
+  const scenarioSimulation = ref<TimeMachineResponse | null>(null)
+  const scenarioLoading = ref(false)
 
   async function loadAll() {
     loading.value = true
+    error.value = null
     try {
-      timeMachine.value = await fetchJson('/api/v1/dashboard/timemachine', mockTimeMachine)
-      forecast.value = await fetchJson('/api/v1/analytics/forecast', mockForecast)
-      insights.value = await fetchJson('/api/v1/analytics/insights', mockInsights)
+      const [tmRaw, fcRaw] = await Promise.all([
+        apiFetchWithDemo('/dashboard/timemachine', mockTimeMachine),
+        apiFetchWithDemo<ForecastResponse>('/forecast?days=7', mockForecast)
+      ])
+      timeMachine.value = normalizeTimeMachine(tmRaw)
+      forecast.value = normalizeForecast(fcRaw)
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Ошибка загрузки аналитики'
+      if (demoMode.value) {
+        timeMachine.value = normalizeTimeMachine(mockTimeMachine)
+        forecast.value = normalizeForecast(mockForecast)
+      }
     } finally {
       loading.value = false
     }
   }
 
-  async function simulateScenario(params: { cutCategory: string; percent: number }) {
-    const reduction = Math.round(params.percent * 720)
-    scenarioResult.value = `Экономия ~${reduction.toLocaleString('ru-RU')} ₽/мес`
-    await fetchJson('/api/v1/analytics/simulate', { savings: reduction })
+  async function simulateScenario(params: {
+    scenario: SimulateScenarioRequest['scenario']
+    reduction_percent: number
+    months?: number
+  }) {
+    scenarioLoading.value = true
+    error.value = null
+
+    const applyResult = (
+      simulation: TimeMachineResponse,
+      differenceFinal: number,
+      monthlySaving: number
+    ) => {
+      scenarioResult.value = formatScenarioResult(
+        differenceFinal,
+        monthlySaving,
+        params.reduction_percent
+      )
+      scenarioSimulation.value = simulation
+    }
+
+    const applyDemoResult = () => {
+      const monthlySaving = Math.round(4_500 * (params.reduction_percent / 20))
+      const differenceFinal = monthlySaving * 80
+      const base = normalizeTimeMachine(mockTimeMachine)
+      applyResult(
+        {
+          ...base,
+          points: base.points.map((p, i) => ({
+            ...p,
+            optimistic: p.optimistic + i * Math.round(monthlySaving * 0.8)
+          })),
+          delta: differenceFinal,
+          difference_final: differenceFinal
+        },
+        differenceFinal,
+        monthlySaving
+      )
+    }
+
+    try {
+      if (demoMode.value) {
+        await new Promise((r) => setTimeout(r, 250))
+        applyDemoResult()
+        return
+      }
+
+      const body: SimulateScenarioRequest = {
+        scenario: params.scenario,
+        reduction_percent: params.reduction_percent,
+        months: params.months ?? 60
+      }
+      const res = await apiFetch<SimulateScenarioResponse>('/scenarios/simulate', {
+        method: 'POST',
+        body
+      })
+      const monthlySaving =
+        res.scenario?.monthly_saving ?? res.difference_final / (params.months ?? 60)
+      applyResult(normalizeTimeMachine(res), res.difference_final, monthlySaving)
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Ошибка симуляции'
+      if (demoMode.value) applyDemoResult()
+    } finally {
+      scenarioLoading.value = false
+    }
   }
 
   return {
     timeMachine,
     forecast,
-    insights,
     loading,
+    error,
     scenarioResult,
+    scenarioSimulation,
+    scenarioLoading,
     loadAll,
     simulateScenario
   }

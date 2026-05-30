@@ -1,46 +1,59 @@
-import type { CreditsDashboardResponse } from '~/types/api'
-import { useAuthStore } from '~/store/authStore'
-
-const mockCredits: CreditsDashboardResponse = {
-  dti: 38,
-  stress_test_dti: 52,
-  monthly_income: 120000,
-  credits: [
-    { id: '1', name: 'Ипотека', balance: 3200000, payment: 28000, rate: 12.5 },
-    { id: '2', name: 'Автокредит', balance: 450000, payment: 12000, rate: 15.9 },
-    { id: '3', name: 'Кредитная карта', balance: 85000, payment: 8500, rate: 24.9 }
-  ]
-}
+import type { CreditScanResponse, CreditsDashboardResponse } from '~/types/api'
+import { mockCredits } from '~/store/mocks'
+import { normalizeCredits } from '~/utils/apiNormalize'
 
 export function useCredits() {
-  const config = useRuntimeConfig()
-  const authStore = useAuthStore()
+  const { apiFetch, apiFetchWithDemo, demoMode } = useApi()
 
   const dashboard = ref<CreditsDashboardResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const scanResult = ref<CreditScanResponse | null>(null)
+  const scanLoading = ref(false)
 
   async function fetchDashboard() {
     loading.value = true
     error.value = null
     try {
-      if (config.public.demoMode) {
-        dashboard.value = mockCredits
-        return
-      }
-      dashboard.value = await $fetch<CreditsDashboardResponse>('/api/v1/credits/dashboard', {
-        baseURL: config.public.apiBase,
-        headers: authStore.token
-          ? { Authorization: `Bearer ${authStore.token}` }
-          : undefined
-      })
+      const raw = await apiFetchWithDemo<CreditsDashboardResponse>(
+        '/credits/dashboard',
+        mockCredits
+      )
+      dashboard.value = normalizeCredits(raw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
-      dashboard.value = mockCredits
+      if (demoMode.value) {
+        dashboard.value = normalizeCredits(mockCredits)
+      }
     } finally {
       loading.value = false
     }
   }
 
-  return { dashboard, loading, error, fetchDashboard }
+  async function scanContract(file: File) {
+    scanLoading.value = true
+    error.value = null
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      scanResult.value = await apiFetch<CreditScanResponse>('/credits/scan', {
+        method: 'POST',
+        body: form
+      })
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Не удалось распознать договор'
+    } finally {
+      scanLoading.value = false
+    }
+  }
+
+  return {
+    dashboard,
+    loading,
+    error,
+    scanResult,
+    scanLoading,
+    fetchDashboard,
+    scanContract
+  }
 }

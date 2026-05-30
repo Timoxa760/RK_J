@@ -1,58 +1,73 @@
 <script setup lang="ts">
+import { allowDigitKeydown, digitsOnly, onDigitPaste } from '~/utils/numericInput'
 
 const { register, login } = useAuth()
 
-const phone = ref('')
-const code = ref('')
+const phoneDigits = ref('')
+const codeDigits = ref('')
 const step = ref<'phone' | 'code'>('phone')
 const loading = ref(false)
 const error = ref('')
 
-function normalizePhone(value: string) {
-  const digits = value.replace(/\D/g, '')
-  if (digits.startsWith('8') && digits.length === 11) {
-    return `+7${digits.slice(1)}`
+const phone = computed({
+  get(): string {
+    const d = phoneDigits.value
+    if (!d.length) return '+7'
+    return [
+      '+7',
+      d.length > 0 ? ` (${d.slice(0, 3)}` : '',
+      d.length >= 3 ? `) ${d.slice(3, 6)}` : '',
+      d.length >= 6 ? `-${d.slice(6, 8)}` : '',
+      d.length >= 8 ? `-${d.slice(8, 10)}` : ''
+    ].join('')
+  },
+  set(raw: string | number) {
+    let digits = digitsOnly(String(raw), 11)
+    if (digits.startsWith('8')) digits = digits.slice(1)
+    if (digits.startsWith('7')) digits = digits.slice(1)
+    phoneDigits.value = digits.slice(0, 10)
   }
-  if (digits.startsWith('7') && digits.length === 11) {
-    return `+${digits}`
+})
+
+const code = computed({
+  get: () => codeDigits.value,
+  set(raw: string | number) {
+    codeDigits.value = digitsOnly(String(raw), 4)
   }
-  if (digits.length === 10) {
-    return `+7${digits}`
-  }
-  return value.startsWith('+') ? value : `+${digits}`
+})
+
+const phoneComplete = computed(() => phoneDigits.value.length === 10)
+
+function onPhonePaste(event: ClipboardEvent) {
+  onDigitPaste(event, (digits) => {
+    phone.value = digits
+  }, 11)
 }
 
-function formatPhoneInput(e: Event) {
-  const input = e.target as HTMLInputElement
-  let digits = input.value.replace(/\D/g, '')
-  if (!digits.length) {
-    phone.value = ''
-    return
-  }
-  if (digits[0] === '8') digits = `7${digits.slice(1)}`
-  if (digits[0] !== '7') digits = `7${digits}`
-  digits = digits.slice(0, 11)
-  const parts = [
-    '+7',
-    digits.length > 1 ? ` (${digits.slice(1, 4)}` : '',
-    digits.length >= 4 ? `) ${digits.slice(4, 7)}` : '',
-    digits.length >= 7 ? `-${digits.slice(7, 9)}` : '',
-    digits.length >= 9 ? `-${digits.slice(9, 11)}` : ''
-  ]
-  phone.value = parts.join('')
+function onCodePaste(event: ClipboardEvent) {
+  onDigitPaste(event, (digits) => {
+    codeDigits.value = digits
+  }, 4)
+}
+
+function normalizePhone(display: string) {
+  const digits = display.replace(/\D/g, '')
+  if (digits.length === 11 && digits.startsWith('7')) return `+${digits}`
+  if (digits.length === 10) return `+7${digits}`
+  return display
 }
 
 async function submitPhone() {
   error.value = ''
-  const normalized = normalizePhone(phone.value)
-  if (normalized.replace(/\D/g, '').length < 11) {
-    error.value = 'Введите корректный номер телефона'
+  if (!phoneComplete.value) {
+    error.value = 'Введите номер полностью — 10 цифр после +7'
     return
   }
   loading.value = true
   try {
+    const normalized = normalizePhone(phone.value)
     await register(normalized)
-    phone.value = normalized
+    phoneDigits.value = normalized.replace(/\D/g, '').replace(/^7/, '').slice(-10)
     step.value = 'code'
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка регистрации'
@@ -61,16 +76,25 @@ async function submitPhone() {
   }
 }
 
+function backToPhone() {
+  step.value = 'phone'
+  codeDigits.value = ''
+  error.value = ''
+}
+
 async function submitCode() {
   error.value = ''
-  if (code.value.length < 4) {
-    error.value = 'Введите код из SMS'
+  if (codeDigits.value.length < 4) {
+    error.value = 'Введите 4 цифры кода'
     return
   }
   loading.value = true
   try {
-    await login(phone.value, code.value)
-    await navigateTo('/dashboard')
+    await login(normalizePhone(phone.value), codeDigits.value)
+    useFinancialProfile().loadProfile()
+    useGoals().fetchGoals()
+    const { isComplete } = useOnboarding()
+    await navigateTo(isComplete() ? '/dashboard' : '/onboarding')
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка входа'
   } finally {
@@ -80,67 +104,67 @@ async function submitCode() {
 </script>
 
 <template>
-  <div class="relative z-10 w-full max-w-md mm-card rounded-2xl p-6 sm:rounded-3xl sm:p-8">
-    <h1 class="text-2xl font-medium tracking-tight text-[color:var(--mm-text)]">Вход в Поток</h1>
-    <p class="mt-2 text-sm text-[color:var(--mm-text-muted)]">
-      {{
-        step === 'phone'
-          ? 'Войдите, чтобы сохранить историю разговоров с помощником'
-          : 'Введите код из SMS'
-      }}
-    </p>
+  <Card
+    class="relative z-10 w-full max-w-md border-[color:var(--mm-border)] bg-white/95 shadow-[0_24px_64px_-28px_rgb(0_0_0_/_0.18)] backdrop-blur-md"
+  >
+    <CardHeader>
+      <CardTitle class="text-2xl">Вход в Поток</CardTitle>
+      <CardDescription>
+        {{
+          step === 'phone'
+            ? 'Войдите, чтобы сохранить историю разговоров с помощником'
+            : 'Введите код из SMS'
+        }}
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <form v-if="step === 'phone'" class="space-y-4" @submit.prevent="submitPhone">
+        <div class="space-y-2">
+          <Label for="phone">Телефон</Label>
+          <Input
+            id="phone"
+            v-model="phone"
+            type="tel"
+            inputmode="numeric"
+            pattern="[0-9+() -]*"
+            autocomplete="tel"
+            maxlength="18"
+            placeholder="+7 (999) 123-45-67"
+            @keydown="allowDigitKeydown"
+            @paste="onPhonePaste"
+          />
+        </div>
+        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+        <Button type="submit" class="w-full" :disabled="loading || !phoneComplete">
+          {{ loading ? 'Отправка…' : 'Получить код' }}
+        </Button>
+      </form>
 
-    <form
-      v-if="step === 'phone'"
-      class="mt-6 space-y-4"
-      @submit.prevent="submitPhone"
-    >
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--mm-text-muted)]" for="phone">Телефон</label>
-        <input
-          id="phone"
-          :value="phone"
-          type="tel"
-          placeholder="+7 (999) 123-45-67"
-          class="mt-1 w-full rounded-xl border border-[color:var(--mm-border)] bg-[color:var(--mm-bg-elevated)] px-3 py-2 text-[color:var(--mm-text)] focus:border-[color:var(--mm-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--mm-primary-muted)]"
-          @input="formatPhoneInput"
-        />
-      </div>
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-      <button type="submit" class="mm-btn-primary w-full disabled:opacity-50" :disabled="loading">
-        {{ loading ? 'Отправка…' : 'Получить код' }}
-      </button>
-    </form>
-
-    <form
-      v-else
-      class="mt-6 space-y-4"
-      @submit.prevent="submitCode"
-    >
-      <p class="text-sm text-[color:var(--mm-text-soft)]">{{ phone }}</p>
-      <div>
-        <label class="block text-sm font-medium text-[color:var(--mm-text-muted)]" for="code">Код</label>
-        <input
-          id="code"
-          v-model="code"
-          type="text"
-          inputmode="numeric"
-          maxlength="4"
-          placeholder="Код из SMS"
-          class="mt-1 w-full rounded-xl border border-[color:var(--mm-border)] bg-[color:var(--mm-bg-elevated)] px-3 py-2 text-[color:var(--mm-text)] focus:border-[color:var(--mm-primary)] focus:outline-none focus:ring-1 focus:ring-[color:var(--mm-primary-muted)]"
-        />
-      </div>
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-      <button type="submit" class="mm-btn-primary w-full disabled:opacity-50" :disabled="loading">
-        {{ loading ? 'Вход…' : 'Войти' }}
-      </button>
-      <button
-        type="button"
-        class="w-full text-sm text-[color:var(--mm-text-soft)] hover:text-[color:var(--mm-text-muted)]"
-        @click="step = 'phone'; code = ''; error = ''"
-      >
-        Изменить номер
-      </button>
-    </form>
-  </div>
+      <form v-else class="space-y-4" @submit.prevent="submitCode">
+        <p class="text-sm text-muted-foreground">{{ phone }}</p>
+        <div class="space-y-2">
+          <Label for="code">Код</Label>
+          <Input
+            id="code"
+            v-model="code"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            autocomplete="one-time-code"
+            maxlength="4"
+            placeholder="0000"
+            @keydown="allowDigitKeydown"
+            @paste="onCodePaste"
+          />
+        </div>
+        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+        <Button type="submit" class="w-full" :disabled="loading || codeDigits.length < 4">
+          {{ loading ? 'Вход…' : 'Войти' }}
+        </Button>
+        <Button type="button" variant="ghost" class="w-full" @click="backToPhone">
+          Изменить номер
+        </Button>
+      </form>
+    </CardContent>
+  </Card>
 </template>

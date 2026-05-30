@@ -1,20 +1,45 @@
 <script setup lang="ts">
-const authStore = useAuthStore()
+import { PROFILE } from '~/constants/productCopy'
+import { buildProfilePageNarrative } from '~/utils/pageNarrative'
+
+const { profile, totalIncome, loadProfile } = useFinancialProfile()
+const { goals, loading: goalsLoading, fetchGoals } = useGoals()
+
+const pageLoading = computed(() => goalsLoading.value)
+
+const profileIncomplete = computed(
+  () => totalIncome.value <= 0 && profile.value.emergency_fund <= 0
+)
+
+const pageNarrative = computed(() =>
+  buildProfilePageNarrative({
+    profile: profile.value,
+    goals: goals.value
+  })
+)
+
+onMounted(async () => {
+  loadProfile()
+  await fetchGoals()
+})
 </script>
 
 <template>
-  <section class="mm-card p-4 sm:p-6">
-    <h2 class="text-lg font-semibold text-[color:var(--mm-text)]">Профиль</h2>
-    <dl v-if="authStore.user" class="mt-4 space-y-3 text-sm">
-      <div class="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-        <dt class="text-[color:var(--mm-text-soft)]">Телефон</dt>
-        <dd class="font-medium text-[color:var(--mm-text)]">{{ authStore.user.phone }}</dd>
-      </div>
-      <div v-if="authStore.user.name" class="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-        <dt class="text-[color:var(--mm-text-soft)]">Имя</dt>
-        <dd class="font-medium text-[color:var(--mm-text)]">{{ authStore.user.name }}</dd>
-      </div>
-    </dl>
-    <p class="mt-6 text-sm text-[color:var(--mm-text-soft)]">Тёмная тема — в следующих версиях</p>
-  </section>
+  <div class="mx-auto w-full max-w-4xl space-y-6">
+    <SharedPageNarrative :narrative="pageNarrative" :loading="pageLoading && !goals.length" />
+
+    <Alert v-if="profileIncomplete && !goals.length">
+      <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
+      <AlertDescription class="space-y-2">
+        <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
+        <Button as-child size="sm" variant="secondary">
+          <NuxtLink to="/onboarding">Пройти короткий опрос</NuxtLink>
+        </Button>
+      </AlertDescription>
+    </Alert>
+
+    <ProfileFinancialForm />
+    <ProfileGoalsSection />
+    <ProfileProvidersSection />
+  </div>
 </template>
