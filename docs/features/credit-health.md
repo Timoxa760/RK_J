@@ -1,5 +1,6 @@
 # Финансовое здоровье (Credit Health → Health Dashboard)
 
+> Источник кредитных данных в MVP: [credit-scan.md](./credit-scan.md) (PDF-only).  
 > Продукт: [financial-health.md](../product/financial-health.md)
 
 ## Цель

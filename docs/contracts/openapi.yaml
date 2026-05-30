@@ -19,7 +19,6 @@ tags:
   - name: expenses
   - name: fns
   - name: credits
-  - name: goals
   - name: analytics
   - name: ai
   - name: profile
@@ -235,6 +234,67 @@ components:
                 type: string
               amount:
                 type: number
+        goal_kind:
+          type: string
+        goal_title:
+          type: string
+        goal_amount:
+          type: number
+        skipped_income:
+          type: boolean
+        skipped_cushion:
+          type: boolean
+        skipped_goal:
+          type: boolean
+        skipped_expenses:
+          type: boolean
+
+    CreditScanResponse:
+      type: object
+      properties:
+        parsed:
+          type: object
+          properties:
+            amount:
+              type: number
+            rate:
+              type: number
+            term_months:
+              type: integer
+            monthly_payment:
+              type: number
+            bank:
+              type: string
+        benchmark_rate:
+          type: number
+        rate_vs_market:
+          type: string
+        confidence:
+          type: number
+        credit_id:
+          type: string
+
+    AiChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+
+    AiChatResponse:
+      type: object
+      properties:
+        reply:
+          type: string
 
     FnsTicketRequest:
       type: object
@@ -269,19 +329,6 @@ components:
                 type: number
               rate:
                 type: number
-
-    GoalCreateRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        target_amount:
-          type: number
-        target_date:
-          type: string
-          format: date
-        auto_save_percent:
-          type: number
 
     ScenarioSimulateRequest:
       type: object
@@ -603,6 +650,39 @@ paths:
         "401":
           description: Unauthorized
 
+  /ai/plan:
+    get:
+      tags: [ai]
+      summary: Финансовый план и диагноз
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+
+  /ai/chat:
+    post:
+      tags: [ai]
+      summary: Чат советника
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResponse"
+        "401":
+          description: Unauthorized
+
   /credits/dashboard:
     get:
       tags: [credits]
@@ -618,22 +698,33 @@ paths:
         "401":
           description: Unauthorized
 
-  /goals:
+  /credits/scan:
     post:
-      tags: [goals]
-      summary: Создать финансовую цель
+      tags: [credits]
+      summary: Скан PDF кредитного договора
       security:
         - bearerAuth: []
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/GoalCreateRequest"
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
       responses:
         "200":
-          description: Goal created
+          description: Parsed contract
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditScanResponse"
         "401":
           description: Unauthorized
+        "422":
+          description: Could not parse PDF
 
   /insights:
     get:

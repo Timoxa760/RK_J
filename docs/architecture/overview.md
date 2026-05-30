@@ -25,7 +25,7 @@ API: `api-gateway:8000` → микросервисы.
 
 | БД | Версия (`back`) | Назначение |
 |----|-----------------|------------|
-| **PostgreSQL** | 18.0 | OLTP: users, receipts, goals, credits, manual_expenses |
+| **PostgreSQL** | 18.0 | OLTP: users, receipts, user_financial_profiles, user_credits, manual_expenses |
 | **ClickHouse** | 25.12 | OLAP: receipt_items, агрегаты dashboard |
 | **Redis** | 8.8.0 | Кэш, сессии, leaderboards |
 | **Kafka** | 4.0.2 (cp-kafka) | `receipt.raw` → parsed → enriched |
@@ -41,15 +41,13 @@ API: `api-gateway:8000` → микросервисы.
 | scraper-service | 8003 | receipt-engine | FNS, X5, Magnit, email |
 | category-service | 8004 | finance-core | CRUD категорий |
 | budget-service | 8005 | finance-core | Бюджеты (legacy, не core UX) |
-| goal-service | 8006 | finance-core | Цели, прогресс |
-| gamification | 8007 | social-game | XP (демо) |
-| notification-service | 8008 | reporting | Push / Telegram |
-| credit-service | 8009 | finance-core | DTI, подушка, кредиты |
+| credit-service | 8009 | finance-core | PDF scan, DTI, rates client |
 | reporting-service | 8010 | reporting | Дайджест |
 | bank-service | 8011 | finance-core | Банки, ипотечный разбор |
-| ai-processor | 8100 | money-intelligence | Голос/ручной, парсер, categorizer |
+| ai-processor | 8100 | money-intelligence | Голос/ручной, advisor, onboarding parse |
 | analytics-service | 8101 | money-intelligence | Insights, forecast, scenarios |
-| social-service | 8102 | social-game | Челленджи (демо) |
+
+**Removed from MVP:** `goal-service` (цель в profile), `social-service` / gamification (см. [scope.md](../product/scope.md)).
 
 > Порты и имена **не менять** — зафиксированы в `back/docker-compose.yml` и api-gateway routes.  
 > `back/README.md` может расходиться с compose — приоритет у compose + gateway.
@@ -73,7 +71,9 @@ API: `api-gateway:8000` → микросервисы.
 
 | Продукт | Сервисы |
 |---------|---------|
-| Онбординг, цели | user-service, goal-service |
+| Онбординг, цель в профиле | user-service (`/users/me/profile`) |
+| Кредиты (PDF-only) | credit-service + internal/rates |
+| Советник, план | ai-processor (`/ai/plan`, `/ai/chat`) |
 | Голос / ручной ввод | ai-processor |
 | ФНС / чеки | scraper-service, receipt-service |
 | Финансовое здоровье | credit-service, receipt-service (dashboard) |
