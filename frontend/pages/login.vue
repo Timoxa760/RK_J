@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { allowDigitKeydown, digitsOnly, onDigitPaste } from '~/utils/numericInput'
+import { clearAnonymousOnboardingKeys, isOnboardingComplete } from '~/composables/useOnboarding'
+import { useAuthStore } from '~/store/authStore'
 
 const { register, login } = useAuth()
+const authStore = useAuthStore()
 
 const phoneDigits = ref('')
 const codeDigits = ref('')
@@ -91,10 +94,14 @@ async function submitCode() {
   loading.value = true
   try {
     await login(normalizePhone(phone.value), codeDigits.value)
+    clearAnonymousOnboardingKeys()
     useFinancialProfile().loadProfile()
     useGoals().fetchGoals()
-    const { isComplete } = useOnboarding()
-    await navigateTo(isComplete() ? '/dashboard' : '/onboarding')
+    await navigateTo(
+      isOnboardingComplete(authStore.user?.phone, authStore.user?.id)
+        ? '/dashboard'
+        : '/onboarding'
+    )
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Ошибка входа'
   } finally {

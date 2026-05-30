@@ -1,9 +1,9 @@
 import type { FinancialProfile, ProfilePatchRequest } from '~/types/api'
-import { currentUserStorageKey } from '~/utils/userStorage'
+import { currentUserStorageKey, userStorageKey } from '~/utils/userStorage'
 
 const PROFILE_PREFIX = 'potok:financial-profile'
 
-const defaultProfile: FinancialProfile = {
+export const defaultFinancialProfile: FinancialProfile = {
   active_income: 0,
   passive_income: 0,
   emergency_fund: 0,
@@ -12,14 +12,21 @@ const defaultProfile: FinancialProfile = {
   onboarding_completed: false
 }
 
-function readStoredProfile(): FinancialProfile {
-  if (!import.meta.client) return { ...defaultProfile }
+export function readStoredProfile(
+  phone?: string | null,
+  userId?: string | null
+): FinancialProfile {
+  if (!import.meta.client) return { ...defaultFinancialProfile }
+  const key =
+    phone !== undefined || userId !== undefined
+      ? userStorageKey(PROFILE_PREFIX, phone, userId)
+      : currentUserStorageKey(PROFILE_PREFIX)
   try {
-    const raw = localStorage.getItem(currentUserStorageKey(PROFILE_PREFIX))
-    if (!raw) return { ...defaultProfile }
-    return { ...defaultProfile, ...JSON.parse(raw) }
+    const raw = localStorage.getItem(key)
+    if (!raw) return { ...defaultFinancialProfile }
+    return { ...defaultFinancialProfile, ...JSON.parse(raw) }
   } catch {
-    return { ...defaultProfile }
+    return { ...defaultFinancialProfile }
   }
 }
 
@@ -39,7 +46,7 @@ function isEndpointMissing(error: unknown): boolean {
 
 export function useFinancialProfile() {
   const { apiFetch, demoMode } = useApi()
-  const profile = ref<FinancialProfile>({ ...defaultProfile })
+  const profile = ref<FinancialProfile>({ ...defaultFinancialProfile })
 
   const totalIncome = computed(() => profile.value.active_income + profile.value.passive_income)
 
@@ -53,7 +60,7 @@ export function useFinancialProfile() {
   }
 
   function resetProfile() {
-    profile.value = { ...defaultProfile }
+    profile.value = { ...defaultFinancialProfile }
     writeStoredProfile(profile.value)
   }
 

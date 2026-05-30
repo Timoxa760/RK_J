@@ -2,6 +2,7 @@
 import { ArrowRight, Menu, User, X } from 'lucide-vue-next'
 import { LANDING_ANCHORS } from '~/constants/landingContent'
 import { scrollToLandingSection } from '~/composables/useLandingAnchor'
+import { needsOnboarding } from '~/composables/useOnboarding'
 import { useAuthStore } from '~/store/authStore'
 
 const route = useRoute()
@@ -10,6 +11,12 @@ const mobileNavOpen = ref(false)
 const headerScrolled = ref(false)
 
 const isLanding = computed(() => route.path === '/')
+
+const appEntryPath = computed(() =>
+  authStore.isAuthenticated && needsOnboarding()
+    ? '/onboarding'
+    : '/dashboard'
+)
 
 const appNavLinks = [
   { label: 'Диагноз', to: '/dashboard' },
@@ -114,11 +121,11 @@ onUnmounted(() => {
 
         <NuxtLink
           v-else
-          to="/dashboard"
+          :to="appEntryPath"
           class="mm-btn-primary mm-landing-cta hidden min-h-10 !px-4 !py-2 text-sm sm:inline-flex"
           @click="closeMobileNav"
         >
-          К приложению
+          {{ needsOnboarding() ? 'Пройти опрос' : 'К приложению' }}
         </NuxtLink>
 
         <NuxtLink

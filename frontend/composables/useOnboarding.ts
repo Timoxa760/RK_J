@@ -1,6 +1,8 @@
 import type { FinancialProfile, GoalKind, OnboardingDraft } from '~/types/api'
 import { GOAL_KIND_LABELS } from '~/constants/onboardingGoals'
-import { currentUserStorageKey, userStorageKey } from '~/utils/userStorage'
+import { readStoredProfile } from '~/composables/useFinancialProfile'
+import { useAuthStore } from '~/store/authStore'
+import { currentUserStorageKey, normalizeUserKey, userStorageKey } from '~/utils/userStorage'
 
 export { GOAL_KIND_LABELS } from '~/constants/onboardingGoals'
 
@@ -32,15 +34,83 @@ function draftKey(phone?: string | null, userId?: string | null) {
   return userStorageKey(ONBOARDING_DRAFT_PREFIX, phone, userId)
 }
 
+function resolveUserIdentity(phone?: string | null, userId?: string | null) {
+  const authStore = useAuthStore()
+  if (import.meta.client && authStore.isAuthenticated && !authStore.user) {
+    authStore.hydrate()
+  }
+  return {
+    phone: phone ?? authStore.user?.phone ?? null,
+    userId: userId ?? authStore.user?.id ?? null,
+    authenticated: authStore.isAuthenticated
+  }
+}
+
+export function hasSurveyData(phone?: string | null, userId?: string | null): boolean {
+  const identity = resolveUserIdentity(phone, userId)
+  const profile = readStoredProfile(identity.phone, identity.userId)
+  const draft = readOnboardingDraft(identity.phone, identity.userId)
+
+  const profileIncome = profile.active_income + profile.passive_income
+  const draftIncome = draft.active_income + draft.passive_income
+
+  return (
+    profileIncome > 0 ||
+    draftIncome > 0 ||
+    profile.emergency_fund > 0 ||
+    draft.emergency_fund > 0 ||
+    draft.goal_amount >= 1000
+  )
+}
+
 export function readOnboardingCompleted(phone?: string | null, userId?: string | null): boolean {
   if (!import.meta.client) return false
 
-  const key =
-    phone !== undefined || userId !== undefined
-      ? completedKey(phone, userId)
-      : currentUserStorageKey(ONBOARDING_COMPLETED_PREFIX)
+  const identity = resolveUserIdentity(phone, userId)
+  const userKey = normalizeUserKey(identity.phone, identity.userId)
 
-  return localStorage.getItem(key) === 'true'
+  if (userKey === 'anonymous') {
+    return identity.authenticated ? false : localStorage.getItem(completedKey(null, null)) === 'true'
+  }
+
+  return localStorage.getItem(completedKey(identity.phone, identity.userId)) === 'true'
+}
+
+/** Нужен ли опрос: новый пользователь или флаг «завершено» без данных профиля. */
+export function needsOnboarding(phone?: string | null, userId?: string | null): boolean {
+  if (!import.meta.client) return false
+
+  const identity = resolveUserIdentity(phone, userId)
+  const userKey = normalizeUserKey(identity.phone, identity.userId)
+
+  if (identity.authenticated && userKey === 'anonymous') return true
+
+  const flagged = readOnboardingCompleted(identity.phone, identity.userId)
+  if (!flagged) return true
+
+  if (!hasSurveyData(identity.phone, identity.userId)) {
+    writeOnboardingCompleted(false, identity.phone, identity.userId)
+    return true
+  }
+
+  return false
+}
+
+export function isOnboardingComplete(phone?: string | null, userId?: string | null): boolean {
+  return !needsOnboarding(phone, userId)
+}
+
+export function clearAnonymousOnboardingKeys() {
+  if (!import.meta.client) return
+  localStorage.removeItem(completedKey(null, null))
+  localStorage.removeItem(draftKey(null, null))
+}
+
+export function resetOnboardingForCurrentUser() {
+  if (!import.meta.client) return
+  const identity = resolveUserIdentity()
+  writeOnboardingCompleted(false, identity.phone, identity.userId)
+  clearOnboardingDraft(identity.phone, identity.userId)
 }
 
 export function writeOnboardingCompleted(
@@ -49,10 +119,13 @@ export function writeOnboardingCompleted(
   userId?: string | null
 ) {
   if (!import.meta.client) return
-  const key =
-    phone !== undefined || userId !== undefined
-      ? completedKey(phone, userId)
-      : currentUserStorageKey(ONBOARDING_COMPLETED_PREFIX)
+
+  const identity = resolveUserIdentity(phone, userId)
+  const userKey = normalizeUserKey(identity.phone, identity.userId)
+
+  if (value && userKey === 'anonymous') return
+
+  const key = completedKey(identity.phone, identity.userId)
 
   if (value) {
     localStorage.setItem(key, 'true')
@@ -235,7 +308,7 @@ export function useOnboarding() {
   }
 
   function isComplete() {
-    return readOnboardingCompleted()
+    return isOnboardingComplete()
   }
 
   async function completeOnboarding() {

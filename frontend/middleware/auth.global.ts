@@ -1,5 +1,5 @@
 import { useAuthStore } from '~/store/authStore'
-import { readOnboardingCompleted } from '~/composables/useOnboarding'
+import { isOnboardingComplete, needsOnboarding } from '~/composables/useOnboarding'
 
 const PUBLIC_PATHS = ['/', '/login']
 const ONBOARDING_PATH = '/onboarding'
@@ -15,7 +15,7 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   const onboardingDone = () =>
-    readOnboardingCompleted(authStore.user?.phone, authStore.user?.id)
+    isOnboardingComplete(authStore.user?.phone, authStore.user?.id)
 
   if (PUBLIC_PATHS.includes(to.path)) {
     if (authStore.isAuthenticated && to.path === '/login') {
@@ -33,7 +33,7 @@ export default defineNuxtRouteMiddleware((to) => {
   const completed = onboardingDone()
   const allowedDuringOnboarding = [...PUBLIC_PATHS, ONBOARDING_PATH]
 
-  if (!completed && !allowedDuringOnboarding.includes(to.path)) {
+  if (needsOnboarding(authStore.user?.phone, authStore.user?.id) && !allowedDuringOnboarding.includes(to.path)) {
     return navigateTo(ONBOARDING_PATH)
   }
 
