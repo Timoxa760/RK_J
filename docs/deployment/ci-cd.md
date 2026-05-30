@@ -13,8 +13,8 @@ Workflow: `.github/workflows/front.yml`
 Workflow: `backend/.github/workflows/back.yml`
 
 - Trigger: push/PR в `back`
-- Jobs: `go test ./...`, `docker compose config`
-- **Без autodeploy** — только проверки и push в git
+- Jobs: `go test ./...`
+- **Без autodeploy и без docker compose** — только проверки и push в git
 
 Ручной деплой: [backend/docs/backend/DEPLOY.md](../../backend/docs/backend/DEPLOY.md).
 
