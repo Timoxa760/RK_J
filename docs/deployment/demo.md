@@ -59,5 +59,5 @@ API_BASE=http://localhost:8000 ./docs/deployment/scripts/health_check.sh
 
 ## Связи
 
-- [phases.md](../phases/phases.md) — фаза 14
+- [phases.md](../phases/phases.md) — фаза 8 (demo polish)
 - [back-quickstart.md](./back-quickstart.md)

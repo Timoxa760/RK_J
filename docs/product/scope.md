@@ -23,6 +23,7 @@
 | `GET /ai/goal/{id}/forecast` | **Removed** — прогноз в `/ai/plan` |
 | Demo/stub credits dashboard | **Removed** — данные только из сканов |
 | bank-service sync для кредитов | **Not in MVP** |
+| X5 Club / Magnit LK как ingest | **Not in MVP** — только ФНС для автослоя чеков |
 
 ## Dual-branch
 

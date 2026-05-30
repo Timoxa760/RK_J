@@ -115,7 +115,7 @@ git checkout front   # фронтенд
 
 | Файл | Что внутри |
 |------|------------|
-| [phases/phases.md](./docs/phases/phases.md) | Фазы 0–14, статус ✅/🟡/⏳ |
+| [phases/phases.md](./docs/phases/phases.md) | MVP фазы 0–8; фаза 6 — [advisor.md](./docs/product/advisor.md) |
 
 ---
 

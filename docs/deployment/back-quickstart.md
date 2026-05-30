@@ -38,13 +38,14 @@ go run scripts/seed_data.go
 
 | Фаза | Содержание |
 |------|------------|
-| 0 | Infra, миграции, 15 Dockerfile |
-| 1 | Email + ФНС (OAuth, IMAP, FNS API, MCO) |
-| 2–3 | X5 Club, Магнит |
-| 4 | Scraper: Provider, Scheduler, Kafka |
-| 5 | Receipt-service: consumer, dedup, JSONB |
-| 6 | Auth + JWT |
-| 7+ | ai-processor, dashboard, manual expenses |
+| 0 | Infra, миграции, Dockerfile |
+| 1 | Auth + gateway |
+| 2 | Ingest: ФНС (QR, MCO, ticket), голос/ручной, email |
+| 3 | Scraper + Kafka + receipt-service + dashboard API |
+| 4–5 | Profile, credits PDF, rates |
+| 6 | ai-processor advisor (`/ai/plan`, `/ai/chat`) |
+
+Полная карта: [phases.md](../phases/phases.md).
 
 ## Связи
 
