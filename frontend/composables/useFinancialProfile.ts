@@ -46,7 +46,17 @@ function isEndpointMissing(error: unknown): boolean {
 
 export function useFinancialProfile() {
   const { apiFetch, demoMode } = useApi()
-  const profile = ref<FinancialProfile>({ ...defaultFinancialProfile })
+  const profile = useState<FinancialProfile>('financial-profile', () => ({
+    ...defaultFinancialProfile
+  }))
+
+  if (import.meta.client) {
+    const bootstrapped = useState('financial-profile-bootstrapped', () => false)
+    if (!bootstrapped.value) {
+      profile.value = readStoredProfile()
+      bootstrapped.value = true
+    }
+  }
 
   const totalIncome = computed(() => profile.value.active_income + profile.value.passive_income)
 

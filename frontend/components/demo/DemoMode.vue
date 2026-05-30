@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { isAppFeatureEnabled } from '~/constants/featureFlags'
+
 const ACTS = [
+  { path: '/dashboard', label: 'Советник', selector: '[data-demo="advisor-chat"]' },
+  { path: '/dashboard', label: 'Финансовый план', selector: '[data-demo="financial-plan"]' },
   { path: '/receipts', label: 'Лента чеков', selector: '[data-demo="receipts"]' },
   { path: '/dashboard', label: 'Категории', selector: '[data-demo="categories"]' },
-  { path: '/analytics', label: 'Советы', selector: '[data-demo="insights"]' },
+  { path: '/dashboard', label: 'Советы', selector: '[data-demo="insights"]' },
   { path: '/dashboard', label: 'Накопления', selector: '[data-demo="timemachine"]' },
-  { path: '/credits', label: 'Кредиты', selector: '[data-demo="credits-dti"]' },
+  ...(isAppFeatureEnabled('creditsNav')
+    ? [{ path: '/credits', label: 'Кредиты', selector: '[data-demo="credits-dti"]' } as const]
+    : []),
   { path: '/social', label: 'Рейтинг', selector: '[data-demo="leaderboard"]' }
 ] as const
 

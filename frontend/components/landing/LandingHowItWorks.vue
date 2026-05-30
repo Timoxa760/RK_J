@@ -24,7 +24,7 @@ import { landingIcons } from '~/components/landing/landingIcons'
               <span class="mm-landing-step-num">{{ step.num }}</span>
               <component
                 :is="landingIcons[step.icon]"
-                class="h-5 w-5 text-[color:var(--mm-primary)] transition-transform duration-300 group-hover:scale-110"
+                class="mm-landing-brand-text h-5 w-5 transition-transform duration-300 group-hover:scale-110"
                 stroke-width="1.75"
               />
             </div>

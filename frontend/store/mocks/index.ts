@@ -23,6 +23,8 @@ export { mockReceiptListItems } from '~/store/mocks/receiptList'
 
 export { mockDiagnosis } from '~/store/mocks/diagnosis'
 
+export { mockChatReplies } from '~/store/mocks/advisor'
+
 export const mockForecast: ForecastResponse = {
   dates: ['2026-05-28', '2026-05-29', '2026-05-30', '2026-05-31'],
   forecast: [5200, 5100, 5300, 4950],

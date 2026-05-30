@@ -1,9 +1,7 @@
 import type {
-  CompareResponse,
   CreditsDashboardResponse,
+  FinancialProfile,
   InsightItem,
-  SankeyResponse,
-  StoresResponse,
   TimeMachineResponse
 } from '~/types/api'
 import { ACTIONS, GOALS, HEALTH, CREDITS } from '~/constants/productCopy'
@@ -24,6 +22,7 @@ export interface DashboardSummary {
   healthHeadline: string
   mainRisk: string | null
   goalForecast: string
+  goalOpportunityThousands: number | null
   habitInsight: string | null
   goalHint: string
   weeklyAction: string
@@ -32,35 +31,25 @@ export interface DashboardSummary {
   dtiTone: HealthTone
 }
 
-const SAVINGS_TARGETS = new Set(['Накопления'])
+function sumFixedExpenses(profile: FinancialProfile | null | undefined): number {
+  return (profile?.fixed_expenses ?? []).reduce((sum, row) => sum + (row.amount ?? 0), 0)
+}
 
-/** Агрегаты из GET /dashboard/sankey — только links, как в API-контракте. */
-function sumFromSankey(sankey: SankeyResponse | null): {
-  income: number
-  expenses: number
-  savings: number
-} {
-  if (!sankey?.links?.length) {
-    return { income: 0, expenses: 0, savings: 0 }
-  }
+function profileIncome(profile: FinancialProfile | null | undefined): number {
+  if (!profile) return 0
+  return (profile.active_income ?? 0) + (profile.passive_income ?? 0)
+}
 
-  let savings = 0
-  let expenses = 0
-
-  for (const link of sankey.links) {
-    if (SAVINGS_TARGETS.has(link.target)) {
-      savings += link.value
-    } else {
-      expenses += link.value
-    }
-  }
-
-  const incomeNode = sankey.nodes.find((n) => n.name === 'Зарплата')
-  const fromLinks = sankey.links
-    .filter((l) => l.source === 'Зарплата')
-    .reduce((sum, l) => sum + l.value, 0)
-  const income = incomeNode?.value ?? (fromLinks || savings + expenses)
-
+/** Агрегаты из профиля и credits dashboard. */
+function sumFromProfile(input: {
+  profile: FinancialProfile | null | undefined
+  credits: CreditsDashboardResponse | null
+}): { income: number; expenses: number; savings: number } {
+  const profileIncomeValue = profileIncome(input.profile)
+  const fixedExpenses = sumFixedExpenses(input.profile)
+  const income = input.credits?.monthly_income ?? profileIncomeValue
+  const expenses = fixedExpenses > 0 ? fixedExpenses : 0
+  const savings = input.credits?.savings ?? input.profile?.emergency_fund ?? 0
   return { income, expenses, savings }
 }
 
@@ -154,41 +143,39 @@ export function buildGoalForecast(timemachine: TimeMachineResponse | null): stri
 
   if (diff > 0) {
     const thousands = Math.round(diff / 1000)
-    return `Если ничего не менять, за ${horizon} мес. накопите примерно на ${thousands} тыс. ₽ меньше, чем если чуть сократить траты.`
+    return GOALS.savingsOpportunity(thousands, horizon)
   }
 
   const last = timemachine.points[timemachine.points.length - 1]
   if (last) {
     const formatted = Math.round(last.actual / 1000)
-    return `При тех же тратах через ${horizon} мес. на счёте может быть около ${formatted} тыс. ₽.`
+    return GOALS.savingsOnTrack(formatted, horizon)
   }
 
-  return 'Накопления идут ровно — можно чуть ускорить путь к цели.'
+  return GOALS.savingsEven
 }
 
-/** Текст из GET /dashboard/compare → insights.biggest_change (без пересчёта). */
-function compareInsightText(compare: CompareResponse | null): string | null {
-  const change = compare?.insights?.biggest_change
-  if (!change) return null
-  const sign = change.delta > 0 ? '+' : ''
-  const pctSign = change.delta_percent > 0 ? '+' : ''
-  return `«${change.category}»: ${sign}${change.delta.toLocaleString('ru-RU')} ₽ (${pctSign}${change.delta_percent}%)`
+function goalOpportunityThousands(timemachine: TimeMachineResponse | null): number | null {
+  if (!timemachine?.points?.length) return null
+  const diff = timemachine.difference_final ?? timemachine.delta ?? 0
+  if (diff <= 0) return null
+  return Math.round(diff / 1000)
 }
 
 export function buildDashboardSummary(input: {
-  sankey: SankeyResponse | null
-  compare: CompareResponse | null
+  profile: FinancialProfile | null | undefined
   timemachine: TimeMachineResponse | null
-  stores: StoresResponse | null
   credits: CreditsDashboardResponse | null
   topInsight: InsightItem | null
 }): DashboardSummary {
-  const { income: sankeyIncome, expenses: sankeyExpenses, savings: sankeySavings } =
-    sumFromSankey(input.sankey)
+  const { income, expenses, savings } = sumFromProfile({
+    profile: input.profile,
+    credits: input.credits
+  })
 
-  const monthlyIncome = input.credits?.monthly_income ?? sankeyIncome
-  const monthlyExpenses = sankeyExpenses || 0
-  const cushion = input.credits?.savings ?? sankeySavings
+  const monthlyIncome = income
+  const monthlyExpenses = expenses
+  const cushion = savings
   const runwayMonths =
     monthlyExpenses > 0 && cushion > 0 ? Math.round((cushion / monthlyExpenses) * 10) / 10 : null
 
@@ -206,19 +193,17 @@ export function buildDashboardSummary(input: {
   })
 
   const goalForecast = buildGoalForecast(input.timemachine)
-  const compareText = compareInsightText(input.compare)
+  const opportunityThousands = goalOpportunityThousands(input.timemachine)
+  const insightText =
+    input.topInsight?.description ?? input.topInsight?.body ?? input.topInsight?.title ?? null
 
-  const diff = input.timemachine?.difference_final ?? input.timemachine?.delta ?? 0
+  const horizon = input.timemachine?.points?.length ?? 0
   const goalHint =
-    diff > 0
-      ? GOALS.habitSavingsHint(Math.round(diff / 1000))
+    opportunityThousands != null && horizon > 0
+      ? GOALS.savingsPain(opportunityThousands, horizon)
       : goalForecast
 
-  const weeklyAction =
-    input.topInsight?.title ??
-    (input.compare?.insights?.biggest_change
-      ? `Обратите внимание на «${input.compare.insights.biggest_change.category}» — траты выросли по сравнению с прошлым месяцем.`
-      : ACTIONS.addPurchaseHint)
+  const weeklyAction = input.topInsight?.title ?? ACTIONS.addPurchaseHint
 
   const mainRisk = buildMainRisk({
     dti,
@@ -241,10 +226,11 @@ export function buildDashboardSummary(input: {
     healthHeadline,
     mainRisk,
     goalForecast,
-    habitInsight: compareText,
+    goalOpportunityThousands: opportunityThousands,
+    habitInsight: insightText,
     goalHint,
     weeklyAction,
-    behaviorInsight: input.topInsight?.description ?? input.topInsight?.body ?? compareText,
+    behaviorInsight: insightText,
     dti,
     dtiTone: dtiTone(dti)
   }

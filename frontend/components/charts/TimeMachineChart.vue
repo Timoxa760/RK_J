@@ -7,6 +7,8 @@ import VChart from 'vue-echarts'
 import type { TimeMachineResponse } from '~/types/api'
 import {
   baseGrid,
+  brandColors,
+  chartAxisLabel,
   chartThemeLight,
   formatAxisMoney,
   formatMonthLabel,
@@ -36,16 +38,15 @@ const option = computed(() => {
       data: ['Факт', 'Оптимистичный'],
       top: 0,
       left: 'center',
-      textStyle: { color: chartThemeLight.textStyle.color, fontSize: 11 }
+      textStyle: { ...chartThemeLight.textStyle, fontSize: 11 }
     },
     grid,
     xAxis: {
       type: 'category',
       data: months,
       axisLabel: {
-        color: chartThemeLight.textStyle.color,
+        ...chartAxisLabel(10),
         rotate: isCompact.value ? 0 : 45,
-        fontSize: 10,
         interval: sparseLabelInterval(months.length, isCompact.value),
         formatter: (value: string) => formatMonthLabel(value)
       }
@@ -53,8 +54,7 @@ const option = computed(() => {
     yAxis: {
       type: 'value',
       axisLabel: {
-        color: chartThemeLight.textStyle.color,
-        fontSize: 10,
+        ...chartAxisLabel(10),
         formatter: (v: number) => formatAxisMoney(v)
       },
       splitLine: { lineStyle: { color: chartThemeLight.splitLine } }
@@ -65,7 +65,7 @@ const option = computed(() => {
         type: 'line',
         smooth: true,
         data: props.data.points.map((p) => p.actual),
-        itemStyle: { color: '#e8955f' }
+        itemStyle: { color: brandColors.primary }
       },
       {
         name: 'Оптимистичный',
@@ -73,7 +73,7 @@ const option = computed(() => {
         smooth: true,
         data: props.data.points.map((p) => p.optimistic),
         lineStyle: { type: 'dashed' },
-        itemStyle: { color: '#f5c4a0' }
+        itemStyle: { color: brandColors.primaryLight }
       }
     ]
   }

@@ -24,7 +24,9 @@ const toneVariant = {
       <Card class="flex h-full flex-col">
         <CardHeader class="pb-2">
           <CardDescription>Сейчас</CardDescription>
-          <CardTitle class="text-lg">{{ summary.income.toLocaleString('ru-RU') }} ₽</CardTitle>
+          <CardTitle class="mm-heading-stretch text-lg">
+            {{ summary.income.toLocaleString('ru-RU') }} ₽
+          </CardTitle>
         </CardHeader>
         <CardContent class="space-y-1 text-sm text-muted-foreground">
           <p>расходы ≈ {{ summary.expenses.toLocaleString('ru-RU') }} ₽/мес</p>
@@ -38,8 +40,16 @@ const toneVariant = {
 
       <Card class="flex h-full flex-col">
         <CardHeader class="pb-2">
-          <CardDescription>{{ GOALS.ifSameSpending }}</CardDescription>
-          <CardTitle class="text-base font-medium leading-snug">Если ничего не менять</CardTitle>
+          <CardDescription>{{ GOALS.opportunityLabel }}</CardDescription>
+          <CardTitle
+            v-if="summary.goalOpportunityThousands"
+            class="mm-heading-stretch text-lg text-emerald-700"
+          >
+            {{ GOALS.opportunityAmount(summary.goalOpportunityThousands) }}
+          </CardTitle>
+          <CardTitle v-else class="text-base font-medium leading-snug">
+            Прогноз накоплений
+          </CardTitle>
         </CardHeader>
         <CardContent class="space-y-2 text-sm text-muted-foreground">
           <p>{{ summary.goalForecast }}</p>
@@ -65,7 +75,9 @@ const toneVariant = {
       <Card class="flex h-full flex-col border-primary/25 bg-primary/5">
         <CardHeader class="pb-2">
           <CardDescription class="text-primary">Что сделать</CardDescription>
-          <CardTitle class="text-base leading-snug">{{ summary.weeklyAction }}</CardTitle>
+          <CardTitle class="mm-heading-stretch text-base leading-snug">
+            {{ summary.weeklyAction }}
+          </CardTitle>
         </CardHeader>
         <CardContent v-if="summary.behaviorInsight">
           <p class="text-xs leading-relaxed text-muted-foreground">{{ summary.behaviorInsight }}</p>

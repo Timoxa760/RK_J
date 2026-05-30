@@ -1,29 +1,21 @@
 <script setup lang="ts">
-import { Keyboard, Mic, Sparkles } from 'lucide-vue-next'
+import { Keyboard, Mic } from 'lucide-vue-next'
 
 const emit = defineEmits<{
+  back: []
   selectText: []
   selectVoice: []
 }>()
 </script>
 
 <template>
-  <section class="space-y-8">
-    <header class="flex items-start gap-3">
-      <div class="mm-onb-mode-card__icon shrink-0">
-        <Sparkles class="size-6" aria-hidden="true" />
-      </div>
-      <div>
-        <h2 class="text-xl font-semibold tracking-tight text-[color:var(--mm-text)] sm:text-2xl">
-          Как пройти опрос?
-        </h2>
-        <p class="mt-2 text-sm leading-relaxed text-[color:var(--mm-text-muted)]">
-          Сначала соберём доходы, подушку и цель — вы сами расскажете текстом или голосом. Чеки из
-          ФНС подключим позже: они дают только покупки, не зарплату.
-        </p>
-      </div>
-    </header>
-
+  <OnboardingStepShell
+    title="Как пройти опрос?"
+    description="Сначала соберём доходы, запас и цель. Выберите способ один раз — дальше все вопросы будут в этом формате."
+    show-back
+    hide-next
+    @back="emit('back')"
+  >
     <div class="grid items-stretch gap-4 sm:grid-cols-2">
       <OnboardingModeCard
         recommended
@@ -37,9 +29,7 @@ const emit = defineEmits<{
           <div class="mm-onb-mode-preview__media">
             <OnboardingMicOrbVisual compact ambient />
           </div>
-          <p class="mm-onb-mode-preview__caption">
-            Голосом — быстрее
-          </p>
+          <p class="mm-onb-mode-preview__caption">Голосом — быстрее</p>
         </div>
       </OnboardingModeCard>
 
@@ -53,15 +43,9 @@ const emit = defineEmits<{
           <div class="mm-onb-mode-preview__media">
             <OnboardingTextVisual compact />
           </div>
-          <p class="mm-onb-mode-preview__caption">
-            Текстом — по полям
-          </p>
+          <p class="mm-onb-mode-preview__caption">Текстом — по полям</p>
         </div>
       </OnboardingModeCard>
     </div>
-
-    <p class="text-center text-xs text-[color:var(--mm-text-muted)]">
-      Можно сменить способ на следующем шаге — данные сохранятся локально.
-    </p>
-  </section>
+  </OnboardingStepShell>
 </template>

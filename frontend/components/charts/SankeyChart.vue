@@ -5,7 +5,7 @@ import { TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { SankeyResponse } from '~/types/api'
-import { chartThemeLight } from '~/utils/chartTheme'
+import { brandColors, chartFontFamily, chartThemeLight } from '~/utils/chartTheme'
 
 use([CanvasRenderer, SankeyChartType, TooltipComponent])
 
@@ -23,10 +23,10 @@ const option = computed(() => {
     itemStyle: {
       color:
         n.category === 'income'
-          ? '#e8955f'
+          ? brandColors.primary
           : n.category === 'savings'
-            ? '#f0a66b'
-            : '#f5c4a0'
+            ? brandColors.primaryHover
+            : brandColors.primaryLight
     }
   }))
   return {
@@ -49,6 +49,7 @@ const option = computed(() => {
         lineStyle: { color: 'gradient', curveness: 0.5 },
         label: {
           color: chartThemeLight.textStyle.color,
+          fontFamily: chartFontFamily,
           fontSize: isCompact.value ? 9 : 11,
           show: !isCompact.value,
           position: 'inside'

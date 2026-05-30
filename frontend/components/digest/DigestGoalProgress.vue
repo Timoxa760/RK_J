@@ -36,6 +36,10 @@ const progressPercent = computed(() => {
           />
         </div>
         <p class="text-sm text-muted-foreground">{{ progressText }}</p>
+        <AdvisorAskButton
+          v-if="progressPercent < 100"
+          :goal="goal"
+        />
       </template>
       <template v-else>
         <p class="text-sm text-muted-foreground">

@@ -36,13 +36,13 @@ const showStepper = computed(
     <div
       v-else
       class="h-1.5 overflow-hidden rounded-full"
-      style="background-color: rgb(245 220 200 / 0.55)"
+      style="background-color: rgb(var(--mm-primary-muted-rgb) / 0.55)"
     >
       <div
         class="h-full rounded-full transition-all duration-500 ease-out"
         :style="{
           width: `${percent}%`,
-          background: 'linear-gradient(90deg, #e8955f, #f0b07a)'
+          background: 'linear-gradient(90deg, var(--mm-primary), var(--mm-primary-light))'
         }"
       />
     </div>

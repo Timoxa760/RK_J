@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ONBOARDING_SKIP_HINTS, ONBOARDING_SKIP_LABEL, skipPatchForSurveyStep } from '~/constants/onboardingSkips'
 import { ONBOARDING_VOICE_QUESTIONS } from '~/constants/onboardingSurvey'
 import type { OnboardingDraft, OnboardingParseStep } from '~/types/api'
 
@@ -88,6 +89,22 @@ function pickChip(example: string) {
   submitAnswer(example)
 }
 
+function skipQuestion() {
+  const stepId = currentQuestion.value.id
+  emit('patch', skipPatchForSurveyStep(stepId))
+  history.value.push({ title: currentQuestion.value.title, answer: 'Пропущено' })
+  transcript.value = ''
+  parseError.value = ''
+
+  if (isLast.value) {
+    setTimeout(() => emit('complete'), 350)
+    return
+  }
+
+  questionIndex.value += 1
+  syncProgress()
+}
+
 onMounted(() => {
   syncProgress()
 
@@ -131,7 +148,10 @@ onUnmounted(() => {
     :description="stepLabel"
     show-back
     hide-next
+    :secondary-action="{ label: ONBOARDING_SKIP_LABEL }"
+    :skip-hint="ONBOARDING_SKIP_HINTS[currentQuestion.id]"
     @back="emit('back')"
+    @secondary="skipQuestion"
   >
     <div v-if="history.length" class="mm-onb-timeline mb-6">
       <div

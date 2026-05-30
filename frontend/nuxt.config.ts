@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { brandPalette } from './constants/brandPalette'
 import { vueSfcRegisterTs } from './plugins/vue-sfc-register-ts'
 import { patchVueRouterDevtools } from './plugins/vite/patch-vue-router-devtools'
 
@@ -50,6 +51,7 @@ export default defineNuxtConfig({
     layoutTransition: false,
     head: {
       title: 'Поток — голосовой помощник по тратам',
+      link: [],
       meta: [
         {
           name: 'viewport',
@@ -60,7 +62,7 @@ export default defineNuxtConfig({
           content:
             'Голосовой помощник анализирует траты после магазина, в конце дня и недели — и предлагает конкретную оптимизацию.'
         },
-        { name: 'theme-color', content: '#fffcf9' },
+        { name: 'theme-color', content: brandPalette.primary },
         { property: 'og:title', content: 'Поток — голосовой помощник по тратам' },
         {
           property: 'og:description',
@@ -77,11 +79,22 @@ export default defineNuxtConfig({
       name: 'Поток',
       short_name: 'Поток',
       description: 'Понятный контроль личных финансов',
-      theme_color: '#fffcf9',
-      background_color: '#fffcf9',
+      theme_color: brandPalette.primary,
+      background_color: brandPalette.bg,
       display: 'standalone',
       start_url: '/'
     }
+  },
+  routeRules: {
+    '/': { ssr: true },
+    '/login': { ssr: true },
+    '/dashboard': { ssr: false },
+    '/profile': { ssr: false },
+    '/receipts': { ssr: false },
+    '/credits': { ssr: false },
+    '/social': { ssr: false },
+    '/digest': { ssr: false },
+    '/onboarding': { ssr: false }
   },
   nitro: {
     devProxy: {

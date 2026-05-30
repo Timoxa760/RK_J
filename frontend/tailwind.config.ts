@@ -12,6 +12,11 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--mm-font-sf)'],
+        display: ['var(--mm-font-sf-display)'],
+        mono: ['var(--mm-font-mono)']
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

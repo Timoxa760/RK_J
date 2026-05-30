@@ -5,7 +5,7 @@ import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { ForecastResponse } from '~/types/api'
-import { baseGrid, chartThemeLight } from '~/utils/chartTheme'
+import { baseGrid, brandColors, chartAxisLabel, chartFontFamily, chartThemeLight } from '~/utils/chartTheme'
 import { normalizeForecast } from '~/utils/apiNormalize'
 
 use([CanvasRenderer, BarChart, LineChart, TooltipComponent, LegendComponent, GridComponent])
@@ -32,7 +32,7 @@ const option = computed(() => {
       name: 'Прогноз',
       type: 'bar',
       data: data.forecast,
-      itemStyle: { color: '#e8955f', borderRadius: [4, 4, 0, 0] },
+      itemStyle: { color: brandColors.primary, borderRadius: [4, 4, 0, 0] },
       z: 2
     }
   ]
@@ -44,7 +44,7 @@ const option = computed(() => {
         type: 'line',
         data: data.upper_bound,
         smooth: true,
-        lineStyle: { type: 'dashed', color: '#f5c4a0', width: 1.5 },
+        lineStyle: { type: 'dashed', color: brandColors.primaryLight, width: 1.5 },
         symbol: 'none',
         z: 1
       },
@@ -53,7 +53,7 @@ const option = computed(() => {
         type: 'line',
         data: data.lower_bound,
         smooth: true,
-        lineStyle: { type: 'dashed', color: '#d4824a', width: 1.5 },
+        lineStyle: { type: 'dashed', color: brandColors.primaryHover, width: 1.5 },
         symbol: 'none',
         z: 1
       }
@@ -69,18 +69,18 @@ const option = computed(() => {
           left: 'center',
           itemGap: 20,
           itemWidth: 14,
-          textStyle: { color: chartThemeLight.textStyle.color, fontSize: 11 }
+          textStyle: { ...chartThemeLight.textStyle, fontSize: 11 }
         }
       : { show: false },
     grid,
     xAxis: {
       type: 'category',
       data: data.dates,
-      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 }
+      axisLabel: chartAxisLabel(10)
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 },
+      axisLabel: chartAxisLabel(10),
       splitLine: { lineStyle: { color: chartThemeLight.splitLine } }
     },
     series

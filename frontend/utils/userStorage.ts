@@ -19,8 +19,5 @@ export function userStorageKey(prefix: string, phone?: string | null, userId?: s
 
 export function currentUserStorageKey(prefix: string): string {
   const authStore = useAuthStore()
-  if (import.meta.client && !authStore.user) {
-    authStore.hydrate()
-  }
   return userStorageKey(prefix, authStore.user?.phone, authStore.user?.id)
 }

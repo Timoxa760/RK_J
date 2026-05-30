@@ -4,8 +4,8 @@
   "description": "Понятный контроль личных финансов",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fffcf9",
-  "theme_color": "#fffcf9",
+  "background_color": "#f5faff",
+  "theme_color": "#96c8f9",
   "icons": [
     {
       "src": "/favicon.ico",

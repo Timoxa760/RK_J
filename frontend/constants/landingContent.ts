@@ -126,11 +126,6 @@ export const benefits = [
   }
 ]
 
-export const proofStats = [
-  { value: 'Без банка', label: 'Не нужно подключать счета' },
-  { value: '1 совет', label: 'Не десять рекомендаций' }
-]
-
 export const ctaContent = {
   title: 'Следующий поток трат — уже под контролем',
   description:

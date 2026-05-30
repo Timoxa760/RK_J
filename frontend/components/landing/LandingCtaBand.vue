@@ -1,25 +1,31 @@
 <script setup lang="ts">
+import { ArrowRight } from 'lucide-vue-next'
 import { ctaContent } from '~/constants/landingContent'
 </script>
 
 <template>
   <LandingReveal>
-    <section class="mm-landing-section mm-landing-section--tight">
-      <div class="mm-landing-cta-band mm-landing-card--glow rounded-3xl px-5 py-7 sm:px-8 sm:py-9">
-        <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div class="max-w-lg">
-            <h2 class="text-xl font-bold tracking-tight text-[color:var(--mm-text)] sm:text-2xl">
+    <section class="mm-landing-section mm-landing-section--panel">
+      <div class="mm-landing-section__inner">
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+          <div class="max-w-xl">
+            <p class="mm-landing-section__eyebrow">
+              Следующий шаг
+            </p>
+            <h2 class="mm-landing-section__title mt-3">
               {{ ctaContent.title }}
             </h2>
-            <p class="mt-2 text-sm leading-relaxed text-[color:var(--mm-text-muted)] sm:text-base">
+            <p class="mm-landing-section__lead mt-3">
               {{ ctaContent.description }}
             </p>
           </div>
+
           <NuxtLink
             to="/login"
-            class="mm-btn-primary mm-landing-cta mm-landing-cta--pulse min-h-12 w-full shrink-0 sm:w-auto"
+            class="mm-btn-primary mm-landing-cta group min-h-12 w-full shrink-0 sm:w-auto"
           >
             {{ ctaContent.button }}
+            <ArrowRight class="h-4 w-4 transition group-hover:translate-x-0.5" stroke-width="2" />
           </NuxtLink>
         </div>
       </div>

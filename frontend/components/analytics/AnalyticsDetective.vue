@@ -4,6 +4,7 @@ import type { InsightItem } from '~/types/api'
 
 const props = defineProps<{
   insights: InsightItem[]
+  embedded?: boolean
 }>()
 
 const expanded = ref(false)
@@ -17,17 +18,21 @@ function bodyText(item: InsightItem) {
 </script>
 
 <template>
-  <Card data-demo="insights">
-    <CardHeader>
-      <CardTitle class="text-base">На что обратить внимание</CardTitle>
-      <CardDescription>Причины, не цифры — что влияет на цель</CardDescription>
-    </CardHeader>
-    <CardContent class="space-y-4">
+  <component :is="embedded ? 'div' : 'Card'" data-demo="insights" :class="embedded ? 'space-y-4' : undefined">
+    <component :is="embedded ? 'div' : 'CardHeader'">
+      <component :is="embedded ? 'h3' : 'CardTitle'" class="text-base font-semibold">
+        {{ embedded ? 'Почему совет именно такой' : ANALYTICS.attentionTitle }}
+      </component>
+      <CardDescription v-if="!embedded" class="text-base">
+        Причины, не цифры — что влияет на цель
+      </CardDescription>
+    </component>
+    <component :is="embedded ? 'div' : 'CardContent'" class="space-y-4">
       <template v-if="primary">
-        <div class="rounded-lg border border-primary/20 bg-primary/5 p-4">
-          <p class="text-xs font-medium text-primary">Главный вывод</p>
-          <p class="mt-1 font-medium">{{ primary.title }}</p>
-          <p v-if="bodyText(primary)" class="mt-2 text-sm text-muted-foreground">
+        <div class="rounded-lg border border-border bg-muted/30 p-4">
+          <p class="text-sm font-medium text-muted-foreground">Главный вывод</p>
+          <p class="mt-1 text-base font-semibold">{{ primary.title }}</p>
+          <p v-if="bodyText(primary)" class="mt-2 text-sm leading-relaxed text-muted-foreground">
             {{ bodyText(primary) }}
           </p>
         </div>
@@ -43,6 +48,6 @@ function bodyText(item: InsightItem) {
       <p v-else class="text-sm text-muted-foreground">
         Добавьте расходы — появятся паттерны и мягкие подсказки.
       </p>
-    </CardContent>
-  </Card>
+    </component>
+  </component>
 </template>

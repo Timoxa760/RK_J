@@ -19,7 +19,6 @@ useHead({
     <LandingHowItWorks />
     <LandingWhen />
     <LandingBenefits />
-    <LandingProof />
     <LandingCtaBand />
     <LandingFooter />
   </div>

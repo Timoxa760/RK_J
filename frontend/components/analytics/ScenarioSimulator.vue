@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import type { TimeMachineResponse } from '~/types/api'
 import { SCENARIO_OPTIONS } from '~/types/api'
+import { scenarioResultPrefix } from '~/utils/dashboardCopy'
 
-defineProps<{
+const props = defineProps<{
   result: string | null
-  simulation: TimeMachineResponse | null
   loading?: boolean
+  embedded?: boolean
 }>()
+
+const formattedResult = computed(() =>
+  props.result ? scenarioResultPrefix(props.result) : null
+)
 
 const scenario = defineModel<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
   'scenario',
@@ -22,14 +26,14 @@ const scenarioOptions = SCENARIO_OPTIONS
 </script>
 
 <template>
-  <Card data-demo="scenario-simulator">
-    <CardHeader>
+  <component :is="embedded ? 'div' : 'Card'" data-demo="scenario-simulator" :class="embedded ? 'space-y-4' : undefined">
+    <component :is="embedded ? 'div' : 'CardHeader'">
       <CardTitle class="text-base">А если меньше тратить на…</CardTitle>
       <CardDescription>
-        Сократите категорию — увидите, как сдвигается траектория накоплений
+        Сократите категорию — увидите, как меняется прогноз накоплений
       </CardDescription>
-    </CardHeader>
-    <CardContent class="space-y-4">
+    </component>
+    <component :is="embedded ? 'div' : 'CardContent'" class="space-y-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <div class="min-w-0 flex-1 space-y-2">
           <Label for="scenario-select">Категория</Label>
@@ -63,14 +67,10 @@ const scenarioOptions = SCENARIO_OPTIONS
         </Button>
       </div>
 
-      <Alert v-if="result">
+      <Alert v-if="formattedResult">
         <AlertTitle>Последствия сценария</AlertTitle>
-        <AlertDescription>{{ result }}</AlertDescription>
+        <AlertDescription>{{ formattedResult }}</AlertDescription>
       </Alert>
-
-      <div v-if="simulation" class="mm-chart-wrap mm-chart-wrap--md">
-        <ChartsTimeMachineChart :data="simulation" />
-      </div>
-    </CardContent>
-  </Card>
+    </component>
+  </component>
 </template>

@@ -21,14 +21,34 @@ import {
 } from '~/constants/productCopy'
 import type { DashboardSummary, HealthTone } from '~/utils/dashboardSummary'
 import type { HabitIndex } from '~/utils/habitIndex'
+import {
+  adviceFromDiagnosis,
+  buildAdviceBlock,
+  buildAdviceHint,
+  buildDashboardContextFacts,
+  type DashboardContextFact
+} from '~/utils/dashboardCopy'
 
 export interface PageNarrativeBlock {
   headline: string
   paragraphs: string[]
+  /** @deprecated Плитки контекста в contextFacts */
+  contextLine?: string
+  /** Оценка, доход, траты, запас — отдельные плитки */
+  contextFacts?: DashboardContextFact[]
+  /** Hook-цифра для совета недели */
+  goalOpportunityThousands?: number | null
+  /** @deprecated hero не рендерит; данные в contextLine / плане */
+  statsLine?: string
+  /** @deprecated hero не рендерит; таб «Возможность» в плане */
+  forecastLine?: string
+  /** @deprecated Встроено в adviceHint при необходимости */
+  attentionLine?: string
   healthEmoji?: '🟢' | '🟡' | '🔴'
   healthTone?: HealthTone
   badgeLabel?: string
   weeklyAction?: string
+  adviceHint?: string
   callout?: string
 }
 
@@ -263,21 +283,25 @@ export function buildSocialPageNarrative(input?: { habitIndex?: HabitIndex | nul
   }
 }
 
-export function narrativeFromDashboardSummary(summary: DashboardSummary): PageNarrativeBlock {
-  const paragraphs = [
-    `Доход ${formatRub(summary.income)}/мес, траты ~${formatRub(summary.expenses)}.`,
-    summary.goalForecast
-  ]
-  if (summary.mainRisk) {
-    paragraphs.push(`${HEALTH.attentionPrefix}: ${summary.mainRisk}`)
-  }
+export function narrativeFromDashboardSummary(
+  summary: DashboardSummary,
+  topInsight?: InsightItem | null
+): PageNarrativeBlock {
+  const advice = buildAdviceBlock({
+    diagnosis: null,
+    topInsight: topInsight ?? null,
+    summary
+  })
 
   return {
     headline: summary.healthHeadline,
-    paragraphs,
+    contextFacts: buildDashboardContextFacts({ diagnosis: null, summary }),
+    goalOpportunityThousands: summary.goalOpportunityThousands,
+    paragraphs: [],
     healthEmoji: summary.healthEmoji,
     healthTone: summary.healthTone,
-    weeklyAction: summary.weeklyAction,
+    weeklyAction: advice.weeklyAction,
+    adviceHint: advice.adviceHint,
     badgeLabel: NAV.dashboard
   }
 }
@@ -298,38 +322,33 @@ function healthFromDiagnosisScore(score: number): {
 
 export function narrativeFromDiagnosis(
   diagnosis: AiDiagnosisResponse,
-  summary?: DashboardSummary | null
+  summary?: DashboardSummary | null,
+  topInsight?: InsightItem | null
 ): PageNarrativeBlock {
   const health = healthFromDiagnosisScore(diagnosis.score)
 
-  const paragraphs: string[] = []
-  if (summary) {
-    paragraphs.push(
-      `Доход ${formatRub(summary.income)}/мес, траты ~${formatRub(summary.expenses)}.`
-    )
-    paragraphs.push(summary.goalForecast)
-  }
-
-  const attention = diagnosis.indicators.filter(
-    (i) => i.status === 'critical' || i.status === 'warning'
-  )
-  if (attention.length) {
-    paragraphs.push(
-      `${HEALTH.attentionPrefix}: ${attention.map((i) => i.name.toLowerCase()).join(', ')}.`
-    )
-  }
-
-  const savingsHint =
-    diagnosis.main_action.potential_savings > 0
-      ? ` Экономия — около ${formatRub(diagnosis.main_action.potential_savings)} в месяц.`
-      : ''
+  const advice = summary
+    ? buildAdviceBlock({ diagnosis, topInsight: topInsight ?? null, summary })
+    : {
+        weeklyAction: adviceFromDiagnosis(diagnosis.main_action.title),
+        adviceHint: buildAdviceHint({
+          diagnosis,
+          summary: summary ?? null,
+          weeklyAction: adviceFromDiagnosis(diagnosis.main_action.title)
+        })
+      }
 
   return {
     headline: `${health.headline} · ${diagnosis.score} из 100`,
-    paragraphs,
+    contextFacts: summary
+      ? buildDashboardContextFacts({ diagnosis, summary })
+      : [{ id: 'grade', label: 'Оценка', value: diagnosis.grade, tone: 'accent' }],
+    goalOpportunityThousands: summary?.goalOpportunityThousands ?? null,
+    paragraphs: [],
     healthEmoji: health.emoji,
     healthTone: health.tone,
-    weeklyAction: `${diagnosis.main_action.title}. ${diagnosis.main_action.description}${savingsHint}`,
+    weeklyAction: advice.weeklyAction,
+    adviceHint: advice.adviceHint,
     badgeLabel: `Оценка ${diagnosis.grade}`,
     callout:
       diagnosis.next_check_days > 0

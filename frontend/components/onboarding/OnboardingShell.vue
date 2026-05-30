@@ -23,7 +23,7 @@ defineProps<{
         Поток
       </p>
       <template v-if="!minimalHeader">
-        <h1 class="mt-3 font-[family-name:var(--mm-font-sf-display)] text-2xl font-semibold tracking-tight sm:text-3xl">
+        <h1 class="mt-3 mm-heading-stretch text-2xl font-semibold tracking-tight sm:text-3xl">
           {{ ONBOARDING.shellTitle }}
         </h1>
         <p class="mt-2 text-sm text-[color:var(--mm-text-muted)]">

@@ -44,17 +44,38 @@ export const mockCategories: CategoriesResponse = {
   categories: [
     {
       name: 'Продукты',
+      amount: 52000,
       total: 52000,
-      subcategories: [
-        {
-          name: 'Молочные',
-          total: 8500,
-          items: [
-            { name: 'Молоко 3.2%', price: 78, quantity: 12, total: 936 },
-            { name: 'Творог 5%', price: 120, quantity: 6, total: 720 }
-          ]
-        }
-      ]
+      share: 0.41,
+      subcategories: []
+    },
+    {
+      name: 'Кафе и рестораны',
+      amount: 28000,
+      total: 28000,
+      share: 0.22,
+      subcategories: []
+    },
+    {
+      name: 'Транспорт',
+      amount: 15000,
+      total: 15000,
+      share: 0.12,
+      subcategories: []
+    },
+    {
+      name: 'Развлечения',
+      amount: 12000,
+      total: 12000,
+      share: 0.09,
+      subcategories: []
+    },
+    {
+      name: 'Доставка',
+      amount: 9000,
+      total: 9000,
+      share: 0.07,
+      subcategories: []
     }
   ]
 }

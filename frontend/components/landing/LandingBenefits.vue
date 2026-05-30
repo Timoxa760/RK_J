@@ -20,7 +20,7 @@ import { landingIcons } from '~/components/landing/landingIcons'
           class="mm-landing-card mm-landing-card--accent mm-landing-card--interactive group flex flex-col p-5 sm:p-6"
         >
           <div
-            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[color:var(--mm-primary-soft)] to-white text-[color:var(--mm-primary)] shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
+            class="mm-landing-brand-text flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[color:var(--mm-landing-brand-soft)] to-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
           >
             <component :is="landingIcons[item.icon]" class="h-5 w-5" stroke-width="1.75" />
           </div>

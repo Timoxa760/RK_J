@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  BarChart3,
   CreditCard,
   FileText,
   Home,
@@ -10,6 +9,7 @@ import {
   Users
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/store/authStore'
+import { isAppFeatureEnabled } from '~/constants/featureFlags'
 
 defineProps<{
   mobileOpen?: boolean
@@ -21,15 +21,18 @@ defineEmits<{
 
 const authStore = useAuthStore()
 
-const mainNav = [
-  { to: '/dashboard', label: 'Моя картина', icon: Home },
-  { to: '/receipts', label: 'Расходы', icon: ReceiptText },
-  { to: '/analytics', label: 'Прогноз', icon: BarChart3 },
-  { to: '/credits', label: 'Кредиты', icon: CreditCard },
-  { to: '/social', label: 'Привычки', icon: Users },
-  { to: '/digest', label: 'Сводка', icon: Newspaper },
-  { to: '/profile', label: 'Профиль', icon: PieChart }
-]
+const mainNav = computed(() =>
+  [
+    { to: '/dashboard', label: 'Советник', icon: Home },
+    { to: '/receipts', label: 'Расходы', icon: ReceiptText },
+    isAppFeatureEnabled('creditsNav')
+      ? { to: '/credits', label: 'Кредиты', icon: CreditCard }
+      : null,
+    { to: '/social', label: 'Привычки', icon: Users },
+    { to: '/digest', label: 'Сводка', icon: Newspaper },
+    { to: '/profile', label: 'Профиль', icon: PieChart }
+  ].filter(Boolean) as Array<{ to: string; label: string; icon: typeof Home }>
+)
 </script>
 
 <template>

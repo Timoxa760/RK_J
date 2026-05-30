@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ProviderId } from '~/types/api'
+import { useAuthStore } from '~/store/authStore'
 
 const authStore = useAuthStore()
 const { providers, connected, loading, error, success, connect, sync } = useProviders()

@@ -64,6 +64,7 @@ function onClick() {
         :listening="listening"
         :parsing="parsing"
         :compact="preview"
+        gentle
         :ambient="preview || (!listening && !parsing)"
       />
     </button>

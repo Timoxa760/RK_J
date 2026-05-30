@@ -1,5 +1,6 @@
 import type { FinancialProfile, GoalKind, OnboardingDraft } from '~/types/api'
 import { GOAL_KIND_LABELS } from '~/constants/onboardingGoals'
+import { draftHasSurveyProgress, skipPatchForSurveyStep, type OnboardingSurveySkipKey } from '~/constants/onboardingSkips'
 import { readStoredProfile } from '~/composables/useFinancialProfile'
 import { useAuthStore } from '~/store/authStore'
 import { currentUserStorageKey, normalizeUserKey, userStorageKey } from '~/utils/userStorage'
@@ -14,6 +15,7 @@ export const ONBOARDING_STEP_COUNT = ONBOARDING_WIZARD_STEP_COUNT
 
 export function defaultOnboardingDraft(): OnboardingDraft {
   return {
+    survey_input_mode: null,
     active_income: 0,
     passive_income: 0,
     emergency_fund: 0,
@@ -22,6 +24,9 @@ export function defaultOnboardingDraft(): OnboardingDraft {
     goal_title: GOAL_KIND_LABELS.save,
     goal_amount: 0,
     fixed_expenses: [],
+    skipped_income: false,
+    skipped_cushion: false,
+    skipped_goal: false,
     skipped_expenses: false
   }
 }
@@ -36,9 +41,6 @@ function draftKey(phone?: string | null, userId?: string | null) {
 
 function resolveUserIdentity(phone?: string | null, userId?: string | null) {
   const authStore = useAuthStore()
-  if (import.meta.client && authStore.isAuthenticated && !authStore.user) {
-    authStore.hydrate()
-  }
   return {
     phone: phone ?? authStore.user?.phone ?? null,
     userId: userId ?? authStore.user?.id ?? null,
@@ -51,6 +53,8 @@ export function hasSurveyData(phone?: string | null, userId?: string | null): bo
   const profile = readStoredProfile(identity.phone, identity.userId)
   const draft = readOnboardingDraft(identity.phone, identity.userId)
 
+  if (profile.onboarding_completed) return true
+
   const profileIncome = profile.active_income + profile.passive_income
   const draftIncome = draft.active_income + draft.passive_income
 
@@ -59,7 +63,8 @@ export function hasSurveyData(phone?: string | null, userId?: string | null): bo
     draftIncome > 0 ||
     profile.emergency_fund > 0 ||
     draft.emergency_fund > 0 ||
-    draft.goal_amount >= 1000
+    draft.goal_amount >= 1000 ||
+    draftHasSurveyProgress(draft)
   )
 }
 
@@ -181,8 +186,10 @@ export function buildOnboardingSummary(draft: OnboardingDraft) {
     : draft.fixed_expenses.reduce((sum, item) => sum + item.amount, 0)
   const freeCashflow = income - fixedTotal
 
-  let goalForecast = 'Поставьте сумму цели — покажем примерный срок.'
-  if (draft.goal_amount > 0 && monthlySaving > 0) {
+  let goalForecast = 'Поставьте цель в профиле — покажем, когда примерно дойдёте.'
+  if (draft.skipped_goal || draft.goal_amount <= 0) {
+    goalForecast = 'Цель не указана. Добавите в профиле — покажем путь, когда будут данные.'
+  } else if (draft.goal_amount > 0 && monthlySaving > 0) {
     const months = Math.ceil(draft.goal_amount / monthlySaving)
     goalForecast = `При текущем поведении до «${draft.goal_title}» примерно ${months} мес.`
   } else if (draft.goal_amount > 0) {
@@ -226,7 +233,22 @@ export function useOnboarding() {
   }
 
   function patchDraft(partial: Partial<OnboardingDraft>) {
-    draft.value = { ...draft.value, ...partial }
+    const next = { ...draft.value, ...partial }
+
+    if ((partial.active_income ?? 0) > 0 || (partial.passive_income ?? 0) > 0) {
+      next.skipped_income = false
+    }
+    if ((partial.emergency_fund ?? 0) > 0) {
+      next.skipped_cushion = false
+    }
+    if ((partial.goal_amount ?? 0) >= 1000) {
+      next.skipped_goal = false
+    }
+    if (partial.fixed_expenses?.some((item) => item.amount > 0)) {
+      next.skipped_expenses = false
+    }
+
+    draft.value = next
     persistDraft()
   }
 
@@ -273,7 +295,12 @@ export function useOnboarding() {
   }
 
   function skipExpenses() {
-    patchDraft({ skipped_expenses: true, fixed_expenses: [] })
+    patchDraft(skipPatchForSurveyStep('expenses'))
+  }
+
+  function skipSurveyStep(section: OnboardingSurveySkipKey) {
+    patchDraft(skipPatchForSurveyStep(section))
+    nextStep()
   }
 
   function canProceed(current = step.value): boolean {
@@ -281,20 +308,33 @@ export function useOnboarding() {
       case 1:
         return true
       case 2:
-        return draft.value.active_income > 0 || draft.value.passive_income > 0
+        return draft.value.survey_input_mode === 'text' || draft.value.survey_input_mode === 'voice'
       case 3:
-        return draft.value.emergency_fund >= 0
+        if (draft.value.survey_input_mode === 'voice') return true
+        return true
       case 4:
-        return draft.value.goal_amount >= 1000
+        return true
       case 5:
         return true
       case 6:
         return true
       case 7:
         return true
+      case 8:
+        return true
       default:
         return false
     }
+  }
+
+  function selectSurveyMode(mode: 'text' | 'voice') {
+    patchDraft({ survey_input_mode: mode })
+    nextStep()
+  }
+
+  function completeVoiceSurvey() {
+    step.value = 7
+    persistDraft()
   }
 
   function nextStep() {
@@ -304,7 +344,16 @@ export function useOnboarding() {
   }
 
   function prevStep() {
-    step.value = Math.max(1, step.value - 1)
+    const current = step.value
+    if (current === 7 && draft.value.survey_input_mode === 'voice') {
+      step.value = 3
+      return
+    }
+    if (current === 3 && draft.value.survey_input_mode === 'voice') {
+      step.value = 2
+      return
+    }
+    step.value = Math.max(1, current - 1)
   }
 
   function isComplete() {
@@ -368,7 +417,10 @@ export function useOnboarding() {
     updateFixedExpense,
     removeFixedExpense,
     skipExpenses,
+    skipSurveyStep,
     canProceed,
+    selectSurveyMode,
+    completeVoiceSurvey,
     nextStep,
     prevStep,
     isComplete,

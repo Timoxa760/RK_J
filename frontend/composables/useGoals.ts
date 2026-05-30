@@ -39,10 +39,18 @@ function withProgress(goal: Goal): Goal {
 export function useGoals() {
   const { apiFetch, apiFetchWithDemo, demoMode } = useApi()
 
-  const goals = ref<Goal[]>([])
-  const loading = ref(false)
-  const saving = ref(false)
-  const error = ref<string | null>(null)
+  const goals = useState<Goal[]>('user-goals', () => [])
+
+  if (import.meta.client) {
+    const bootstrapped = useState('user-goals-bootstrapped', () => false)
+    if (!bootstrapped.value) {
+      goals.value = readStoredGoals()
+      bootstrapped.value = true
+    }
+  }
+  const loading = useState('user-goals-loading', () => false)
+  const saving = useState('user-goals-saving', () => false)
+  const error = useState<string | null>('user-goals-error', () => null)
 
   const primaryGoal = computed(() => goals.value[0] ?? null)
 

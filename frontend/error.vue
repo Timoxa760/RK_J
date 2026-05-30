@@ -19,7 +19,7 @@ function retry() {
 </script>
 
 <template>
-  <div class="flex min-h-[100dvh] items-center justify-center bg-[#fffcf9] px-4">
+  <div class="flex min-h-[100dvh] items-center justify-center bg-[#f9fcff] px-4">
     <div class="w-full max-w-md rounded-2xl border border-[#e0d6cc] bg-white p-6 shadow-lg">
       <h1 class="text-lg font-semibold text-[#1c1c1a]">
         {{ error.statusCode === 404 ? 'Страница не найдена' : 'Ошибка' }}

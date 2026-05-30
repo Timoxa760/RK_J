@@ -62,7 +62,7 @@ const barClass: Record<HabitIndex['tone'], string> = {
           Подробнее в
           <NuxtLink to="/receipts" class="text-primary underline">ленте расходов</NuxtLink>
           и
-          <NuxtLink to="/analytics" class="text-primary underline">аналитике</NuxtLink>.
+          <NuxtLink to="/dashboard" class="text-primary underline">советнике</NuxtLink>.
         </p>
       </div>
     </CardContent>

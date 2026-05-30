@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AiDiagnosisIndicator, AiDiagnosisIndicatorStatus } from '~/types/api'
+import { ADVISOR } from '~/constants/productCopy'
 
 defineProps<{
   indicators: AiDiagnosisIndicator[]
@@ -9,7 +10,7 @@ defineProps<{
 const statusLabel: Record<AiDiagnosisIndicatorStatus, string> = {
   good: 'Хорошо',
   warning: 'Стоит улучшить',
-  critical: 'Требует внимания'
+  critical: ADVISOR.diagnosisStatusUrgent
 }
 
 const statusVariant: Record<
@@ -30,6 +31,11 @@ function formatValue(name: string, value: number): string {
   }
   return value.toLocaleString('ru-RU')
 }
+
+function cardClass(status: AiDiagnosisIndicatorStatus): string {
+  if (status === 'critical') return 'border-amber-500/60'
+  return ''
+}
 </script>
 
 <template>
@@ -39,7 +45,12 @@ function formatValue(name: string, value: number): string {
     </div>
 
     <div v-else class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <Card v-for="item in indicators" :key="item.name" class="flex flex-col">
+      <Card
+        v-for="item in indicators"
+        :key="item.name"
+        class="flex flex-col"
+        :class="cardClass(item.status)"
+      >
         <CardHeader class="space-y-1 p-3 pb-1">
           <div class="flex items-start justify-between gap-2">
             <CardDescription class="text-xs leading-snug">{{ item.name }}</CardDescription>

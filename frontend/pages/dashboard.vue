@@ -1,46 +1,58 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
 import { buildDashboardSummary, hasCreditsData } from '~/utils/dashboardSummary'
 import { narrativeFromDiagnosis, narrativeFromDashboardSummary } from '~/utils/pageNarrative'
+import { buildFinancialPlan } from '~/utils/financialPlan'
 import { mockInsights } from '~/store/mocks'
 import { normalizeInsights } from '~/utils/apiNormalize'
+import { buildCategoriesSummary } from '~/utils/chartSummaries'
+import type { FinancialPlan } from '~/utils/financialPlan'
 import type { InsightsResponse } from '~/types/api'
 
-const { sankey, stores, categories, compare, timemachine, loading, error, loadAll, retry } =
-  useDashboard()
-
+const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
-
 const { diagnosis, loading: diagnosisLoading, fetchDiagnosis } = useDiagnosis()
+const { profile, loadProfile } = useFinancialProfile()
+const { primaryGoal, fetchGoals } = useGoals()
+const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
+const {
+  forecast,
+  loading: forecastLoading,
+  error: forecastError,
+  scenarioResult,
+  scenarioLoading,
+  loadAll: loadForecast,
+  simulateScenario
+} = useAnalytics()
+
+const { refreshAdvisorContext } = useAdvisorContext()
 
 const { apiFetchWithDemo, demoMode } = useApi()
-const addOpen = ref(false)
+const { addedVersion } = useAddExpenseSheet()
 
-const insights = ref<InsightsResponse | null>(null)
-const insightsLoading = ref(false)
+const insightsData = ref<InsightsResponse | null>(null)
 
-async function loadInsights() {
-  insightsLoading.value = true
+const scenario = ref<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
+  'reduce_cafe'
+)
+const percent = ref(20)
+
+async function loadInsightCard() {
   try {
     const raw = await apiFetchWithDemo('/insights', mockInsights)
-    insights.value = normalizeInsights(raw)
+    insightsData.value = normalizeInsights(raw)
   } catch {
     if (demoMode.value) {
-      insights.value = normalizeInsights(mockInsights)
+      insightsData.value = normalizeInsights(mockInsights)
     }
-  } finally {
-    insightsLoading.value = false
   }
 }
 
 const summary = computed(() =>
   buildDashboardSummary({
-    sankey: sankey.value,
-    compare: compare.value,
+    profile: profile.value,
     timemachine: timemachine.value,
-    stores: stores.value,
     credits: credits.value,
-    topInsight: insights.value?.insights?.[0] ?? null
+    topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
   })
 )
 
@@ -55,76 +67,127 @@ const displaySummary = computed(() => {
   }
 })
 
+const topInsightRef = computed(
+  () => topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+)
+
 const pageNarrative = computed(() => {
+  const insight = topInsightRef.value
   if (diagnosis.value) {
-    return narrativeFromDiagnosis(diagnosis.value, summary.value)
+    return narrativeFromDiagnosis(diagnosis.value, summary.value, insight)
   }
-  const block = narrativeFromDashboardSummary(summary.value)
-  return { ...block, weeklyAction: undefined }
+  return narrativeFromDashboardSummary(summary.value, insight)
 })
 
 const narrativeLoading = computed(
-  () => loading.value || creditsLoading.value || insightsLoading.value || diagnosisLoading.value
+  () =>
+    !initialLoadDone.value &&
+    (loading.value ||
+      creditsLoading.value ||
+      insightsLoading.value ||
+      diagnosisLoading.value ||
+      forecastLoading.value)
+)
+
+const planLoading = computed(
+  () => !initialLoadDone.value && narrativeLoading.value
 )
 
 const showCredits = computed(() => hasCreditsData(credits.value))
 
-const compareDescription = computed(() => {
-  const change = compare.value?.insights?.biggest_change
-  if (!change) return undefined
-  const sign = change.delta > 0 ? '+' : ''
-  const pctSign = change.delta_percent > 0 ? '+' : ''
-  return `${change.category}: ${sign}${change.delta.toLocaleString('ru-RU')} ₽ (${pctSign}${change.delta_percent}%)`
-})
+const plan = ref<FinancialPlan | null>(null)
+const planRefreshing = ref(false)
+
+function rebuildPlan() {
+  planRefreshing.value = true
+  plan.value = buildFinancialPlan({
+    primaryGoal: primaryGoal.value,
+    summary: summary.value,
+    timemachine: timemachine.value,
+    diagnosis: diagnosis.value,
+    topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+  })
+  planRefreshing.value = false
+}
+
+const categoriesSummary = computed(() => buildCategoriesSummary(categories.value))
+
+const chartsRefreshing = ref(false)
+const initialLoadDone = ref(false)
+const chartsLoading = computed(
+  () => chartsRefreshing.value || (loading.value && !categories.value && !timemachine.value)
+)
+
+const allInsights = computed(() => insights.value?.insights ?? insightsData.value?.insights ?? [])
+
+async function refreshData(options?: { soft?: boolean }) {
+  if (options?.soft) chartsRefreshing.value = true
+  loadProfile()
+  await Promise.all([
+    loadAll({ silent: options?.soft }),
+    fetchDashboard(),
+    fetchInsights(),
+    loadInsightCard(),
+    fetchDiagnosis(),
+    loadForecast(),
+    fetchGoals()
+  ])
+  rebuildPlan()
+  await refreshAdvisorContext({ silent: true })
+  if (options?.soft) chartsRefreshing.value = false
+}
+
+async function refreshAll() {
+  await refreshData()
+  initialLoadDone.value = true
+}
 
 onMounted(async () => {
-  await Promise.all([loadAll(), fetchDashboard(), loadInsights(), fetchDiagnosis()])
+  loadProfile()
+  await refreshAll()
 })
 
-function onExpenseAdded() {
-  loadAll()
-  fetchDashboard()
-  loadInsights()
-  fetchDiagnosis()
+watch(addedVersion, () => {
+  refreshData({ soft: true })
+})
+
+async function runSimulation() {
+  await simulateScenario({
+    scenario: scenario.value,
+    reduction_percent: percent.value,
+    months: 60
+  })
 }
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-6xl mm-page-shell">
+  <div class="mx-auto w-full max-w-none space-y-5 lg:space-y-6">
     <SharedPageNarrative :narrative="pageNarrative" :loading="narrativeLoading" />
 
-    <DashboardDiagnosisIndicators
-      v-if="diagnosis?.indicators?.length || diagnosisLoading"
-      class="mt-4"
-      :indicators="diagnosis?.indicators ?? []"
-      :loading="diagnosisLoading && !diagnosis"
+    <AdvisorFinancialPlanCard
+      mega
+      :plan="plan"
+      :summary="displaySummary"
+      :diagnosis="diagnosis"
+      :diagnosis-loading="diagnosisLoading && !diagnosis"
+      :categories="categories"
+      :forecast="forecast"
+      :timemachine="timemachine"
+      :categories-summary="categoriesSummary"
+      :charts-loading="chartsLoading"
+      :credits="credits"
+      :credits-loading="creditsLoading"
+      :show-credits="showCredits"
+      :dti-tone="summary.dtiTone"
+      :insights="allInsights"
+      v-model:scenario="scenario"
+      v-model:percent="percent"
+      :scenario-result="scenarioResult"
+      :scenario-loading="scenarioLoading"
+      :loading="planLoading || planRefreshing"
+      @refresh="rebuildPlan"
+      @simulate="runSimulation"
     />
-
-    <div
-      class="mt-4 flex flex-col gap-4 rounded-xl border-2 border-primary/30 bg-primary/10 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5"
-      data-demo="add-expense"
-    >
-      <div class="min-w-0 space-y-1">
-        <p class="text-base font-semibold text-foreground">Добавить покупку</p>
-        <p class="text-sm text-muted-foreground">
-          Запишите голосом — Поток разберёт и обновит картину
-        </p>
-      </div>
-      <Button
-        size="lg"
-        class="h-12 w-full shrink-0 gap-2 px-8 text-base font-semibold sm:w-auto"
-        @click="addOpen = true"
-      >
-        <Plus class="size-5" />
-        Добавить
-      </Button>
-    </div>
-
-    <DashboardMetricsGrid :summary="displaySummary" :loading="narrativeLoading" />
-
-    <ClientOnly>
-      <DashboardAddExpenseSheet v-model:open="addOpen" @added="onExpenseAdded" />
-    </ClientOnly>
 
     <Alert v-if="error" variant="destructive">
       <AlertTitle>Не удалось загрузить данные</AlertTitle>
@@ -136,76 +199,8 @@ function onExpenseAdded() {
       </AlertDescription>
     </Alert>
 
-    <DashboardCreditsSnapshot
-      v-if="showCredits || creditsLoading"
-      :credits="credits"
-      :dti-tone="summary.dtiTone"
-      :loading="creditsLoading"
-    />
-
-    <div class="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-2 lg:gap-6">
-      <ChartsChartCard
-        title="Откуда деньги и куда уходят"
-        description="Откуда приходят деньги и куда уходят"
-        size="full"
-        col-span="2"
-        :loading="loading && !sankey"
-      >
-        <ChartsSankeyChart :data="sankey" size="full" />
-      </ChartsChartCard>
-
-      <ChartsChartCard
-        title="По магазинам"
-        description="Где вы чаще покупаете — по чекам и вашим записям"
-        size="md"
-        :loading="loading && !stores"
-      >
-        <ChartsBubbleChart :data="stores" size="md" />
-      </ChartsChartCard>
-
-      <ChartsChartCard
-        title="Категории"
-        description="Клик по сектору — детализация"
-        size="md"
-        :loading="loading && !categories"
-        data-demo="categories"
-      >
-        <ChartsCategoryPie :data="categories" size="md" />
-      </ChartsChartCard>
-
-      <ChartsChartCard
-        title="Как пойдут накопления"
-        :description="summary.goalForecast"
-        size="full"
-        col-span="2"
-        :loading="loading && !timemachine"
-        data-demo="timemachine"
-      >
-        <ChartsTimeMachineChart :data="timemachine" size="full" />
-      </ChartsChartCard>
-
-      <ChartsChartCard
-        title="Сравнение месяцев"
-        :description="compareDescription"
-        size="md"
-        col-span="2"
-        :loading="loading && !compare"
-      >
-        <ChartsDonutCompare :data="compare" size="md" />
-      </ChartsChartCard>
-    </div>
-
-    <Card v-if="insights?.insights?.length" data-demo="insights">
-      <CardHeader>
-        <CardTitle class="text-base">Совет на сейчас</CardTitle>
-        <CardDescription>Одно простое действие</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <InsightsPanel :insights="insights.insights.slice(0, 1)" />
-        <Button variant="link" class="mt-3 h-auto p-0" as-child>
-          <NuxtLink to="/analytics">Все советы →</NuxtLink>
-        </Button>
-      </CardContent>
-    </Card>
+    <Alert v-if="forecastError" variant="destructive">
+      <AlertDescription class="text-base">{{ forecastError }}</AlertDescription>
+    </Alert>
   </div>
 </template>

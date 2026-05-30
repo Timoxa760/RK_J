@@ -8,11 +8,11 @@ const ONBOARDING_PATH = '/onboarding'
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook('app:mounted', () => {
     const authStore = useAuthStore()
-    authStore.hydrate()
     if (!authStore.isAuthenticated) return
 
     const route = useRoute()
-    if (PUBLIC_PATHS.includes(route.path) || route.path === ONBOARDING_PATH) return
+    const allowed = [...PUBLIC_PATHS, ONBOARDING_PATH, '/profile']
+    if (allowed.includes(route.path)) return
 
     if (needsOnboarding(authStore.user?.phone, authStore.user?.id)) {
       navigateTo(ONBOARDING_PATH)

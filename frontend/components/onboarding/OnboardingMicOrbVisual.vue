@@ -7,12 +7,18 @@ const props = withDefaults(
     listening?: boolean
     parsing?: boolean
     compact?: boolean
+    mini?: boolean
+    dock?: boolean
+    gentle?: boolean
     ambient?: boolean
   }>(),
   {
     listening: false,
     parsing: false,
     compact: false,
+    mini: false,
+    dock: false,
+    gentle: false,
     ambient: false
   }
 )
@@ -25,21 +31,33 @@ const { apply } = useMotion(orbRef, {
 })
 
 watch(
-  () => [props.listening, props.parsing, props.ambient] as const,
-  ([listening, parsing, ambient]) => {
+  () => [props.listening, props.parsing, props.ambient, props.gentle, props.dock] as const,
+  ([listening, parsing, ambient, gentle, dock]) => {
+    if (dock) return
+
+    const soft = gentle
+      ? { type: 'spring' as const, stiffness: 110, damping: 24, mass: 0.9 }
+      : { type: 'spring' as const, stiffness: 220, damping: 18 }
+
     if (parsing) {
-      apply({ scale: 0.96, transition: { duration: 400 } })
+      apply({
+        scale: soft ? 0.98 : 0.96,
+        transition: { duration: soft ? 650 : 400, ease: 'easeOut' }
+      })
       return
     }
     if (listening) {
-      apply({ scale: 1.08, transition: { type: 'spring', stiffness: 220, damping: 18 } })
+      apply({ scale: soft ? 1.05 : 1.08, transition: soft })
       return
     }
     if (ambient) {
-      apply({ scale: 1.03, transition: { duration: 600 } })
+      apply({
+        scale: soft ? 1.015 : 1.03,
+        transition: { duration: soft ? 900 : 600, ease: 'easeInOut' }
+      })
       return
     }
-    apply({ scale: 1, transition: { duration: 400 } })
+    apply({ scale: 1, transition: { duration: soft ? 700 : 400, ease: 'easeOut' } })
   },
   { immediate: true }
 )
@@ -50,7 +68,9 @@ watch(
     ref="orbRef"
     class="mm-onb-mic-orb-visual"
     :class="{
-      'mm-onb-mic-orb-visual--compact': compact,
+      'mm-onb-mic-orb-visual--compact': compact && !mini && !dock,
+      'mm-onb-mic-orb-visual--mini': mini,
+      'mm-onb-mic-orb-visual--dock': dock,
       'mm-onb-mic-orb-visual--listen': listening && !parsing,
       'mm-onb-mic-orb-visual--parse': parsing,
       'mm-onb-mic-orb-visual--idle': ambient || (!listening && !parsing)

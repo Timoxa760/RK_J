@@ -1,10 +1,38 @@
+import { brandPalette } from '~/constants/brandPalette'
+
+export const chartFontFamily = "'SF Pro', -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
+
+export const brandColors = {
+  primary: brandPalette.primary,
+  primaryHover: brandPalette.primaryHover,
+  primaryLight: brandPalette.primaryLight,
+  primaryMuted: brandPalette.primaryMuted,
+  primarySoft: brandPalette.primarySoft,
+  primaryDeep: brandPalette.primaryDeep
+} as const
+
 export const chartThemeLight = {
   backgroundColor: 'transparent',
-  textStyle: { color: '#6d6760' },
-  axisColor: '#f5dcc8',
-  splitLine: '#f2ebe3',
-  colors: ['#e8955f', '#f0a66b', '#f5c4a0', '#d4824a', '#f5dcc8', '#c9773f']
+  textStyle: { color: brandPalette.textMuted, fontFamily: chartFontFamily },
+  axisColor: brandPalette.primaryMuted,
+  splitLine: brandPalette.borderSubtle,
+  colors: [
+    brandColors.primary,
+    brandColors.primaryHover,
+    brandColors.primaryLight,
+    brandColors.primaryDeep,
+    brandColors.primaryMuted,
+    brandPalette.flowPulse
+  ]
 } as const
+
+export function chartAxisLabel(fontSize: number) {
+  return {
+    color: chartThemeLight.textStyle.color,
+    fontFamily: chartFontFamily,
+    fontSize
+  }
+}
 
 export function baseGrid(compact = false) {
   return compact

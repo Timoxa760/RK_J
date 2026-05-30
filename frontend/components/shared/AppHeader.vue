@@ -14,7 +14,6 @@ const route = useRoute()
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: NAV.dashboard, subtitle: NAV.dashboardSubtitle },
   '/receipts': { title: NAV.receipts, subtitle: 'Куда уходят деньги' },
-  '/analytics': { title: NAV.analytics, subtitle: 'Что будет дальше' },
   '/credits': { title: NAV.creditsTitle, subtitle: NAV.creditsSubtitle },
   '/social': { title: NAV.social, subtitle: NAV.socialSubtitle },
   '/digest': { title: NAV.digest, subtitle: 'Итоги периода' },
@@ -31,9 +30,18 @@ function logout() {
 
 <template>
   <header
-    class="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur-sm sm:h-16 sm:gap-3 sm:px-6 mm-safe-top"
+    class="mm-app-shell-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur-sm sm:h-16 sm:gap-3 sm:px-6 mm-safe-top md:border-b-0"
   >
-    <SidebarTrigger class="md:hidden" />
+    <div class="flex min-w-0 shrink-0 items-center gap-2 md:gap-0">
+      <SidebarTrigger class="md:hidden" />
+      <NuxtLink
+        to="/dashboard"
+        class="mm-app-header-brand shrink-0 md:hidden"
+        aria-label="Поток — на главную"
+      >
+        <SharedHeroFlowWord variant="brand" />
+      </NuxtLink>
+    </div>
     <div class="min-w-0 flex-1">
       <p
         v-if="subtitle || meta.subtitle"

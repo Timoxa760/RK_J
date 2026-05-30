@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { buildCreditsPageNarrative } from '~/utils/pageNarrative'
+import { isAppFeatureEnabled } from '~/constants/featureFlags'
+
+definePageMeta({
+  middleware: () => {
+    if (!isAppFeatureEnabled('creditsNav')) {
+      return navigateTo('/dashboard')
+    }
+  }
+})
 
 const {
   dashboard,

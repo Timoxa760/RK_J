@@ -9,10 +9,6 @@ const title = ref('')
 const targetAmount = ref<number | null>(null)
 const targetDate = ref('')
 
-onMounted(() => {
-  fetchGoals()
-})
-
 const monthlySavingEstimate = computed(() =>
   totalIncome.value > 0 ? Math.round(totalIncome.value * 0.1) : undefined
 )
@@ -76,6 +72,11 @@ function progressPercent(goal: Goal) {
           <p class="mt-2 text-xs text-muted-foreground">
             {{ buildGoalProgressText(goal, monthlySavingEstimate) }}
           </p>
+          <AdvisorAskButton
+            v-if="progressPercent(goal) < 100"
+            class="mt-3"
+            :goal="goal"
+          />
         </li>
       </ul>
 

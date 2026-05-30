@@ -35,12 +35,12 @@ watch(open, (v) => {
 </script>
 
 <template>
-  <Sheet v-model:open="open">
-    <SheetContent side="bottom" class="max-h-[90dvh] overflow-y-auto rounded-t-2xl sm:max-w-lg sm:rounded-2xl">
-      <SheetHeader>
-        <SheetTitle>Добавить</SheetTitle>
-        <SheetDescription>Один способ — Поток разберёт и обновит картину</SheetDescription>
-      </SheetHeader>
+  <Dialog v-model:open="open">
+    <DialogContent class="max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-lg overflow-y-auto rounded-2xl">
+      <DialogHeader>
+        <DialogTitle>Добавить</DialogTitle>
+        <DialogDescription>Один способ — Поток разберёт и обновит картину</DialogDescription>
+      </DialogHeader>
 
       <Tabs v-model="tab" class="mt-4">
         <TabsList class="grid w-full grid-cols-4">
@@ -80,6 +80,6 @@ watch(open, (v) => {
           </Button>
         </TabsContent>
       </Tabs>
-    </SheetContent>
-  </Sheet>
+    </DialogContent>
+  </Dialog>
 </template>

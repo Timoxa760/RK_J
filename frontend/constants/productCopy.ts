@@ -1,10 +1,10 @@
 /** Единый копирайт приложения — простой язык, без жаргона. */
 
 export const NAV = {
-  dashboard: 'Моя картина',
-  dashboardSubtitle: 'Доходы, расходы и запас',
+  dashboard: 'Советник',
+  dashboardSubtitle: 'Советы, план и картина денег',
   receipts: 'Расходы',
-  analytics: 'Прогноз',
+  analytics: 'Советник',
   credits: 'Кредиты',
   creditsTitle: 'Кредиты: насколько спокойно',
   creditsSubtitle: 'Сколько уходит на погашение',
@@ -55,10 +55,21 @@ export const CREDITS = {
 } as const
 
 export const GOALS = {
-  addExpensesForecast: 'Добавьте расходы — покажем, когда примерно дойдёте до цели',
-  ifSameSpending: 'К чему идёте при тех же тратах',
+  addExpensesForecast: 'Добавьте расходы — покажем, сколько можете отложить',
+  opportunityLabel: 'Ваша возможность',
+  opportunityAmount: (thousands: number) => `+${thousands} тыс. ₽`,
+  savingsOpportunity: (thousands: number, months: number) =>
+    `Можете получить +${thousands} тыс. ₽ за ${months} мес., если чуть сократите траты.`,
+  savingsPain: (thousands: number, months: number) =>
+    `Сейчас упускаете эту сумму — без изменений за ${months} мес. накопите на ${thousands} тыс. ₽ меньше.`,
+  savingsOnTrack: (thousands: number, months: number) =>
+    `При тех же тратах через ${months} мес. на счёте может быть ~${thousands} тыс. ₽ — темп нормальный.`,
+  savingsEven: 'Накопления идут ровно — один небольшой шаг ускорит путь к цели.',
+  savingsCurrentLabel: 'Текущие накопления',
+  savingsChartOpportunity: (gain: string, total: string) =>
+    `Можете получить ${gain}, если чуть экономить — на счёте будет ${total}.`,
   habitSavingsHint: (thousands: number) =>
-    `Если чуть сократить траты, к цели можно прийти на ${thousands} тыс. ₽ раньше`
+    `Сократите траты — и получите ещё ~${thousands} тыс. ₽ к запасу.`
 } as const
 
 export const PURCHASES = {
@@ -75,7 +86,43 @@ export const ANALYTICS = {
   anomaly: 'Необычно много потратили',
   simulator: 'А если меньше тратить на…',
   savingsChart: 'Как пойдут накопления',
-  trajectoryOnMain: 'Полная картина «если ничего не менять» — на главной'
+  trajectoryOnMain: 'Прогноз накоплений — ниже на этой странице'
+} as const
+
+export const ADVISOR = {
+  chatTitle: 'Советник',
+  chatHint: 'Спросите про совет недели или план',
+  chatHintSidebar: 'Спросите про план, цель или траты',
+  planTitle: 'Ваш план',
+  planTitleMega: 'Финансовый план',
+  planHint: 'Цель, срок и три ближайших шага',
+  planHintMega: 'Цель, диагностика, деньги и сценарии — всё в одном месте',
+  planTabSteps: 'Шаги',
+  planTabOpportunity: 'Возможность',
+  planTabDiagnosis: 'Диагностика',
+  planTabMoney: 'Картина денег',
+  planTabCredits: 'Кредиты',
+  planTabExplore: 'Что если',
+  weeklyAdviceTitle: 'Совет недели',
+  weeklyAdviceHint: 'Один шаг из вашего финансового плана',
+  weeklyAdviceHintShort: 'Первый шаг — в вашем плане ниже',
+  planStepPrimaryLabel: 'Главное на неделю',
+  planTabOpportunityHint: 'Сколько можете получить, если чуть изменить траты',
+  planTabDiagnosisHint: 'Показатели, из которых складывается оценка',
+  planTabMoneyHint: 'Куда уходят деньги и как растут накопления',
+  planTabCreditsHint: 'Доля дохода на погашение кредитов',
+  planTabExploreHint: 'Почему совет именно такой и что будет, если изменить траты',
+  diagnosisStatusUrgent: 'Срочно',
+  addPurchaseLabel: 'Добавить покупку',
+  addPurchaseAria: 'Голосом или вручную — совет станет точнее',
+  chatPlaceholder: 'Спросите про совет недели или план…',
+  askCloser: (goalTitle: string) => `Приблизить «${goalTitle}»`,
+  askAboutAction: 'Спросить советника',
+  askGettingStarted: 'Спросить, с чего начать',
+  askGoalDelay: 'Как не отодвигать цель?',
+  forecastTitle: 'Прогноз трат (7 дней)',
+  savingsTitle: 'Как пойдут накопления',
+  categoriesTitle: 'Категории'
 } as const
 
 export const DIGEST = {

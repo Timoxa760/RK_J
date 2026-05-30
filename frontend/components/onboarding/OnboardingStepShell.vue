@@ -8,6 +8,7 @@ defineProps<{
   nextDisabled?: boolean
   loading?: boolean
   secondaryAction?: { label: string } | null
+  skipHint?: string
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +31,13 @@ const emit = defineEmits<{
 
     <div class="mt-6 space-y-6">
       <slot />
+
+      <p
+        v-if="skipHint"
+        class="text-sm leading-relaxed text-[color:var(--mm-text-muted)]"
+      >
+        {{ skipHint }}
+      </p>
 
       <div class="flex flex-col-reverse gap-2 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <Button

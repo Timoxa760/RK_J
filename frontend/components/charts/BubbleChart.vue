@@ -5,7 +5,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { StoresResponse } from '~/types/api'
-import { baseGrid, chartThemeLight } from '~/utils/chartTheme'
+import { baseGrid, brandColors, chartAxisLabel, chartThemeLight } from '~/utils/chartTheme'
 
 use([CanvasRenderer, ScatterChart, TooltipComponent, GridComponent])
 
@@ -17,9 +17,9 @@ const props = defineProps<{
 const { containerRef, isCompact } = useChartViewport()
 
 function impulseColor(ratio: number) {
-  if (ratio < 0.33) return '#e8955f'
-  if (ratio < 0.66) return '#c4a574'
-  return '#c4847a'
+  if (ratio < 0.33) return brandColors.primary
+  if (ratio < 0.66) return brandColors.primaryHover
+  return brandColors.primaryDeep
 }
 
 const option = computed(() => {
@@ -49,13 +49,13 @@ const option = computed(() => {
       nameLocation: 'middle',
       nameGap: 28,
       axisLine: { lineStyle: { color: chartThemeLight.axisColor } },
-      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 }
+      axisLabel: chartAxisLabel(10)
     },
     yAxis: {
       name: isCompact.value ? '' : 'Покупки',
       nameGap: 12,
       axisLine: { lineStyle: { color: chartThemeLight.axisColor } },
-      axisLabel: { color: chartThemeLight.textStyle.color, fontSize: 10 },
+      axisLabel: chartAxisLabel(10),
       splitLine: { lineStyle: { color: chartThemeLight.splitLine } }
     },
     series: [

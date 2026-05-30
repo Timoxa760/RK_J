@@ -3,10 +3,15 @@ import { Plus } from 'lucide-vue-next'
 import { PURCHASES } from '~/constants/productCopy'
 import type { ReceiptListItem } from '~/types/api'
 import { formatGoalImpact } from '~/utils/receiptImpact'
+import { buildReceiptsGoalDelayPrompt } from '~/utils/advisorChat'
+import { ADVISOR } from '~/constants/productCopy'
 
 const { receipts, selected, selectReceipt, closeDetail, refresh } = useReceiptList()
+const { addedVersion, show: showAddExpense } = useAddExpenseSheet()
 
-const addOpen = ref(false)
+watch(addedVersion, () => {
+  refresh()
+})
 
 const totals = computed(() => {
   const total = receipts.value.reduce((sum, r) => sum + r.amount, 0)
@@ -21,20 +26,10 @@ function impactFor(receipt: ReceiptListItem) {
 
 <template>
   <div class="mx-auto w-full max-w-4xl space-y-6">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Расходы</h1>
-        <p class="mt-1 text-sm text-muted-foreground">Добавляйте покупки — они учтутся в вашей картине.</p>
-      </div>
-      <Button class="w-full shrink-0 sm:w-auto" data-demo="add-expense" @click="addOpen = true">
-        <Plus class="size-4" />
-        Добавить
-      </Button>
+    <header>
+      <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Расходы</h1>
+      <p class="mt-1 text-sm text-muted-foreground">Добавляйте покупки — они учтутся в вашей картине.</p>
     </header>
-
-    <ClientOnly>
-      <DashboardAddExpenseSheet v-model:open="addOpen" @added="refresh" />
-    </ClientOnly>
 
     <Card v-if="receipts.length" class="overflow-hidden" data-demo="receipts">
       <CardHeader class="pb-2">
@@ -79,7 +74,7 @@ function impactFor(receipt: ReceiptListItem) {
     <Card v-else class="text-center">
       <CardContent class="py-12">
         <p class="text-sm text-muted-foreground">Покупок пока нет.</p>
-        <Button class="mt-4" @click="addOpen = true">
+        <Button class="mt-4 mm-add-purchase-btn gap-2" @click="showAddExpense">
           <Plus class="size-4" />
           Добавить
         </Button>
@@ -96,6 +91,11 @@ function impactFor(receipt: ReceiptListItem) {
         <p v-if="impactFor(selected)" class="text-sm text-primary">
           {{ PURCHASES.goalDelay }} {{ impactFor(selected).replace('≈ ', '') }}.
         </p>
+        <AdvisorAskButton
+          v-if="selected && impactFor(selected)"
+          :prompt="buildReceiptsGoalDelayPrompt(impactFor(selected)!)"
+          :label="ADVISOR.askGoalDelay"
+        />
         <ul v-if="selected.items?.length" class="space-y-2">
           <li
             v-for="item in selected.items"

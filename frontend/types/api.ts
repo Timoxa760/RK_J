@@ -170,6 +170,20 @@ export interface AiDiagnosisResponse {
   next_check_days: number
 }
 
+export interface AiChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AiChatRequest {
+  message: string
+  history?: AiChatMessage[]
+}
+
+export interface AiChatResponse {
+  reply: string
+}
+
 export interface SimulateScenarioRequest {
   scenario: 'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'
   reduction_percent: number
@@ -463,6 +477,7 @@ export interface FixedExpense {
 }
 
 export interface OnboardingDraft {
+  survey_input_mode?: 'text' | 'voice' | null
   active_income: number
   passive_income: number
   emergency_fund: number
@@ -471,6 +486,9 @@ export interface OnboardingDraft {
   goal_title: string
   goal_amount: number
   fixed_expenses: FixedExpense[]
+  skipped_income?: boolean
+  skipped_cushion?: boolean
+  skipped_goal?: boolean
   skipped_expenses: boolean
 }
 

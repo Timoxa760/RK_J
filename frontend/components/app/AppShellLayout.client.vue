@@ -10,6 +10,8 @@ const showDemoTour = computed(
   () => config.public.demoMode && route.query.tour === '1'
 )
 
+const { open: addExpenseOpen, notifyAdded } = useAddExpenseSheet()
+
 onMounted(() => {
   authStore.hydrate()
   if (showDemoTour.value) {
@@ -23,7 +25,12 @@ watch(showDemoTour, (enabled) => {
 </script>
 
 <template>
-  <SidebarProvider :default-open="true">
+  <SidebarProvider
+    :default-open="true"
+    class="mm-app-shell mm-app-shell--with-advisor"
+    :style="{ '--sidebar-width': '20rem' }"
+  >
+    <AppShellAdvisorHost />
     <AppSidebar />
     <SidebarInset>
       <SharedAppHeader />
@@ -32,6 +39,9 @@ watch(showDemoTour, (enabled) => {
       </div>
       <SharedMobileTabBar />
     </SidebarInset>
+    <ClientOnly>
+      <DashboardAddExpenseSheet v-model:open="addExpenseOpen" @added="notifyAdded" />
+    </ClientOnly>
     <DemoMode v-if="config.public.demoMode" ref="demoModeRef" />
     <Sonner />
   </SidebarProvider>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PageNarrativeBlock } from '~/utils/pageNarrative'
 import type { HealthTone } from '~/utils/dashboardSummary'
+import { ADVISOR, GOALS } from '~/constants/productCopy'
 
 const props = defineProps<{
   narrative?: PageNarrativeBlock | null
@@ -10,92 +11,103 @@ const props = defineProps<{
   healthTone?: HealthTone
   badgeLabel?: string
   weeklyAction?: string
+  adviceHint?: string
   callout?: string
   loading?: boolean
 }>()
-
-const toneVariant: Record<HealthTone, 'default' | 'secondary' | 'destructive'> = {
-  good: 'default',
-  warn: 'secondary',
-  risk: 'destructive'
-}
 
 const resolved = computed(() => {
   const n = props.narrative
   return {
     headline: props.headline ?? n?.headline ?? '',
     paragraphs: props.paragraphs ?? n?.paragraphs ?? [],
+    contextFacts: n?.contextFacts ?? [],
+    goalOpportunityThousands: n?.goalOpportunityThousands ?? null,
     healthEmoji: props.healthEmoji ?? n?.healthEmoji,
     healthTone: props.healthTone ?? n?.healthTone,
     badgeLabel: props.badgeLabel ?? n?.badgeLabel,
     weeklyAction: props.weeklyAction ?? n?.weeklyAction,
+    adviceHint: props.adviceHint ?? n?.adviceHint ?? ADVISOR.weeklyAdviceHintShort,
     callout: props.callout ?? n?.callout
   }
 })
 
-const borderClass = computed(() => {
-  const tone = resolved.value.healthTone
-  if (tone === 'risk') return 'border-l-red-500 bg-red-50/40'
-  if (tone === 'warn') return 'border-l-amber-500 bg-amber-50/40'
-  if (tone === 'good') return 'border-l-emerald-500 bg-emerald-50/40'
-  return 'border-l-border bg-muted/30'
-})
+const isHero = computed(
+  () =>
+    Boolean(
+      resolved.value.weeklyAction ||
+        resolved.value.contextFacts.length
+    )
+)
 </script>
 
 <template>
-  <section class="w-full space-y-3" aria-label="Кратко о странице">
-    <div v-if="$slots.actions" class="flex justify-end">
+  <section class="w-full" aria-label="Кратко о странице">
+    <div v-if="$slots.actions" class="mb-3 flex justify-center">
       <slot name="actions" />
     </div>
 
-    <Skeleton v-if="loading" class="h-24 w-full" />
+    <Skeleton v-if="loading" class="h-32 w-full rounded-2xl" />
 
-    <Card
-      v-else-if="resolved.headline || resolved.paragraphs.length"
-      class="border-l-4"
-      :class="borderClass"
+    <section
+      v-else-if="resolved.headline || resolved.paragraphs.length || isHero"
+      class="mm-narrative-hero space-y-3"
     >
-      <CardContent class="space-y-3 py-4">
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div class="min-w-0 space-y-2">
-            <p v-if="resolved.healthEmoji" class="flex items-center gap-2 text-base font-medium">
-              <span aria-hidden="true">{{ resolved.healthEmoji }}</span>
-              <span>{{ resolved.headline }}</span>
-            </p>
-            <p v-else-if="resolved.headline" class="text-base font-medium">
-              {{ resolved.headline }}
-            </p>
-            <p
-              v-for="(paragraph, i) in resolved.paragraphs"
-              :key="i"
-              class="text-sm leading-relaxed text-muted-foreground"
+      <template v-if="isHero">
+        <aside
+          v-if="resolved.weeklyAction"
+          class="mm-tier-1 mm-narrative-hero__advice"
+          aria-label="Совет недели"
+        >
+          <div class="mm-narrative-hero__advice-meta">
+            <span class="mm-narrative-hero__advice-badge">{{ ADVISOR.weeklyAdviceTitle }}</span>
+            <span
+              v-if="resolved.goalOpportunityThousands"
+              class="mm-narrative-hero__advice-hook"
             >
-              {{ paragraph }}
-            </p>
+              {{ GOALS.opportunityAmount(resolved.goalOpportunityThousands) }}
+            </span>
           </div>
-          <Badge
-            v-if="resolved.badgeLabel"
-            :variant="resolved.healthTone ? toneVariant[resolved.healthTone] : 'secondary'"
-            class="w-fit shrink-0"
-          >
-            {{ resolved.badgeLabel }}
-          </Badge>
-        </div>
-
-        <p v-if="resolved.callout" class="text-xs text-muted-foreground">
-          {{ resolved.callout }}
-        </p>
+          <p class="mm-narrative-hero__advice-text">{{ resolved.weeklyAction }}</p>
+          <p class="mm-narrative-hero__advice-hint">{{ resolved.adviceHint }}</p>
+        </aside>
 
         <div
-          v-if="resolved.weeklyAction"
-          class="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm"
+          v-if="resolved.contextFacts.length"
+          class="mm-narrative-hero__grid"
+          aria-label="Ключевые цифры"
         >
-          <p class="text-xs font-medium text-primary">Что сделать на этой неделе</p>
-          <p class="mt-0.5 leading-snug">{{ resolved.weeklyAction }}</p>
+          <div
+            v-for="fact in resolved.contextFacts"
+            :key="fact.id"
+            class="mm-narrative-hero__tile"
+            :class="{
+              'mm-narrative-hero__tile--accent': fact.tone === 'accent',
+              'mm-narrative-hero__tile--warn': fact.tone === 'warn'
+            }"
+          >
+            <span class="mm-narrative-hero__tile-label">{{ fact.label }}</span>
+            <span class="mm-narrative-hero__tile-value">{{ fact.value }}</span>
+          </div>
         </div>
+      </template>
 
-        <slot />
-      </CardContent>
-    </Card>
+      <template v-else>
+        <div class="mm-tier-2 rounded-xl border bg-card p-4 sm:p-5">
+          <p v-if="resolved.headline" class="text-xl font-semibold leading-snug">
+            {{ resolved.headline }}
+          </p>
+          <p
+            v-for="(paragraph, i) in resolved.paragraphs"
+            :key="i"
+            class="mt-2 text-base leading-relaxed text-muted-foreground"
+          >
+            {{ paragraph }}
+          </p>
+        </div>
+      </template>
+
+      <slot />
+    </section>
   </section>
 </template>

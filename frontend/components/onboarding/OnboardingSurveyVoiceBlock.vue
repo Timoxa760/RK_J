@@ -152,8 +152,11 @@ function formatVoiceResult(step: number, draft: OnboardingDraft): string | null 
     <div class="flex justify-center py-1">
       <button
         type="button"
-        class="mm-onb-mic-orb-hit border-0 bg-transparent p-0"
-        :class="{ 'mm-onb-mic-orb-hit--listen': status === 'recording' && !busy }"
+        class="mm-onb-mic-orb-hit mm-onb-mic-orb-hit--compact border-0 bg-transparent p-0"
+        :class="{
+          'mm-onb-mic-orb-hit--listen': status === 'recording' && !busy,
+          'mm-onb-mic-orb-hit--parse': busy && status !== 'recording'
+        }"
         :disabled="!supported || busy"
         :aria-pressed="status === 'recording'"
         :aria-label="status === 'recording' ? 'Остановить и отправить' : 'Нажмите и ответьте вслух'"
@@ -163,6 +166,7 @@ function formatVoiceResult(step: number, draft: OnboardingDraft): string | null 
           :listening="status === 'recording'"
           :parsing="busy"
           compact
+          gentle
           :ambient="status !== 'recording' && !busy"
         />
       </button>

@@ -26,9 +26,9 @@ const pageNarrative = computed(() =>
   })
 )
 
-onMounted(async () => {
+onMounted(() => {
   loadProfile()
-  await fetchGoals()
+  void fetchGoals()
 })
 </script>
 
@@ -40,9 +40,12 @@ onMounted(async () => {
       <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
       <AlertDescription class="space-y-2">
         <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
-        <Button size="sm" variant="secondary" @click="retakeSurvey">
-          Пройти короткий опрос
-        </Button>
+        <div class="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" @click="retakeSurvey">
+            Пройти короткий опрос
+          </Button>
+          <AdvisorAskButton size="sm" variant="secondary" />
+        </div>
       </AlertDescription>
     </Alert>
 
@@ -50,9 +53,12 @@ onMounted(async () => {
       <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
       <AlertDescription class="space-y-2">
         <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
-        <Button as-child size="sm" variant="secondary">
-          <NuxtLink to="/onboarding">Пройти короткий опрос</NuxtLink>
-        </Button>
+        <div class="flex flex-wrap gap-2">
+          <Button as-child size="sm" variant="secondary">
+            <NuxtLink to="/onboarding">Пройти короткий опрос</NuxtLink>
+          </Button>
+          <AdvisorAskButton size="sm" variant="secondary" />
+        </div>
       </AlertDescription>
     </Alert>
 

@@ -5,7 +5,7 @@ import { LegendComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { CompareResponse } from '~/types/api'
-import { chartThemeLight } from '~/utils/chartTheme'
+import { chartFontFamily, chartThemeLight } from '~/utils/chartTheme'
 
 use([CanvasRenderer, PieChart, TooltipComponent, LegendComponent])
 
@@ -33,20 +33,20 @@ const option = computed(() => {
         type: 'scroll',
         bottom: 0,
         left: 'center',
-        textStyle: { color: chartThemeLight.textStyle.color, fontSize: 10 }
+        textStyle: { ...chartThemeLight.textStyle, fontSize: 10 }
       },
       graphic: [
         {
           type: 'text',
           left: 'center',
           top: '4%',
-          style: { text: prevLabel, fill: chartThemeLight.textStyle.color, fontSize: 11, fontWeight: 600 }
+          style: { text: prevLabel, fill: chartThemeLight.textStyle.color, fontFamily: chartFontFamily, fontSize: 11, fontWeight: 600 }
         },
         {
           type: 'text',
           left: 'center',
           top: '52%',
-          style: { text: currLabel, fill: chartThemeLight.textStyle.color, fontSize: 11, fontWeight: 600 }
+          style: { text: currLabel, fill: chartThemeLight.textStyle.color, fontFamily: chartFontFamily, fontSize: 11, fontWeight: 600 }
         }
       ],
       series: [
@@ -85,20 +85,20 @@ const option = computed(() => {
       type: 'scroll',
       bottom: 8,
       left: 'center',
-      textStyle: { color: chartThemeLight.textStyle.color, fontSize: 11 }
+      textStyle: { ...chartThemeLight.textStyle, fontSize: 11 }
     },
     graphic: [
       {
         type: 'text',
         left: '22%',
         top: '8%',
-        style: { text: prevLabel, fill: chartThemeLight.textStyle.color, fontSize: 12, fontWeight: 600, textAlign: 'center' }
+        style: { text: prevLabel, fill: chartThemeLight.textStyle.color, fontFamily: chartFontFamily, fontSize: 12, fontWeight: 600, textAlign: 'center' }
       },
       {
         type: 'text',
         left: '72%',
         top: '8%',
-        style: { text: currLabel, fill: chartThemeLight.textStyle.color, fontSize: 12, fontWeight: 600, textAlign: 'center' }
+        style: { text: currLabel, fill: chartThemeLight.textStyle.color, fontFamily: chartFontFamily, fontSize: 12, fontWeight: 600, textAlign: 'center' }
       }
     ],
     series: [

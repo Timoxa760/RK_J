@@ -1,20 +1,39 @@
 <script setup lang="ts">
 import { FLOW_LINE_PATHS } from '~/constants/flowLinePaths'
 
-const patternId = `mm-hero-line1-${useId()}`
+const props = withDefaults(
+  defineProps<{
+    /** hero — лендинг; brand — сайдбар и шапка приложения */
+    variant?: 'hero' | 'brand'
+    /** stretch — на всю ширину; center — по центру блока (сайдбар) */
+    brandAlign?: 'stretch' | 'center'
+  }>(),
+  { variant: 'hero', brandAlign: 'stretch' }
+)
+
+const preserveAspect = computed(() => {
+  if (props.variant !== 'brand') return 'xMinYMin meet'
+  return props.brandAlign === 'center' ? 'xMidYMid meet' : 'none'
+})
+
+const patternId = computed(() =>
+  props.variant === 'brand' ? 'mm-hero-flow-pattern-brand' : 'mm-hero-flow-pattern'
+)
+
 const pulseIndices = new Set([1, 7, 13, 19, 25])
 
-/** Кроп вокруг «ПОТОК» в координатах line1.svg */
-const viewBox = '0 298 358 114'
+/** Кроп вокруг «ПОТОК»; ширина с запасом под font-stretch 150% (wdth). */
+const viewBox = '0 296 530 134'
 </script>
 
 <template>
   <svg
     class="mm-hero-flow-word"
+    :class="{ 'mm-hero-flow-word--brand': variant === 'brand' }"
     :viewBox="viewBox"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    preserveAspectRatio="xMinYMin meet"
+    :preserveAspectRatio="preserveAspect"
     role="img"
     aria-label="Поток"
   >
@@ -25,7 +44,12 @@ const viewBox = '0 298 358 114'
         width="422"
         height="596"
       >
-        <rect width="422" height="596" fill="#e8955f" />
+        <rect
+          class="mm-hero-flow-word__fill"
+          width="422"
+          height="596"
+          fill="var(--mm-hero-flow-fill, #96c8f9)"
+        />
         <g class="mm-hero-flow-word__pattern">
           <path
             v-for="(d, i) in FLOW_LINE_PATHS"
@@ -47,7 +71,6 @@ const viewBox = '0 298 358 114'
       letter-spacing="-0.02em"
       :fill="`url(#${patternId})`"
     >
-      ПОТОК
-    </text>
+      ПОТОК</text>
   </svg>
 </template>

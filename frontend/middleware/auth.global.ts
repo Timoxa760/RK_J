@@ -6,7 +6,9 @@ const ONBOARDING_PATH = '/onboarding'
 
 export default defineNuxtRouteMiddleware((to) => {
   const authStore = useAuthStore()
-  if (import.meta.client && !authStore.token) {
+  const onServer = Boolean(useRequestEvent())
+
+  if (!onServer) {
     authStore.hydrate()
   }
 
@@ -24,11 +26,13 @@ export default defineNuxtRouteMiddleware((to) => {
     return
   }
 
+  // Токен в localStorage — на SSR сессии нет, проверяем только на клиенте после hydrate
   if (!authStore.isAuthenticated) {
+    if (onServer) return
     return navigateTo('/login')
   }
 
-  if (!import.meta.client) return
+  if (onServer) return
 
   const completed = onboardingDone()
   const allowedDuringOnboarding = [...PUBLIC_PATHS, ONBOARDING_PATH, '/profile', '/receipts']

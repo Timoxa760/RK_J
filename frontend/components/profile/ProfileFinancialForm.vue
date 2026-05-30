@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { FinancialProfile } from '~/types/api'
 
-const { profile, loadProfile, saveProfile } = useFinancialProfile()
+const { profile, loadProfile, saveProfile, syncProfileToApi } = useFinancialProfile()
+const saving = ref(false)
 
 const draft = ref<FinancialProfile>({
   active_income: 0,
@@ -24,16 +25,22 @@ watch(profile, (value) => {
   draft.value = { ...value }
 })
 
-function submit() {
-  saveProfile({
-    active_income: Math.max(0, draft.value.active_income),
-    passive_income: Math.max(0, draft.value.passive_income),
-    emergency_fund: Math.max(0, draft.value.emergency_fund)
-  })
-  saved.value = true
-  setTimeout(() => {
-    saved.value = false
-  }, 2000)
+async function submit() {
+  saving.value = true
+  try {
+    saveProfile({
+      active_income: Math.max(0, draft.value.active_income),
+      passive_income: Math.max(0, draft.value.passive_income),
+      emergency_fund: Math.max(0, draft.value.emergency_fund)
+    })
+    await syncProfileToApi(profile.value)
+    saved.value = true
+    setTimeout(() => {
+      saved.value = false
+    }, 2000)
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -82,10 +89,12 @@ function submit() {
           <p class="text-sm text-muted-foreground">
             Суммарный доход: {{ draftTotalIncome.toLocaleString('ru-RU') }} ₽/мес
           </p>
-          <Button type="submit" class="w-full sm:w-auto">Сохранить</Button>
+          <Button type="submit" class="w-full sm:w-auto" :disabled="saving">
+            {{ saving ? 'Сохраняем…' : 'Сохранить' }}
+          </Button>
         </div>
 
-        <p v-if="saved" class="text-sm text-primary sm:col-span-2">Сохранено локально</p>
+        <p v-if="saved" class="text-sm text-primary sm:col-span-2">Сохранено</p>
       </form>
     </CardContent>
   </Card>

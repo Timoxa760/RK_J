@@ -4,11 +4,10 @@ import { heroContent } from '~/constants/landingContent'
 </script>
 
 <template>
-  <section class="mm-landing-section mm-landing-section--hero mm-landing-hero">
-    <div
-      class="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-10 xl:gap-12"
-    >
-      <div class="max-w-xl mm-landing-hero-cascade">
+  <LandingReveal immediate>
+    <section class="mm-landing-section mm-landing-section--hero mm-landing-hero">
+      <div class="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-10 xl:gap-12">
+        <div class="mm-landing-hero__copy mx-auto w-full max-w-xl min-w-0 lg:mx-0 mm-landing-hero-cascade">
         <p class="mm-landing-section__eyebrow">
           {{ heroContent.eyebrow }}
         </p>
@@ -18,7 +17,7 @@ import { heroContent } from '~/constants/landingContent'
           <span class="block mm-hero-title__flow-line">
             <SharedHeroFlowWord />
           </span>
-          <span class="block text-[color:var(--mm-primary)]">их разберёт</span>
+          <span class="block mm-hero-title__accent">их разберёт</span>
         </h1>
 
         <div class="mm-landing-hero__lead-box">
@@ -38,9 +37,10 @@ import { heroContent } from '~/constants/landingContent'
         </div>
       </div>
 
-      <div class="w-full min-w-0 lg:max-w-none">
-        <LandingVoiceDemo />
+        <div class="mm-landing-hero__demo mx-auto w-full max-w-xl min-w-0 lg:mx-0 lg:max-w-none">
+          <LandingVoiceDemo />
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </LandingReveal>
 </template>

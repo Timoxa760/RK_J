@@ -40,13 +40,13 @@ const option = computed(() => {
           left: 'center',
           width: '92%',
           itemGap: 8,
-          textStyle: { color: chartThemeLight.textStyle.color, fontSize: 10 }
+          textStyle: { ...chartThemeLight.textStyle, fontSize: 10 }
         }
       : {
           orient: 'vertical',
           right: 0,
           top: 'middle',
-          textStyle: { color: chartThemeLight.textStyle.color, fontSize: 11 }
+          textStyle: { ...chartThemeLight.textStyle, fontSize: 11 }
         },
     series: [
       {
