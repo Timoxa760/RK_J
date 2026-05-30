@@ -1,12 +1,11 @@
 import type { AiDiagnosisResponse, AiPlanApiResponse, InsightItem, TimeMachineResponse } from '~/types/api'
 import type { DashboardSummary } from '~/utils/dashboardSummary'
 import type { FinancialPlan } from '~/utils/financialPlan'
-import { mockDiagnosis } from '~/store/mocks/diagnosis'
 import { buildFinancialPlan } from '~/utils/financialPlan'
 import { goalFromProfile } from '~/composables/useGoals'
 
 export function useAiPlan() {
-  const { apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
   const { profile, loadProfile } = useFinancialProfile()
 
   const plan = ref<FinancialPlan | null>(null)
@@ -23,27 +22,20 @@ export function useAiPlan() {
     error.value = null
     loadProfile()
 
-    const fallbackPlan = buildFinancialPlan({
-      primaryGoal: goalFromProfile(profile.value),
-      summary: input.summary,
-      timemachine: input.timemachine,
-      diagnosis: mockDiagnosis,
-      topInsight: input.topInsight
-    })
-
     try {
-      const res = await apiFetchWithDemo<AiPlanApiResponse>('/ai/plan', {
-        plan: fallbackPlan,
-        diagnosis: mockDiagnosis
-      })
+      const res = await apiFetch<AiPlanApiResponse>('/ai/plan')
       plan.value = res.plan
       diagnosisFromPlan.value = res.diagnosis
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить план'
-      if (demoMode.value) {
-        plan.value = fallbackPlan
-        diagnosisFromPlan.value = mockDiagnosis
-      }
+      plan.value = buildFinancialPlan({
+        primaryGoal: goalFromProfile(profile.value),
+        summary: input.summary,
+        timemachine: input.timemachine,
+        diagnosis: null,
+        topInsight: input.topInsight
+      })
+      diagnosisFromPlan.value = null
     } finally {
       loading.value = false
     }

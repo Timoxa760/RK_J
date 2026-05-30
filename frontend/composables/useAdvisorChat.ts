@@ -49,7 +49,7 @@ function newId() {
 }
 
 export function useAdvisorChat(getContext: () => AdvisorContext) {
-  const { apiFetch, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const messages = useState<ChatTurn[]>('advisor-chat-messages', () => [])
   const typing = useState('advisor-chat-typing', () => false)
@@ -109,19 +109,14 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
         .slice(-10)
         .map((m) => ({ role: m.role, content: m.content }))
 
-      if (demoMode.value) {
-        await new Promise((r) => setTimeout(r, 450))
+      try {
+        const res = await apiFetch<{ reply: string }>('/ai/chat', {
+          method: 'POST',
+          body: { message: trimmed, history }
+        })
+        reply = res.reply?.trim() || buildAdvisorReply(trimmed, ctx)
+      } catch {
         reply = buildAdvisorReply(trimmed, ctx)
-      } else {
-        try {
-          const res = await apiFetch<{ reply: string }>('/ai/chat', {
-            method: 'POST',
-            body: { message: trimmed, history }
-          })
-          reply = res.reply?.trim() || buildAdvisorReply(trimmed, ctx)
-        } catch {
-          reply = buildAdvisorReply(trimmed, ctx)
-        }
       }
 
       messages.value.push({

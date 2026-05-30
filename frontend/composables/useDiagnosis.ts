@@ -1,8 +1,7 @@
 import type { AiDiagnosisResponse } from '~/types/api'
-import { mockDiagnosis } from '~/store/mocks/diagnosis'
 
 export function useDiagnosis() {
-  const { apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const diagnosis = ref<AiDiagnosisResponse | null>(null)
   const loading = ref(false)
@@ -13,15 +12,10 @@ export function useDiagnosis() {
     error.value = null
 
     try {
-      diagnosis.value = await apiFetchWithDemo<AiDiagnosisResponse>(
-        '/ai/diagnosis',
-        mockDiagnosis
-      )
+      diagnosis.value = await apiFetch<AiDiagnosisResponse>('/ai/diagnosis')
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить картину'
-      if (demoMode.value) {
-        diagnosis.value = mockDiagnosis
-      }
+      diagnosis.value = null
     } finally {
       loading.value = false
     }

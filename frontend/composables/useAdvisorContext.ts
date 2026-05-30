@@ -1,8 +1,5 @@
 import type { AdvisorContext } from '~/utils/advisorChat'
 import { buildDashboardSummary } from '~/utils/dashboardSummary'
-import { mockInsights } from '~/store/mocks'
-import { normalizeInsights } from '~/utils/apiNormalize'
-import type { InsightsResponse } from '~/types/api'
 
 /** Данные для советника в сайдбаре (на всех страницах приложения). */
 export function useAdvisorContext() {
@@ -12,34 +9,21 @@ export function useAdvisorContext() {
   const { topInsight, fetchInsights } = useInsights()
   const { timemachine, loadAll: loadDashboardSlice } = useDashboard()
   const { dashboard: credits, fetchDashboard: fetchCredits } = useCredits()
-  const { apiFetchWithDemo, demoMode } = useApi()
 
-  const insightsData = ref<InsightsResponse | null>(null)
   const loading = ref(false)
-
-  async function loadInsightCard() {
-    try {
-      const raw = await apiFetchWithDemo('/insights', mockInsights)
-      insightsData.value = normalizeInsights(raw)
-    } catch {
-      if (demoMode.value) {
-        insightsData.value = normalizeInsights(mockInsights)
-      }
-    }
-  }
 
   const summary = computed(() =>
     buildDashboardSummary({
       profile: profile.value,
       timemachine: timemachine.value,
       credits: credits.value,
-      topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+      topInsight: topInsight.value
     })
   )
 
   const advisorContext = computed<AdvisorContext>(() => ({
     diagnosis: diagnosis.value,
-    topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null,
+    topInsight: topInsight.value,
     timemachine: timemachine.value,
     primaryGoal: primaryGoal.value,
     goalForecast: summary.value.goalForecast
@@ -53,7 +37,6 @@ export function useAdvisorContext() {
         loadDashboardSlice({ silent: options?.silent }),
         fetchCredits(),
         fetchInsights(),
-        loadInsightCard(),
         fetchDiagnosis()
       ])
     } finally {

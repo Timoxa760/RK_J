@@ -1,9 +1,8 @@
 import type { InsightsResponse } from '~/types/api'
-import { mockInsights } from '~/store/mocks'
 import { normalizeInsights } from '~/utils/apiNormalize'
 
 export function useInsights() {
-  const { apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const insights = ref<InsightsResponse | null>(null)
   const loading = ref(false)
@@ -15,13 +14,11 @@ export function useInsights() {
     loading.value = true
     error.value = null
     try {
-      const raw = await apiFetchWithDemo('/insights', mockInsights)
+      const raw = await apiFetch<InsightsResponse>('/insights')
       insights.value = normalizeInsights(raw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить советы'
-      if (demoMode.value) {
-        insights.value = normalizeInsights(mockInsights)
-      }
+      insights.value = null
     } finally {
       loading.value = false
     }

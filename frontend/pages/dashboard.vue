@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import { buildDashboardSummary, hasCreditsData } from '~/utils/dashboardSummary'
 import { narrativeFromDiagnosis, narrativeFromDashboardSummary } from '~/utils/pageNarrative'
-import { mockInsights } from '~/store/mocks'
-import { normalizeInsights } from '~/utils/apiNormalize'
 import { buildCategoriesSummary } from '~/utils/chartSummaries'
-import type { InsightsResponse } from '~/types/api'
 
 const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
-const { diagnosis, loading: diagnosisLoading, fetchDiagnosis } = useDiagnosis()
 const { profile, loadProfile } = useFinancialProfile()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
 const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan } = useAiPlan()
@@ -24,41 +20,23 @@ const {
 
 const { refreshAdvisorContext } = useAdvisorContext()
 
-const { apiFetchWithDemo, demoMode } = useApi()
 const { addedVersion } = useAddExpenseSheet()
-
-const insightsData = ref<InsightsResponse | null>(null)
 
 const scenario = ref<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
   'reduce_cafe'
 )
 const percent = ref(20)
 
-async function loadInsightCard() {
-  try {
-    const raw = await apiFetchWithDemo('/insights', mockInsights)
-    insightsData.value = normalizeInsights(raw)
-  } catch {
-    if (demoMode.value) {
-      insightsData.value = normalizeInsights(mockInsights)
-    }
-  }
-}
-
 const summary = computed(() =>
   buildDashboardSummary({
     profile: profile.value,
     timemachine: timemachine.value,
     credits: credits.value,
-    topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+    topInsight: topInsight.value
   })
 )
 
-const displayDiagnosis = computed(() => diagnosisFromPlan.value ?? diagnosis.value)
-
-const topInsightRef = computed(
-  () => topInsight.value ?? insightsData.value?.insights?.[0] ?? null
-)
+const displayDiagnosis = computed(() => diagnosisFromPlan.value)
 
 const displaySummary = computed(() => {
   const base = summary.value
@@ -72,7 +50,7 @@ const displaySummary = computed(() => {
 })
 
 const pageNarrative = computed(() => {
-  const insight = topInsightRef.value
+  const insight = topInsight.value
   if (displayDiagnosis.value) {
     return narrativeFromDiagnosis(displayDiagnosis.value, summary.value, insight)
   }
@@ -85,7 +63,7 @@ const narrativeLoading = computed(
     (loading.value ||
       creditsLoading.value ||
       insightsLoading.value ||
-      diagnosisLoading.value ||
+      aiPlanLoading.value ||
       forecastLoading.value)
 )
 
@@ -102,7 +80,7 @@ async function rebuildPlan() {
   await fetchPlan({
     summary: summary.value,
     timemachine: timemachine.value,
-    topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+    topInsight: topInsight.value
   })
   planRefreshing.value = false
 }
@@ -115,7 +93,7 @@ const chartsLoading = computed(
   () => chartsRefreshing.value || (loading.value && !categories.value && !timemachine.value)
 )
 
-const allInsights = computed(() => insights.value?.insights ?? insightsData.value?.insights ?? [])
+const allInsights = computed(() => insights.value?.insights ?? [])
 
 async function refreshData(options?: { soft?: boolean }) {
   if (options?.soft) chartsRefreshing.value = true
@@ -124,10 +102,7 @@ async function refreshData(options?: { soft?: boolean }) {
     loadAll({ silent: options?.soft }),
     fetchDashboard(),
     fetchInsights(),
-    loadInsightCard(),
-    fetchDiagnosis(),
-    loadForecast(),
-    fetchDiagnosis()
+    loadForecast()
   ])
   await rebuildPlan()
   await refreshAdvisorContext({ silent: true })
@@ -166,7 +141,7 @@ async function runSimulation() {
       :plan="plan"
       :summary="displaySummary"
       :diagnosis="displayDiagnosis"
-      :diagnosis-loading="diagnosisLoading && !diagnosis"
+      :diagnosis-loading="aiPlanLoading && !displayDiagnosis"
       :categories="categories"
       :forecast="forecast"
       :timemachine="timemachine"
