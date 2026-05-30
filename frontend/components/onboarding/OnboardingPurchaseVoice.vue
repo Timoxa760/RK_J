@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatApiError } from '~/utils/apiError'
+
 const emit = defineEmits<{
   done: []
 }>()
@@ -44,7 +46,7 @@ async function submitPhrase(rawText: string) {
     await submitVoiceTranscript(text)
     emit('done')
   } catch (e) {
-    submitError.value = e instanceof Error ? e.message : 'Не удалось добавить покупку'
+    submitError.value = formatApiError(e, 'Не удалось добавить покупку')
   }
 }
 
