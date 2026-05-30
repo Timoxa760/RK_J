@@ -35,7 +35,8 @@
 | 🔴 critical | POST | `/auth/register` | Регистрация по телефону | Core API |
 | 🔴 critical | POST | `/auth/login` | Вход, получение JWT | Core API |
 | 🔴 critical | POST | `/providers/connect` | Привязать магазин | Core API |
-| 🔴 critical | POST | `/expenses/manual` | Голос / ручной ввод | AI Processor |
+| 🔴 critical | POST | `/expenses/manual` | Текстовый ввод трат | AI Processor |
+| 🔴 critical | POST | `/expenses/voice` | Голосовой ввод (audio → Whisper → LLM) | AI Processor |
 | 🔴 critical | POST | `/fns/ticket` | Чек по QR ФНС | Scraper |
 | 🟡 important | POST | `/fns/mco/sync` | Синк истории MCO | Scraper |
 | 🟡 important | POST | `/goals` | Создать цель | Finance Core |
@@ -503,9 +504,13 @@
 
 ## 9. Expenses API (AI Processor) — 🔴 critical для «Поток»
 
-### POST /api/v1/expenses/manual
+Пайплайн: **Whisper** (только `/voice`) → **OnlySQ** (парсинг + совет) → fallback **regex** (`parser.Parse`) → сохранение.
 
-Голосовой или ручной ввод. Текст в `raw_text` парсится на бэкенде (`parser.Parse`).
+Auth: `Authorization: Bearer <jwt>` (через gateway).
+
+### POST /api/v1/expenses/manual — 🔴 critical
+
+Текстовый ввод. Парсинг: OnlySQ при наличии `ONLYSQ_API_KEY`, иначе regex.
 
 **Body:**
 ```json
@@ -516,18 +521,21 @@
   "category": "",
   "description": "",
   "date": "2026-05-30",
-  "source": "voice"
+  "source": "manual"
 }
 ```
 
 | Поле | Обязательно | Описание |
 |------|-------------|----------|
 | `user_id` | да | ID пользователя |
-| `raw_text` | нет* | Текст для LLM/парсера |
-| `amount` | нет* | Если задан — используется напрямую |
-| `source` | нет | `manual` (default) \| `voice` |
+| `raw_text` | нет* | Текст для OnlySQ / regex |
+| `amount` | нет* | Если задан — подставляется в первую трату |
+| `category` | нет | Переопределяет категорию первой траты |
+| `description` | нет | Описание первой траты |
+| `date` | нет | ISO date `YYYY-MM-DD` |
+| `source` | нет | `manual` (default) \| `voice` (если текст уже с фронта) |
 
-\* Нужен `raw_text` с распознанной суммой **или** `amount` > 0.
+\* Нужен `raw_text` **или** `amount` > 0.
 
 **200 OK:**
 ```json
@@ -536,13 +544,53 @@
   "id": "uuid",
   "amount": 5000,
   "category": "Продукты",
-  "parsed": true
+  "parsed": true,
+  "parsed_by": "onlysq",
+  "advice": "Продуктовая трата в рамках недели; кроссовки — разовая покупка вне обычного ритма.",
+  "expenses": [
+    {"id": "uuid-1", "amount": 5000, "category": "Продукты", "description": "продукты"},
+    {"id": "uuid-2", "amount": 16000, "category": "Одежда", "description": "кроссовки"}
+  ]
 }
 ```
 
-**400** — `user_id required`, `amount required`, invalid JSON | **500** — save failed
+| Поле ответа | Описание |
+|-------------|----------|
+| `id`, `amount`, `category` | Первая трата (обратная совместимость с Nuxt) |
+| `parsed_by` | `onlysq` \| `regex` |
+| `advice` | Одна рекомендация от LLM (пусто при regex-only) |
+| `expenses` | Все траты из фразы (1..N) |
 
-> **Roadmap:** один запрос → несколько транзакций из одной фразы (сейчас — одна запись).
+**400** — `user_id required`, `amount required`, invalid JSON  
+**500** — save failed  
+**503** — OnlySQ недоступен и regex не смог извлечь сумму
+
+---
+
+### POST /api/v1/expenses/voice — 🔴 critical
+
+Голосовой ввод. Multipart: аудио → Whisper → OnlySQ → сохранение.
+
+**Content-Type:** `multipart/form-data`
+
+| Поле | Обязательно | Описание |
+|------|-------------|----------|
+| `file` | да | Аудио: `webm`, `wav`, `mp3`, `ogg`, `m4a` (max 10 MB) |
+| `user_id` | да | ID пользователя |
+| `date` | нет | ISO date `YYYY-MM-DD` |
+
+**200 OK:** тот же формат, что `/expenses/manual`, плюс:
+
+```json
+{
+  "transcript": "Только что вышел из продуктового, потратил 1332 рубля",
+  "source": "voice"
+}
+```
+
+**400** — `user_id required`, `file required`, файл слишком большой  
+**503** — Whisper недоступен (`WHISPER_URL` не задан или сервис не отвечает)  
+**500** — save failed
 
 ---
 

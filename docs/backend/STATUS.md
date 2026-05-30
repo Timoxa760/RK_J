@@ -42,8 +42,20 @@
 
 #### Добавлено
 
+- `POST /api/v1/expenses/voice` — Whisper STT + OnlySQ parse + advice.
+- Поля `advice`, `expenses[]`, `parsed_by`, `transcript` в expenses API.
+- Клиент OnlySQ, Whisper, `docs/backend/DEPLOY.md`, сервис `whisper` в docker-compose.
+
+#### Изменено
+
+- `POST /api/v1/expenses/manual` — OnlySQ с fallback на regex.
+- ai-processor: общий Processor для manual и voice.
+
+### 82b09d5 — docs(backend): статус API, changelog и smoke_critical
+
+#### Добавлено
+
 - Demo API целей: `POST /goals`, `GET /goals`, `GET /goals/{id}` (goal-service, in-memory).
-- Demo API дайджеста: `GET /digest/latest` (reporting-service).
 - Алиасы analytics для front: `GET /api/v1/analytics/insights`, `/forecast`, `POST /analytics/simulate`.
 - Прокси gateway: префикс `/api/v1/analytics/`.
 - Поле `token` в ответе login (дубликат `access_token` для Nuxt).
@@ -93,7 +105,8 @@
 | critical | `POST /providers/connect` | OK | demo |
 | critical | `GET /dashboard/sankey` | OK | demo |
 | critical | `GET /dashboard/categories` | OK | demo |
-| critical | `POST /expenses/manual` | OK | ai-processor demo |
+| critical | `POST /expenses/manual` | OK | ai-processor, OnlySQ или regex |
+| critical | `POST /expenses/voice` | NEW | Whisper + OnlySQ (нужен compose) |
 | critical | `POST /fns/ticket` | OK | scraper demo (нужен `SCRAPER_SERVICE_URL` в smoke_critical) |
 | important | `GET /dashboard/timemachine` | OK | 60 месяцев в JSON |
 | important | `GET /dashboard/stores` | OK | demo |

@@ -85,6 +85,18 @@ services:
       - moneymind_network
     restart: unless-stopped
 
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: backend_whisper
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    networks:
+      - moneymind_network
+    restart: unless-stopped
+
   # ============ CORE API (8000-8001) ============
   api-gateway:
     build:
@@ -120,6 +132,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - DEMO_MODE=${DEMO_MODE:-true}
     restart: unless-stopped
 
   # ============ RECEIPT ENGINE (8002-8003) ============
@@ -231,7 +244,8 @@ services:
       - moneymind_network
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
-      - ONLYSQ_URL=${ONLYSQ_URL:-http://onlysq:3000}
+      - ONLYSQ_BASE_URL=${ONLYSQ_BASE_URL:-https://api.onlysq.ru/v1}
+      - ONLYSQ_API_KEY=${ONLYSQ_API_KEY:-}
     restart: unless-stopped
 
   bank-service:
@@ -266,12 +280,23 @@ services:
         condition: service_started
       kafka:
         condition: service_started
+      whisper:
+        condition: service_started
     networks:
       - moneymind_network
     environment:
-      - CLICKHOUSE_URL=http://clickhouse:8123
-      - KAFKA_URL=kafka:9092
-      - ONLYSQ_URL=${ONLYSQ_URL:-http://onlysq:3000}
+      - DEMO_MODE=${DEMO_MODE:-true}
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_USER=clickhouse_user
+      - CLICKHOUSE_PASSWORD=clickhouse_password
+      - CLICKHOUSE_DB=default
+      - KAFKA_BROKERS=kafka:9092
+      - ONLYSQ_BASE_URL=${ONLYSQ_BASE_URL:-https://api.onlysq.ru/v1}
+      - ONLYSQ_API_KEY=${ONLYSQ_API_KEY:-}
+      - ONLYSQ_MODEL=${ONLYSQ_MODEL:-gpt-4o-mini}
+      - WHISPER_URL=${WHISPER_URL:-http://whisper:9000/v1/audio/transcriptions}
+      - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
     restart: unless-stopped
 
   analytics-service:
