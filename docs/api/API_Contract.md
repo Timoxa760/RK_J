@@ -11,22 +11,23 @@
 | **Auth** | `Authorization: Bearer <jwt>` (кроме `/auth/register`, `/auth/login`) |
 | **Форматы** | JSON; даты ISO 8601; суммы в **рублях** (`float64`) |
 
-### Маршрутизация gateway → сервис
+## Маршрутизация gateway → сервис (обновлённая)
 
 | Префикс | Сервис | Порт |
 |---------|--------|------|
-| `/auth/`, `/providers/` | user-service | 8001 |
+| `/auth/` | user-service | 8001 |
 | `/dashboard/`, `/receipts/` | receipt-service | 8002 |
-| `/fns/`, `/x5club/`, `/magnit/`, `/email/` | scraper-service | 8003 |
-| `/expenses/` | ai-processor | 8100 |
+| `/receipt/manual`, `/receipt/voice`, `/receipt/fns/` | scraper-service | 8003 |
+| `/ai/` | ai-processor | 8100 |
 | `/credits/` | credit-service | 8009 |
 | `/banks/` | bank-service | 8011 |
 | `/goals/`, `/budgets/`, `/categories/` | finance-core | 8006–8005–8004 |
 | `/insights/`, `/forecast/`, `/scenarios/` | analytics-service | 8101 |
 | `/digest/` | reporting-service | 8010 |
-| `/challenges/` | social-service | 8102 |
 
 ---
+
+## СУММАРНАЯ ТАБЛИЦА ЭНДПОИНТОВ
 
 ## СУММАРНАЯ ТАБЛИЦА ЭНДПОИНТОВ
 
@@ -34,27 +35,25 @@
 |-----------|-------|------|----------|--------|
 | 🔴 critical | POST | `/auth/register` | Регистрация по телефону | Core API |
 | 🔴 critical | POST | `/auth/login` | Вход, получение JWT | Core API |
-| 🔴 critical | POST | `/providers/connect` | Привязать магазин | Core API |
-| 🔴 critical | POST | `/expenses/manual` | Голос / ручной ввод | AI Processor |
-| 🔴 critical | POST | `/fns/ticket` | Чек по QR ФНС | Scraper |
-| 🟡 important | POST | `/fns/mco/sync` | Синк истории MCO | Scraper |
-| 🟡 important | POST | `/goals` | Создать цель | Finance Core |
+| 🔴 critical | POST | `/receipt/manual` | Ручной ввод расхода | Receipt Engine |
+| 🔴 critical | POST | `/receipt/fns/scan` | Чек по QR ФНС | Receipt Engine |
+| 🟢 optional | POST | `/receipt/voice` | Голосовой ввод расхода | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/sankey` | Санки-диаграмма | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/categories` | Круговая с детализацией | Receipt Engine |
 | 🟡 important | GET | `/dashboard/timemachine` | Накопления за 60 мес | Receipt Engine |
 | 🟡 important | GET | `/dashboard/stores` | Пузырьковая по магазинам | Receipt Engine |
 | 🟡 important | GET | `/dashboard/compare` | Сравнение месяцев | Receipt Engine |
+| 🔴 critical | GET | `/ai/diagnosis` | Финансовый диагноз | Money Intelligence |
+| 🔴 critical | POST | `/ai/chat` | Чат с AI-ассистентом | Money Intelligence |
+| 🟡 important | GET | `/ai/goal/{goal_id}/forecast` | Прогноз достижения цели | Money Intelligence |
+| 🟢 optional | GET | `/ai/recommendation/daily` | Ежедневная рекомендация | Money Intelligence |
 | 🟡 important | GET | `/credits/dashboard` | DTI, подушка, stress-test | Finance Core |
 | 🟡 important | POST | `/credits/scan` | AI-скан договора | Finance Core |
-| 🟡 important | GET | `/insights` | Инсайты (подписки, дубли) | Money Intelligence |
+| 🟡 important | POST | `/goals` | Создать цель | Finance Core |
+| 🟡 important | GET | `/insights` | Инсайты (подписки, дубли, переплаты) | Money Intelligence |
 | 🟡 important | POST | `/scenarios/simulate` | Time Machine симуляция | Money Intelligence |
 | 🟢 optional | GET | `/forecast` | Прогноз трат на 7 дней | Money Intelligence |
-| 🟢 optional | POST | `/challenges` | Создать челлендж | Social & Game |
-| 🟢 optional | GET | `/challenges/{id}/leaderboard` | Лидерборд челленджа | Social & Game |
 | 🟢 optional | GET | `/digest/latest` | Ежемесячный дайджест | Reporting |
-| 🟢 optional | POST | `/providers/{name}/sync` | Форсировать синхронизацию | Receipt Engine |
-| 🟢 optional | GET | `/banks/accounts` | Счета из банка | Finance Core |
-| 🟢 optional | GET | `/banks/transactions` | Транзакции из банка | Finance Core |
 
 ---
 
@@ -217,37 +216,82 @@
 
 ---
 
-## 3. Providers API (Core API)
+## 3. Receipt API (Receipt Engine)
 
-### POST /api/v1/providers/connect — 🔴 critical
+### POST /api/v1/receipt/manual — 🔴 critical
 
-Привязать магазин/провайдера.
-
-**Query:** `?provider=x5club`
+Добавить расход вручную.
 
 **Body:**
 ```json
 {
-  "credentials": {"phone": "+79991234567", "password": "***"}
+  "store": "Пятёрочка",
+  "amount": 1032.50,
+  "category": "Продукты",
+  "date": "2026-05-30T14:32:00Z"
 }
 ```
-**200 OK:**
+200 OK:
 ```json
-{"message": "Provider connected", "provider": "x5club", "status": "active"}
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "amount": 1032.50,
+  "category": "Продукты",
+  "date": "2026-05-30T14:32:00Z",
+  "status": "saved"
+}
 ```
-**400** — неверные credentials | **409** — уже привязан
+400 — неверный формат суммы или категории | 401
 
-### POST /api/v1/providers/{name}/sync — 🟢 optional
+### POST /api/v1/receipt/voice — 🟢 optional
+Добавить расход голосом. Аудио распознаётся через Whisper API, AI извлекает магазин, товары и сумму.
 
-Форсировать синхронизацию провайдера.
+Body: multipart/form-data — поле audio (mp3/wav)
 
-**Path:** `x5club | magnit | lenta | vkusvill | ozon | wb | email | fns`
-
-**200 OK:**
+200 OK:
 ```json
-{"message": "Sync started", "provider": "x5club"}
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "items": [
+    {"name": "Молоко", "price": 89.90, "quantity": 1},
+    {"name": "Хлеб", "price": 45.50, "quantity": 1}
+  ],
+  "total": 135.40,
+  "category": "Продукты",
+  "confidence": 0.92
+}
 ```
-**202** — уже синхронизируется | **404** — провайдер не привязан
+400 — аудио не распознано | 401
+
+### POST /api/v1/receipt/fns/scan — 🔴 critical
+Отсканировать QR-код чека ФНС.
+
+Body:
+```json
+{
+  "fn": "9285000100351475",
+  "fd": "1234567890",
+  "fp": "1234567890"
+}
+```
+200 OK:
+```json
+{
+  "receipt_id": "uuid",
+  "store": "Пятёрочка",
+  "inn": "7725007364",
+  "date": "2026-05-30T14:32:00Z",
+  "total": 1032.50,
+  "items": [
+    {"name": "Молоко", "price": 89.90, "quantity": 1},
+    {"name": "Хлеб", "price": 45.50, "quantity": 2}
+  ],
+  "category": "Продукты"
+}
+```
+00 — неверные fn/fd/fp | 401 | 404 — чек не найден в ФНС
 
 ---
 
@@ -576,22 +620,6 @@ Fallback по QR-строке (аналог ticket).
 ### POST /api/v1/fns/mco/auth/verify
 
 Подтверждение кода MCO.
-
-### POST /api/v1/fns/mco/sync — 🟡 important
-
-Загрузка истории чеков после авторизации MCO.
-
-### POST /api/v1/email/receipts — 🟢 optional
-
-Pull чеков из IMAP (OAuth Яндекс / Mail.ru): `GET /api/v1/auth/oauth/{provider}`.
-
-### POST /api/v1/x5club/send-code | `/x5club/sync`
-
-OTP и синхронизация X5 Club.
-
-### POST /api/v1/magnit/send-code | `/magnit/sync`
-
-OTP и синхронизация Магнит.
 
 ---
 
