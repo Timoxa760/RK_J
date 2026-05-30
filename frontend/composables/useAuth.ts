@@ -1,46 +1,45 @@
 import type { AuthUser, LoginResponse } from '~/types/api'
 import { useAuthStore } from '~/store/authStore'
 
-const MOCK_CODE = '0000'
-
 export function useAuth() {
-  const { apiFetch, demoMode } = useApi()
+  const { apiFetch } = useApi()
   const authStore = useAuthStore()
 
-  async function register(phone: string) {
-    if (demoMode.value) return
-    await apiFetch<{ message: string; expires_in?: number }>('/auth/register', {
+  async function register(phone: string, password: string) {
+    await apiFetch<{ message: string }>('/auth/register', {
       method: 'POST',
-      body: { phone }
+      body: { phone, password }
     })
   }
 
-  async function login(phone: string, code: string) {
-    if (demoMode.value && code === MOCK_CODE) {
-      const phoneKey = phone.replace(/\D/g, '') || String(Date.now())
-      const user: AuthUser = {
-        id: `demo-${phoneKey}`,
-        phone,
-        role: 'user',
-        name: 'Пользователь'
-      }
-      authStore.setSession(`mock-jwt-demo-${phoneKey}`, user)
-      return { token: `mock-jwt-demo-${phoneKey}`, user }
-    }
-
+  async function login(phone: string, password: string) {
     const res = await apiFetch<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: { phone, code }
+      body: { phone, password }
     })
 
     const user: AuthUser = {
       id: res.user.id,
       phone: res.user.phone,
       role: res.user.role,
-      name: res.user.name ?? 'Пользователь'
+      name: 'Пользователь'
     }
     authStore.setSession(res.access_token, user, res.refresh_token)
     return { token: res.access_token, user }
+  }
+
+  async function requestPasswordReset(phone: string) {
+    await apiFetch<{ message: string; expires_in?: number }>('/auth/password/forgot', {
+      method: 'POST',
+      body: { phone }
+    })
+  }
+
+  async function resetPassword(phone: string, code: string, newPassword: string) {
+    await apiFetch<{ message: string }>('/auth/password/reset', {
+      method: 'POST',
+      body: { phone, code, new_password: newPassword }
+    })
   }
 
   function logout() {
@@ -51,6 +50,8 @@ export function useAuth() {
     authStore,
     register,
     login,
+    requestPasswordReset,
+    resetPassword,
     logout
   }
 }

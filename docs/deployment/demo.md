@@ -2,13 +2,26 @@
 
 ## DEMO_MODE
 
-`DEMO_MODE=true` в `.env` (`back`):
+| `DEMO_MODE` | Auth | Dashboard | Advisor |
+|-------------|------|-----------|---------|
+| `true` | код `0000`, без SMS | hardcoded JSON | file-store + Gemini |
+| `false` | SMS.ru OTP, Redis, Postgres | PG / ClickHouse | profile PG + shared volume |
 
-- user-service — in-memory
-- dashboard — hardcoded JSON (без ClickHouse)
-- быстрый onboard без Docker
+Production stack: `DEMO_MODE=false`, `SMSRU_API_ID`, `JWT_SECRET`, `make migrate`.
 
-Подробнее: [defense.md §10](../architecture/defense.md).
+Smoke:
+
+```bash
+# Production path (SMS на телефон)
+SMOKE_PHONE=+79991234567 ./scripts/smoke_auth_chat.sh
+
+# Legacy demo (код 0000)
+DEMO_MODE=true SMOKE_OTP=0000 ./scripts/smoke_auth_chat.sh
+```
+
+## SMS.ru (production auth)
+
+См. [environment.md](./environment.md) — регистрация, `api_id`, 5 free SMS/день на свой номер.
 
 ## Seed (`back/scripts/seed_data.go`)
 
@@ -17,47 +30,20 @@ git checkout back
 go run scripts/seed_data.go
 ```
 
-POST demo-расходы → `/api/v1/expenses/manual`.
-
-## Скрипты demo (готовые в docs)
-
-Эталонные скрипты лежат в **`docs/deployment/scripts/`**. Скопировать в `back/scripts/` при необходимости:
-
-```bash
-git checkout back
-cp ../docs/deployment/scripts/demo_flow.sh scripts/
-cp ../docs/deployment/scripts/health_check.sh scripts/
-chmod +x scripts/*.sh
-```
+## Скрипты
 
 | Скрипт | Назначение |
 |--------|------------|
-| [scripts/demo_flow.sh](./scripts/demo_flow.sh) | 6 шагов API для жюри |
+| [scripts/smoke_auth_chat.sh](../../backend/scripts/smoke_auth_chat.sh) | register → SMS → login → profile → `/ai/chat` |
+| [scripts/demo_flow.sh](./scripts/demo_flow.sh) | API tour для жюри |
 | [scripts/health_check.sh](./scripts/health_check.sh) | gateway + infra ping |
 
-### demo_flow.sh
+## Front
 
-1. Login (`0000`)
-2. POST `/expenses/manual` (голос)
-3. GET dashboard sankey / timemachine
-4. GET credits dashboard
-5. GET insights
-
-Сценарий UI: [case-alignment.md](../product/case-alignment.md).
-
-### health_check.sh
-
-Проверяет `api-gateway/health`, dashboard (200/401), ClickHouse HTTP.
-
-```bash
-API_BASE=http://localhost:8000 ./docs/deployment/scripts/health_check.sh
-```
-
-## Front demo
-
-`NUXT_PUBLIC_DEMO_MODE=true` — моки без бэкенда.
+`NUXT_PUBLIC_DEMO_MODE=false` — реальный login через API (6-значный SMS-код).  
+`true` — mock JWT без бэка (только offline UI).
 
 ## Связи
 
-- [phases.md](../phases/phases.md) — фаза 8 (demo polish)
+- [environment.md](./environment.md)
 - [back-quickstart.md](./back-quickstart.md)

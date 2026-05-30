@@ -32,8 +32,10 @@
 
 | Приоритет | Метод | Путь | Описание | Группа |
 |-----------|-------|------|----------|--------|
-| 🔴 critical | POST | `/auth/register` | Регистрация по телефону | Core API |
+| 🔴 critical | POST | `/auth/register` | Регистрация (телефон + пароль) | Core API |
 | 🔴 critical | POST | `/auth/login` | Вход, получение JWT | Core API |
+| 🟡 important | POST | `/auth/password/forgot` | Запрос кода сброса пароля | Core API |
+| 🟡 important | POST | `/auth/password/reset` | Сброс пароля по коду | Core API |
 | 🔴 critical | POST | `/receipt/manual` | Ручной ввод расхода | Receipt Engine |
 | 🔴 critical | POST | `/receipt/fns/scan` | Чек по QR ФНС | Receipt Engine |
 | 🟢 optional | POST | `/receipt/voice` | Голосовой ввод расхода | Receipt Engine |
@@ -65,25 +67,25 @@
 
 ### POST /api/v1/auth/register — 🔴 critical
 
-Регистрация по номеру телефона. В демо-режиме код всегда `0000`.
+Регистрация по номеру телефона и паролю (мин. 8 символов).
 
 **Body:**
 ```json
-{"phone": "+79991234567"}
+{"phone": "+79991234567", "password": "secret12345"}
 ```
 **200 OK:**
 ```json
-{"message": "SMS sent", "expires_in": 300}
+{"message": "registered"}
 ```
-**400** — неверный формат телефона | **409** — пользователь уже существует
+**400** — неверный формат телефона или короткий пароль | **409** — пользователь уже существует
 
 ### POST /api/v1/auth/login — 🔴 critical
 
-Подтверждение SMS-кода, получение JWT.
+Вход по телефону и паролю, получение JWT.
 
 **Body:**
 ```json
-{"phone": "+79991234567", "code": "0000"}
+{"phone": "+79991234567", "password": "secret12345"}
 ```
 **200 OK:**
 ```json
@@ -94,7 +96,34 @@
   "user": {"id": "uuid", "phone": "+79991234567", "role": "user"}
 }
 ```
-**401** — неверный код
+**401** — неверный телефон или пароль
+
+### POST /api/v1/auth/password/forgot — 🟡 important
+
+Запрос кода для сброса пароля. Ответ одинаковый, существует аккаунт или нет.
+
+**Body:**
+```json
+{"phone": "+79991234567"}
+```
+**200 OK:**
+```json
+{"message": "If the account exists, a reset code has been sent", "expires_in": 300}
+```
+
+### POST /api/v1/auth/password/reset — 🟡 important
+
+Установка нового пароля по коду из SMS.
+
+**Body:**
+```json
+{"phone": "+79991234567", "code": "482913", "new_password": "newsecret1"}
+```
+**200 OK:**
+```json
+{"message": "password updated"}
+```
+**401** — неверный или просроченный код | **400** — короткий пароль
 
 ---
 

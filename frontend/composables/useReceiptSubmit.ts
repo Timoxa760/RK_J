@@ -86,10 +86,43 @@ export function useReceiptSubmit() {
     }
   }
 
+  async function submitVoiceTranscript(text: string) {
+    submitting.value = true
+    lastResult.value = null
+
+    const trimmed = text.trim()
+    if (!trimmed) {
+      submitting.value = false
+      throw new Error('Пустая фраза')
+    }
+
+    try {
+      lastResult.value = await apiFetch<ReceiptVoiceResponse>('/receipt/from-text', {
+        method: 'POST',
+        body: { text: trimmed }
+      })
+
+      appendStoredReceipt(receiptFromVoice(lastResult.value as ReceiptVoiceResponse))
+      const res = lastResult.value as ReceiptVoiceResponse
+      toast.show(
+        `Поток разобрал: ${res.total.toLocaleString('ru-RU')} ₽ · ${res.store}`,
+        'success'
+      )
+      return lastResult.value
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось разобрать покупку'
+      toast.show(msg, 'error')
+      throw e
+    } finally {
+      submitting.value = false
+    }
+  }
+
   return {
     submitting,
     lastResult,
     submitManual,
-    submitVoiceAudio
+    submitVoiceAudio,
+    submitVoiceTranscript
   }
 }

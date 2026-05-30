@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   patch: [partial: Partial<OnboardingDraft>]
+  answered: [text: string]
 }>()
 
 const { parsing, parseStep } = useOnboardingParse()
@@ -71,6 +72,7 @@ async function submitAnswer(rawText: string) {
       return
     }
     emit('patch', patch)
+    emit('answered', text)
   } catch {
     parseError.value = 'Не удалось разобрать ответ. Повторите или введите вручную.'
   }
