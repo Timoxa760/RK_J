@@ -15,7 +15,6 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: NAV.dashboard, subtitle: NAV.dashboardSubtitle },
   '/receipts': { title: NAV.receipts, subtitle: 'Куда уходят деньги' },
   '/credits': { title: NAV.creditsTitle, subtitle: NAV.creditsSubtitle },
-  '/social': { title: NAV.social, subtitle: NAV.socialSubtitle },
   '/digest': { title: NAV.digest, subtitle: 'Итоги периода' },
   '/profile': { title: NAV.profile, subtitle: 'Настройки' }
 }

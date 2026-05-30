@@ -10,8 +10,7 @@ const ACTS = [
   { path: '/dashboard', label: 'Накопления', selector: '[data-demo="timemachine"]' },
   ...(isAppFeatureEnabled('creditsNav')
     ? [{ path: '/credits', label: 'Кредиты', selector: '[data-demo="credits-dti"]' } as const]
-    : []),
-  { path: '/social', label: 'Рейтинг', selector: '[data-demo="leaderboard"]' }
+    : [])
 ] as const
 
 const active = ref(false)

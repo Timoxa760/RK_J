@@ -1,9 +1,17 @@
 import type { CreditScanResponse, CreditsDashboardResponse } from '~/types/api'
-import { mockCredits } from '~/store/mocks'
 import { normalizeCredits } from '~/utils/apiNormalize'
 
+const emptyDashboard = (): CreditsDashboardResponse => ({
+  dti: 0,
+  savings: 0,
+  total_debt: 0,
+  monthly_payments: 0,
+  monthly_income: 0,
+  credits: []
+})
+
 export function useCredits() {
-  const { apiFetch, apiFetchWithDemo, demoMode } = useApi()
+  const { apiFetch } = useApi()
 
   const dashboard = ref<CreditsDashboardResponse | null>(null)
   const loading = ref(false)
@@ -11,20 +19,17 @@ export function useCredits() {
   const scanResult = ref<CreditScanResponse | null>(null)
   const scanLoading = ref(false)
 
+  const hasCredits = computed(() => (dashboard.value?.credits?.length ?? 0) > 0)
+
   async function fetchDashboard() {
     loading.value = true
     error.value = null
     try {
-      const raw = await apiFetchWithDemo<CreditsDashboardResponse>(
-        '/credits/dashboard',
-        mockCredits
-      )
+      const raw = await apiFetch<CreditsDashboardResponse>('/credits/dashboard')
       dashboard.value = normalizeCredits(raw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
-      if (demoMode.value) {
-        dashboard.value = normalizeCredits(mockCredits)
-      }
+      dashboard.value = null
     } finally {
       loading.value = false
     }
@@ -33,6 +38,7 @@ export function useCredits() {
   async function scanContract(file: File) {
     scanLoading.value = true
     error.value = null
+    scanResult.value = null
     try {
       const form = new FormData()
       form.append('file', file)
@@ -40,6 +46,7 @@ export function useCredits() {
         method: 'POST',
         body: form
       })
+      await fetchDashboard()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось распознать договор'
     } finally {
@@ -53,7 +60,9 @@ export function useCredits() {
     error,
     scanResult,
     scanLoading,
+    hasCredits,
     fetchDashboard,
-    scanContract
+    scanContract,
+    emptyDashboard
   }
 }

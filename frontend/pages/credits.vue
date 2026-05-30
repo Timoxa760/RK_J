@@ -16,6 +16,7 @@ const {
   error,
   scanResult,
   scanLoading,
+  hasCredits,
   fetchDashboard,
   scanContract
 } = useCredits()
@@ -23,12 +24,13 @@ const {
 const { breakdown, loading: mortgageLoading, error: mortgageError, analyze } = useMortgage()
 
 const mortgageAmount = ref(12_000_000)
+const fileInput = ref<HTMLInputElement | null>(null)
 
-const pageNarrative = computed(() => buildCreditsPageNarrative(dashboard.value))
+const pageNarrative = computed(() => buildCreditsPageNarrative(dashboard.value, hasCredits.value))
 
 onMounted(async () => {
   await fetchDashboard()
-  if (dashboard.value) {
+  if (hasCredits.value && dashboard.value) {
     await runMortgageAnalysis(mortgageAmount.value)
   }
 })
@@ -48,7 +50,17 @@ async function runMortgageAnalysis(amount: number) {
 function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  if (file) scanContract(file)
+  if (file) {
+    void scanContract(file).then(() => {
+      if (hasCredits.value && dashboard.value) {
+        void runMortgageAnalysis(mortgageAmount.value)
+      }
+    })
+  }
+}
+
+function openFilePicker() {
+  fileInput.value?.click()
 }
 </script>
 
@@ -65,7 +77,36 @@ function onFileChange(event: Event) {
 
     <Skeleton v-if="creditsLoading && !dashboard" class="h-[360px] w-full" />
 
-    <template v-else-if="dashboard">
+    <Card v-else-if="dashboard && !hasCredits" class="border-dashed">
+      <CardHeader>
+        <CardTitle class="text-base">Загрузите кредитный договор</CardTitle>
+        <CardDescription>
+          Данные по кредитам появятся после PDF-скана. До этого DTI и список обязательств пусты.
+        </CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-4">
+        <input
+          ref="fileInput"
+          type="file"
+          accept="application/pdf"
+          class="sr-only"
+          @change="onFileChange"
+        />
+        <Button type="button" :disabled="scanLoading" @click="openFilePicker">
+          {{ scanLoading ? 'Распознаём…' : 'Выбрать PDF договора' }}
+        </Button>
+        <div v-if="scanResult" class="rounded-lg bg-muted p-4 text-sm">
+          <p><strong>Банк:</strong> {{ scanResult.parsed.bank }}</p>
+          <p><strong>Ставка:</strong> {{ scanResult.parsed.rate }}%</p>
+          <p><strong>Платёж:</strong> {{ scanResult.parsed.monthly_payment.toLocaleString('ru-RU') }} ₽</p>
+          <p v-if="scanResult.rate_vs_market" class="text-xs text-muted-foreground">
+            vs рынок: {{ scanResult.rate_vs_market }}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+
+    <template v-else-if="dashboard && hasCredits">
       <CreditsHealthCards :dashboard="dashboard" />
 
       <CreditsMortgageAnalyzerForm
@@ -90,7 +131,7 @@ function onFileChange(event: Event) {
           <CardDescription>Учитываются при расчёте доли дохода на кредиты</CardDescription>
         </CardHeader>
         <CardContent>
-          <ul v-if="dashboard.credits.length" class="divide-y">
+          <ul class="divide-y">
             <li
               v-for="credit in dashboard.credits"
               :key="credit.id"
@@ -113,14 +154,13 @@ function onFileChange(event: Event) {
               </div>
             </li>
           </ul>
-          <p v-else class="text-sm text-muted-foreground">Активных кредитов нет.</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle class="text-base">Загрузить договор (PDF)</CardTitle>
-          <CardDescription>Загрузите PDF — подставим ставку и платёж</CardDescription>
+          <CardTitle class="text-base">Добавить договор (PDF)</CardTitle>
+          <CardDescription>Загрузите ещё один PDF — обновим расчёт DTI</CardDescription>
         </CardHeader>
         <CardContent>
           <Input type="file" accept="application/pdf" @change="onFileChange" />
@@ -129,9 +169,6 @@ function onFileChange(event: Event) {
             <p><strong>Банк:</strong> {{ scanResult.parsed.bank }}</p>
             <p><strong>Ставка:</strong> {{ scanResult.parsed.rate }}%</p>
             <p><strong>Платёж:</strong> {{ scanResult.parsed.monthly_payment.toLocaleString('ru-RU') }} ₽</p>
-            <p class="text-xs text-muted-foreground">
-              Уверенность: {{ Math.round(scanResult.confidence * 100) }}%
-            </p>
           </div>
         </CardContent>
       </Card>

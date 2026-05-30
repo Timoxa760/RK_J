@@ -190,11 +190,25 @@ export function buildAnalyticsPageNarrative(input: {
   }
 }
 
-export function buildCreditsPageNarrative(credits: CreditsDashboardResponse | null): PageNarrativeBlock {
+export function buildCreditsPageNarrative(
+  credits: CreditsDashboardResponse | null,
+  hasCredits = false
+): PageNarrativeBlock {
   if (!credits) {
     return {
       headline: CREDITS.paymentsTitle,
       paragraphs: ['Считаем долги и запас…'],
+      badgeLabel: NAV.credits
+    }
+  }
+
+  if (!hasCredits) {
+    return {
+      headline: 'Кредиты по договору',
+      paragraphs: [
+        'Загрузите PDF кредитного договора — Поток извлечёт ставку и платёж и посчитает долговую нагрузку.',
+        'Без скана список кредитов и DTI остаются пустыми.'
+      ],
       badgeLabel: NAV.credits
     }
   }

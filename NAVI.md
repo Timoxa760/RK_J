@@ -101,6 +101,7 @@ git checkout front   # фронтенд
 |------|---------|---------------|
 | [features/receipt-magic.md](./docs/features/receipt-magic.md) | Ввод расходов, pipeline | scraper, receipt, ai-processor |
 | [features/credit-health.md](./docs/features/credit-health.md) | Фин. здоровье | credit-service |
+| [features/credit-scan.md](./docs/features/credit-scan.md) | PDF scan кредитов | credit-service |
 | [features/credit-constructor.md](./docs/features/credit-constructor.md) | Ипотека | credit, bank, analytics |
 | [features/predictive-ai.md](./docs/features/predictive-ai.md) | Прогноз цели | analytics-service |
 | [features/time-machine.md](./docs/features/time-machine.md) | «Если не менять» | dashboard/timemachine |
@@ -156,8 +157,9 @@ git checkout front   # фронтенд
 | Голос/ручной | `POST /api/v1/expenses/manual` |
 | Dashboard | `GET /api/v1/dashboard/*` |
 | ФНС | `POST /api/v1/fns/*` |
-| Цели | `/api/v1/goals/*` |
-| Здоровье | `/api/v1/credits/*` |
+| Цель / профиль | `GET/PATCH /api/v1/users/me/profile` |
+| Кредиты (PDF) | `POST /api/v1/credits/scan`, `GET /api/v1/credits/dashboard` |
+| Советник | `GET /api/v1/ai/plan`, `POST /api/v1/ai/chat` |
 | Ипотека | `/api/v1/banks/*`, `/api/v1/scenarios/*` |
 
 ---

@@ -92,7 +92,6 @@ export default defineNuxtConfig({
     '/profile': { ssr: false },
     '/receipts': { ssr: false },
     '/credits': { ssr: false },
-    '/social': { ssr: false },
     '/digest': { ssr: false },
     '/onboarding': { ssr: false }
   },
