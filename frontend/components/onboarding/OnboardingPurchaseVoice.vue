@@ -1,10 +1,4 @@
 <script setup lang="ts">
-const PURCHASE_VOICE_EXAMPLES = [
-  'купил продукты на 3500',
-  'кофе 450 рублей',
-  'кроссовки за 8900'
-]
-
 const emit = defineEmits<{
   done: []
 }>()
@@ -63,10 +57,6 @@ async function submitPhrase(rawText: string) {
   }
 }
 
-function pickExample(example: string) {
-  void submitPhrase(example)
-}
-
 onMounted(() => {
   if (!import.meta.client) return
   const win = window as Window & { webkitSpeechRecognition?: SpeechRecognitionCtor }
@@ -103,25 +93,25 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <p class="text-center text-sm leading-relaxed text-[color:var(--mm-text)]">
-      Скажите, что купили — как в опросе: нажмите микрофон и говорите.
+  <div class="mm-onboarding-voice__stage space-y-4">
+    <p class="mm-onboarding-voice__prompt">
+      Нажмите микрофон и скажите, что купили — Поток разберёт и запишет.
     </p>
 
-    <div v-if="speechSupported" class="mm-onboarding-voice__hero flex justify-center py-2">
+    <div v-if="speechSupported" class="mm-onboarding-voice__hero">
       <OnboardingMicOrb
         :listening="listening"
         :parsing="submitting"
-        label="Нажмите микрофон и назовите покупку"
+        label="Нажмите микрофон и ответьте вслух"
         @click="toggleListen"
       />
     </div>
 
     <p
       v-else
-      class="text-center text-sm text-[color:var(--mm-text-muted)]"
+      class="max-w-sm text-sm text-[color:var(--mm-text-muted)]"
     >
-      Голос недоступен в этом браузере — выберите пример:
+      Голос недоступен в этом браузере — переключитесь на вкладку «Вручную».
     </p>
 
     <p
@@ -131,7 +121,7 @@ onUnmounted(() => {
       «{{ transcript }}»
     </p>
 
-    <p v-if="submitError" class="text-center text-sm text-destructive">{{ submitError }}</p>
+    <p v-if="submitError" class="text-sm text-destructive">{{ submitError }}</p>
 
     <div
       v-if="addedHint && !submitting"
@@ -139,22 +129,6 @@ onUnmounted(() => {
     >
       <span class="font-medium text-[color:var(--mm-primary)]">Записали: </span>
       {{ addedHint }}
-    </div>
-
-    <div
-      v-if="!addedHint && (!speechSupported || submitError)"
-      class="mm-onboarding-voice__chips flex flex-wrap justify-center gap-2"
-    >
-      <button
-        v-for="example in PURCHASE_VOICE_EXAMPLES"
-        :key="example"
-        type="button"
-        class="mm-onb-chip"
-        :disabled="submitting"
-        @click="pickExample(example)"
-      >
-        {{ example }}
-      </button>
     </div>
   </div>
 </template>

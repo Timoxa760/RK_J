@@ -1,4 +1,5 @@
 import type {
+  ManualExpenseResponse,
   ReceiptManualRequest,
   ReceiptManualResponse,
   ReceiptVoiceResponse
@@ -9,12 +10,33 @@ import {
   receiptFromVoice
 } from '~/utils/receiptListStorage'
 import { toReceiptIsoDate } from '~/utils/receiptDate'
+import { useAuthStore } from '~/store/authStore'
 
 export type ReceiptSubmitResult = ReceiptManualResponse | ReceiptVoiceResponse
+
+function voiceResultFromExpense(text: string, res: ManualExpenseResponse): ReceiptVoiceResponse {
+  const label = text.trim().slice(0, 48) || res.category || 'Покупка'
+  return {
+    receipt_id: res.id || `voice-${Date.now()}`,
+    store: label,
+    items: [
+      {
+        name: res.category || label,
+        price: res.amount,
+        quantity: 1,
+        category: res.category
+      }
+    ],
+    total: res.amount,
+    category: res.category,
+    confidence: res.parsed ? 0.85 : 0.75
+  }
+}
 
 export function useReceiptSubmit() {
   const { apiFetch } = useApi()
   const toast = useToast()
+  const authStore = useAuthStore()
 
   const submitting = useState<boolean>('receipt-submitting', () => false)
   const lastResult = useState<ReceiptSubmitResult | null>('receipt-last-result', () => null)
@@ -96,16 +118,27 @@ export function useReceiptSubmit() {
       throw new Error('Пустая фраза')
     }
 
+    const userId = authStore.user?.phone || authStore.user?.id
+    if (!userId) {
+      submitting.value = false
+      throw new Error('Сначала войдите в аккаунт')
+    }
+
     try {
-      lastResult.value = await apiFetch<ReceiptVoiceResponse>('/receipt/from-text', {
+      const expense = await apiFetch<ManualExpenseResponse>('/expenses/manual', {
         method: 'POST',
-        body: { text: trimmed }
+        body: {
+          user_id: userId,
+          raw_text: trimmed,
+          source: 'voice'
+        }
       })
 
+      lastResult.value = voiceResultFromExpense(trimmed, expense)
       appendStoredReceipt(receiptFromVoice(lastResult.value as ReceiptVoiceResponse))
       const res = lastResult.value as ReceiptVoiceResponse
       toast.show(
-        `Поток разобрал: ${res.total.toLocaleString('ru-RU')} ₽ · ${res.store}`,
+        `Поток разобрал: ${res.total.toLocaleString('ru-RU')} ₽ · ${res.category}`,
         'success'
       )
       return lastResult.value
