@@ -68,12 +68,12 @@ export function buildFinancialPlan(input: {
   }
 
   const runwayText =
-    input.summary.runwayMonths != null
-      ? `Запас примерно на ${input.summary.runwayMonths} мес.`
+    input.summary.runwayMonths != null && input.summary.expenses > 0
+      ? `Запас примерно на ${input.summary.runwayMonths} мес. при текущих расходах.`
       : null
 
   const freeCashflowText =
-    input.summary.freeCashflow !== 0
+    input.summary.income > 0 && input.summary.expenses > 0
       ? `После расходов остаётся ${formatRub(input.summary.freeCashflow)}/мес.`
       : null
 

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import type { CategoriesResponse, TimeMachineResponse } from '~/types/api'
-import { mockCategories, mockTimeMachine } from '~/store/mocks'
 import { normalizeCategories, normalizeTimeMachine } from '~/utils/apiNormalize'
 
 export const useDashboardStore = defineStore('dashboard', {
@@ -29,8 +28,8 @@ export const useDashboardStore = defineStore('dashboard', {
         this.timemachine = normalizeTimeMachine(timemachineRaw)
       } catch (e) {
         this.error = e instanceof Error ? e.message : 'Ошибка загрузки дашборда'
-        this.categories = normalizeCategories(mockCategories)
-        this.timemachine = normalizeTimeMachine(mockTimeMachine)
+        this.categories = null
+        this.timemachine = null
       } finally {
         if (!options?.silent) {
           this.loading = false

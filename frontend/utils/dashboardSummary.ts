@@ -4,7 +4,7 @@ import type {
   InsightItem,
   TimeMachineResponse
 } from '~/types/api'
-import { ACTIONS, GOALS, HEALTH, CREDITS } from '~/constants/productCopy'
+import { ACTIONS, GOALS, HEALTH, CREDITS, formatRub } from '~/constants/productCopy'
 import { percentDti } from '~/utils/apiNormalize'
 
 export type HealthTone = 'good' | 'warn' | 'risk'
@@ -133,9 +133,12 @@ function buildMainRisk(input: {
   return null
 }
 
-export function buildGoalForecast(timemachine: TimeMachineResponse | null): string {
+export function buildGoalForecast(
+  timemachine: TimeMachineResponse | null,
+  profile?: FinancialProfile | null
+): string {
   if (!timemachine?.points?.length) {
-    return GOALS.addExpensesForecast
+    return buildProfileGoalHint(profile)
   }
 
   const diff = timemachine.difference_final ?? timemachine.delta ?? 0
@@ -153,6 +156,24 @@ export function buildGoalForecast(timemachine: TimeMachineResponse | null): stri
   }
 
   return GOALS.savingsEven
+}
+
+function buildProfileGoalHint(profile: FinancialProfile | null | undefined): string {
+  if (!profile || profile.skipped_goal || (profile.goal_amount ?? 0) < 1000) {
+    return GOALS.addExpensesForecast
+  }
+
+  const title = profile.goal_title?.trim() || 'Цель'
+  const amount = profile.goal_amount ?? 0
+  const monthlySaving =
+    profile.active_income > 0 ? Math.round(profile.active_income * 0.1) : 0
+
+  if (monthlySaving > 0) {
+    const months = Math.ceil(amount / monthlySaving)
+    return `Цель «${title}» — ${formatRub(amount)}. При ~${formatRub(monthlySaving)}/мес. ориентир ${months} мес.`
+  }
+
+  return `Цель «${title}» — ${formatRub(amount)}.`
 }
 
 function goalOpportunityThousands(timemachine: TimeMachineResponse | null): number | null {
@@ -192,7 +213,7 @@ export function buildDashboardSummary(input: {
     stressMonths
   })
 
-  const goalForecast = buildGoalForecast(input.timemachine)
+  const goalForecast = buildGoalForecast(input.timemachine, input.profile)
   const opportunityThousands = goalOpportunityThousands(input.timemachine)
   const insightText =
     input.topInsight?.description ?? input.topInsight?.body ?? input.topInsight?.title ?? null

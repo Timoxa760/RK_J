@@ -119,9 +119,10 @@ export interface DashboardContextFact {
 }
 
 function formatCashflowValue(freeCashflow: number): string {
-  const sign = freeCashflow >= 0 ? '+' : '−'
-  const amount = formatRub(Math.abs(freeCashflow))
-  return `${sign}${amount}`
+  if (freeCashflow < 0) {
+    return `−${formatRub(Math.abs(freeCashflow))}`
+  }
+  return formatRub(freeCashflow)
 }
 
 /** Плитки «оценка / доход / траты» вместо одной строки через · */

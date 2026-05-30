@@ -32,7 +32,7 @@ const toneVariant = {
           <p>расходы ≈ {{ summary.expenses.toLocaleString('ru-RU') }} ₽/мес</p>
           <p :class="summary.freeCashflow >= 0 ? 'text-emerald-700' : 'text-amber-800'">
             {{ HEALTH.leftAfterExpenses }}:
-            {{ summary.freeCashflow >= 0 ? '+' : '' }}{{ summary.freeCashflow.toLocaleString('ru-RU') }} ₽
+            {{ summary.freeCashflow.toLocaleString('ru-RU') }} ₽
           </p>
           <p>остаток на счёте ≈ {{ summary.savingsBalance.toLocaleString('ru-RU') }} ₽</p>
         </CardContent>

@@ -18,8 +18,8 @@ export interface AdvisorContext {
 
 const QUICK_PROMPTS = [
   'Как сократить доставку?',
-  'Что даёт +467 тыс.?',
-  'Когда дойду до цели?'
+  'Когда дойду до цели?',
+  'С чего начать экономить?'
 ] as const
 
 export { QUICK_PROMPTS }

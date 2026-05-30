@@ -57,9 +57,9 @@ export const CREDITS = {
 export const GOALS = {
   addExpensesForecast: 'Добавьте расходы — покажем, сколько можете отложить',
   opportunityLabel: 'Ваша возможность',
-  opportunityAmount: (thousands: number) => `+${thousands} тыс. ₽`,
+  opportunityAmount: (thousands: number) => `${thousands} тыс. ₽`,
   savingsOpportunity: (thousands: number, months: number) =>
-    `Можете получить +${thousands} тыс. ₽ за ${months} мес., если чуть сократите траты.`,
+    `Можете получить ${thousands} тыс. ₽ за ${months} мес., если чуть сократите траты.`,
   savingsPain: (thousands: number, months: number) =>
     `Сейчас упускаете эту сумму — без изменений за ${months} мес. накопите на ${thousands} тыс. ₽ меньше.`,
   savingsOnTrack: (thousands: number, months: number) =>

@@ -4,7 +4,6 @@ import type {
   SimulateScenarioResponse,
   TimeMachineResponse
 } from '~/types/api'
-import { mockForecast, mockTimeMachine } from '~/store/mocks'
 import { formatScenarioResult } from '~/utils/analyticsNarrative'
 import { normalizeForecast, normalizeTimeMachine } from '~/utils/apiNormalize'
 
@@ -31,8 +30,8 @@ export function useAnalytics() {
       forecast.value = normalizeForecast(fcRaw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки аналитики'
-      timeMachine.value = normalizeTimeMachine(mockTimeMachine)
-      forecast.value = normalizeForecast(mockForecast)
+      timeMachine.value = null
+      forecast.value = null
     } finally {
       loading.value = false
     }
@@ -45,38 +44,8 @@ export function useAnalytics() {
   }) {
     scenarioLoading.value = true
     error.value = null
-
-    const applyResult = (
-      simulation: TimeMachineResponse,
-      differenceFinal: number,
-      monthlySaving: number
-    ) => {
-      scenarioResult.value = formatScenarioResult(
-        differenceFinal,
-        monthlySaving,
-        params.reduction_percent
-      )
-      scenarioSimulation.value = simulation
-    }
-
-    const applyFallback = () => {
-      const monthlySaving = Math.round(4_500 * (params.reduction_percent / 20))
-      const differenceFinal = monthlySaving * 80
-      const base = normalizeTimeMachine(mockTimeMachine)
-      applyResult(
-        {
-          ...base,
-          points: base.points.map((p, i) => ({
-            ...p,
-            optimistic: p.optimistic + i * Math.round(monthlySaving * 0.8)
-          })),
-          delta: differenceFinal,
-          difference_final: differenceFinal
-        },
-        differenceFinal,
-        monthlySaving
-      )
-    }
+    scenarioResult.value = null
+    scenarioSimulation.value = null
 
     try {
       const body: SimulateScenarioRequest = {
@@ -90,10 +59,14 @@ export function useAnalytics() {
       })
       const monthlySaving =
         res.scenario?.monthly_saving ?? res.difference_final / (params.months ?? 60)
-      applyResult(normalizeTimeMachine(res), res.difference_final, monthlySaving)
+      scenarioResult.value = formatScenarioResult(
+        res.difference_final,
+        monthlySaving,
+        params.reduction_percent
+      )
+      scenarioSimulation.value = normalizeTimeMachine(res)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка симуляции'
-      applyFallback()
     } finally {
       scenarioLoading.value = false
     }
