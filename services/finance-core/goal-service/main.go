@@ -3,18 +3,29 @@
 import (
 	"fmt"
 	"net/http"
+	"os"
 
-	"backend_project/internal"
+	root "backend_project/internal"
+	goal "backend_project/services/finance-core/goal-service/internal"
 )
 
 func main() {
 	port := "8006"
 	serviceName := "goal-service"
+	demoMode := getenv("DEMO_MODE", "true") == "true"
 
-	r := internal.NewRouter()
+	r := root.NewRouter()
+	goal.New().Register(r)
 
-	fmt.Printf("Service %s started on port %s...\n", serviceName, port)
+	fmt.Printf("Service %s started on port %s (demo=%v)...\n", serviceName, port, demoMode)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		panic(err)
 	}
+}
+
+func getenv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

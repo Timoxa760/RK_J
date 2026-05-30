@@ -14,6 +14,8 @@ export RECEIPT_SERVICE_URL=http://127.0.0.1:8002
 export AI_PROCESSOR_URL=http://127.0.0.1:8100
 export CREDIT_SERVICE_URL=http://127.0.0.1:8009
 export ANALYTICS_SERVICE_URL=http://127.0.0.1:8101
+export GOAL_SERVICE_URL=http://127.0.0.1:8006
+export REPORTING_SERVICE_URL=http://127.0.0.1:8010
 
 API="http://127.0.0.1:8000/api/v1"
 PHONE="+79991234567"
@@ -25,7 +27,7 @@ fail() { echo "FAIL: $1"; FAIL=1; }
 http_code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 
 cleanup() {
-  kill "${USPID:-}" "${RSPID:-}" "${CRPID:-}" "${ANPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
+  kill "${USPID:-}" "${RSPID:-}" "${CRPID:-}" "${ANPID:-}" "${GLPID:-}" "${RPPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -38,6 +40,8 @@ build user-service "$ROOT/services/core-api/user-service/"
 build receipt-service "$ROOT/services/receipt-engine/receipt-service/"
 build credit-service "$ROOT/services/finance-core/credit-service/"
 build analytics-service "$ROOT/services/money-intelligence/analytics-service/"
+build goal-service "$ROOT/services/finance-core/goal-service/"
+build reporting-service "$ROOT/services/reporting/reporting-service/"
 build api-gateway "$ROOT/services/core-api/api-gateway/"
 
 "$ROOT/bin/user-service" &
@@ -48,6 +52,10 @@ RSPID=$!
 CRPID=$!
 "$ROOT/bin/analytics-service" &
 ANPID=$!
+"$ROOT/bin/goal-service" &
+GLPID=$!
+"$ROOT/bin/reporting-service" &
+RPPID=$!
 
 AIPID=""
 if build ai-processor "$ROOT/services/money-intelligence/ai-processor/" 2>/dev/null; then
@@ -69,8 +77,8 @@ echo "$REG" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get(
   && pass "register (existing user may 409)" || pass "register skipped or conflict"
 
 LOGIN=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\"}")
-TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['access_token']); assert d.get('user',{}).get('role')=='user'")
-pass "login + user object"
+TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('token')==d.get('access_token'); print(d['access_token']); assert d.get('user',{}).get('role')=='user'")
+pass "login + user + token alias"
 AUTH=(-H "Authorization: Bearer $TOKEN")
 
 BAD_CODE=$(http_code -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"9999\"}")
@@ -113,8 +121,17 @@ CODE=$(http_code "${AUTH[@]}" "$API/insights")
 SIM=$(curl -sf -X POST "$API/scenarios/simulate" -H 'Content-Type: application/json' "${AUTH[@]}" \
   -d '{"scenario":"reduce_delivery","reduction_percent":50,"months":3}' | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if len(d.get('months',[]))==3 else 1)" 2>/dev/null && echo ok || echo fail)
 [[ "$SIM" == "ok" ]] && pass "POST /scenarios/simulate" || fail "POST /scenarios/simulate"
+CODE=$(http_code "${AUTH[@]}" "$API/analytics/insights")
+[[ "$CODE" == "200" ]] && pass "GET /analytics/insights (front alias)" || fail "GET /analytics/insights ($CODE)"
 
-echo "=== 7. Auth без JWT ==="
+echo "=== 7. Goals + digest ==="
+GCODE=$(http_code -X POST "$API/goals" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"title":"Отпуск","target_amount":150000,"target_date":"2026-12-01"}')
+[[ "$GCODE" == "200" ]] && pass "POST /goals" || fail "POST /goals ($GCODE)"
+DCODE=$(http_code "${AUTH[@]}" "$API/digest/latest")
+[[ "$DCODE" == "200" ]] && pass "GET /digest/latest" || fail "GET /digest/latest ($DCODE)"
+
+echo "=== 8. Auth без JWT ==="
 NCODE=$(http_code "$API/dashboard/sankey")
 [[ "$NCODE" == "401" ]] && pass "dashboard without JWT 401" || fail "dashboard without JWT ($NCODE)"
 

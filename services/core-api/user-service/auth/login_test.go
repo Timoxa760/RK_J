@@ -30,6 +30,9 @@ func TestLogin_Success(t *testing.T) {
 	if resp.AccessToken == "" {
 		t.Error("expected access_token")
 	}
+	if resp.Token != resp.AccessToken {
+		t.Error("expected token alias equals access_token")
+	}
 	if resp.RefreshToken == "" {
 		t.Error("expected refresh_token")
 	}

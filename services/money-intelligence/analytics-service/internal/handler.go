@@ -23,6 +23,10 @@ func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/insights", h.insights)
 	r.Get("/api/v1/forecast", h.forecast)
 	r.Post("/api/v1/scenarios/simulate", h.simulate)
+	// Алиасы для Nuxt composables (front ветка).
+	r.Get("/api/v1/analytics/insights", h.insights)
+	r.Get("/api/v1/analytics/forecast", h.forecast)
+	r.Post("/api/v1/analytics/simulate", h.simulate)
 }
 
 type insightItem struct {

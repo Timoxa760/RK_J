@@ -26,9 +26,10 @@ type LoginUser struct {
 	Role  string `json:"role"`
 }
 
-// LoginResponse — 200 OK по API_Contract.
+// LoginResponse — 200 OK по API_Contract (+ token для совместимости с front).
 type LoginResponse struct {
 	AccessToken  string    `json:"access_token"`
+	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresIn    int       `json:"expires_in"`
 	User         LoginUser `json:"user"`
@@ -115,6 +116,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LoginResponse{
 		AccessToken:  accessToken,
+		Token:        accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    900,
 		User: LoginUser{

@@ -44,6 +44,7 @@ var routes = []route{
 	{prefix: "/api/v1/insights/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/scenarios/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/forecast/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
+	{prefix: "/api/v1/analytics/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/challenges/", target: svcURL("SOCIAL_SERVICE_URL", "http://social-service:8102")},
 	{prefix: "/api/v1/digest/",     target: svcURL("REPORTING_SERVICE_URL", "http://reporting-service:8010")},
 }
