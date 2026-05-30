@@ -42,6 +42,59 @@ function writeStoredProfile(profile: FinancialProfile) {
   localStorage.setItem(currentUserStorageKey(PROFILE_PREFIX), JSON.stringify(profile))
 }
 
+function profileHasGoal(profile: FinancialProfile): boolean {
+  return !profile.skipped_goal && (profile.goal_amount ?? 0) >= 1000
+}
+
+function profileHasIncome(profile: FinancialProfile): boolean {
+  return (profile.active_income ?? 0) > 0 || (profile.passive_income ?? 0) > 0
+}
+
+/** Сохраняет цель и доход из localStorage, если API вернул пустой профиль. */
+export function mergeProfileFromApi(
+  local: FinancialProfile,
+  remote: FinancialProfile
+): FinancialProfile {
+  const merged: FinancialProfile = { ...defaultFinancialProfile, ...remote }
+
+  if (!profileHasGoal(remote) && profileHasGoal(local)) {
+    merged.goal_kind = local.goal_kind
+    merged.goal_title = local.goal_title
+    merged.goal_amount = local.goal_amount
+    merged.skipped_goal = local.skipped_goal
+  }
+
+  if (!profileHasIncome(remote) && profileHasIncome(local)) {
+    merged.active_income = local.active_income
+    merged.passive_income = local.passive_income
+    merged.skipped_income = local.skipped_income
+  }
+
+  if ((merged.emergency_fund ?? 0) <= 0 && (local.emergency_fund ?? 0) > 0) {
+    merged.emergency_fund = local.emergency_fund
+    merged.emergency_breakdown = local.emergency_breakdown
+    merged.skipped_cushion = local.skipped_cushion
+  }
+
+  if (
+    !(merged.fixed_expenses?.some((row) => row.amount > 0)) &&
+    local.fixed_expenses?.some((row) => row.amount > 0)
+  ) {
+    merged.fixed_expenses = local.fixed_expenses
+    merged.skipped_expenses = local.skipped_expenses
+  }
+
+  if (local.onboarding_completed && !remote.onboarding_completed) {
+    merged.onboarding_completed = true
+  }
+
+  return merged
+}
+
+function remoteProfileMissingGoal(remote: FinancialProfile): boolean {
+  return !profileHasGoal(remote)
+}
+
 function isEndpointMissing(error: unknown): boolean {
   const status = (error as { statusCode?: number })?.statusCode
   if (status === 404 || status === 501) return true
@@ -110,10 +163,16 @@ export function useFinancialProfile() {
 
   async function fetchProfileFromApi() {
     if (demoMode.value) return
+    const local = readStoredProfile()
     try {
       const remote = await apiFetch<FinancialProfile>('/users/me/profile')
-      profile.value = { ...defaultFinancialProfile, ...remote }
-      writeStoredProfile(profile.value)
+      const merged = mergeProfileFromApi(local, remote)
+      profile.value = merged
+      writeStoredProfile(merged)
+
+      if (profileHasGoal(local) && remoteProfileMissingGoal(remote)) {
+        await syncProfileToApi(merged)
+      }
     } catch (error) {
       if (!isEndpointMissing(error)) throw error
     }

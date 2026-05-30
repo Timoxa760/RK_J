@@ -1,12 +1,12 @@
 import type { AiDiagnosisResponse, AiPlanApiResponse, InsightItem, TimeMachineResponse } from '~/types/api'
 import type { DashboardSummary } from '~/utils/dashboardSummary'
 import type { FinancialPlan } from '~/utils/financialPlan'
-import { buildFinancialPlan } from '~/utils/financialPlan'
+import { applyProfileGoalToPlan, buildFinancialPlan } from '~/utils/financialPlan'
 import { goalFromProfile } from '~/composables/useGoals'
 
 export function useAiPlan() {
   const { apiFetch } = useApi()
-  const { profile, loadProfile } = useFinancialProfile()
+  const { profile, loadProfile, fetchProfileFromApi } = useFinancialProfile()
 
   const plan = ref<FinancialPlan | null>(null)
   const diagnosisFromPlan = ref<AiDiagnosisResponse | null>(null)
@@ -21,15 +21,18 @@ export function useAiPlan() {
     loading.value = true
     error.value = null
     loadProfile()
+    await fetchProfileFromApi()
+
+    const primaryGoal = goalFromProfile(profile.value)
 
     try {
       const res = await apiFetch<AiPlanApiResponse>('/ai/plan')
-      plan.value = res.plan
+      plan.value = applyProfileGoalToPlan(res.plan, primaryGoal)
       diagnosisFromPlan.value = res.diagnosis
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить план'
       plan.value = buildFinancialPlan({
-        primaryGoal: goalFromProfile(profile.value),
+        primaryGoal: primaryGoal,
         summary: input.summary,
         timemachine: input.timemachine,
         diagnosis: null,

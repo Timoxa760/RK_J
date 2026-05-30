@@ -5,7 +5,7 @@ const isBarePage = computed(() => route.path === '/login' || route.path === '/')
 </script>
 
 <template>
-  <div class="font-sans antialiased relative min-h-screen overflow-x-hidden bg-background text-foreground">
+  <div class="font-sans antialiased relative min-h-screen overflow-x-clip bg-background text-foreground">
     <SharedBackgroundFlow />
     <div
       v-if="isBarePage"

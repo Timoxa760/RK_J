@@ -32,9 +32,9 @@ watch(showDemoTour, (enabled) => {
   >
     <AppShellAdvisorHost />
     <AppSidebar />
-    <SidebarInset>
+    <SidebarInset class="mm-app-shell-inset">
       <SharedAppHeader />
-      <div class="flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
+      <div class="mm-app-shell-main flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
         <slot />
       </div>
       <SharedMobileTabBar />

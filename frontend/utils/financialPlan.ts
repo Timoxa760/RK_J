@@ -22,6 +22,25 @@ export interface FinancialPlan {
   updatedAt: number
 }
 
+const GOAL_STEP_TITLE = 'Проверьте прогресс цели'
+
+/** Подставляет цель из профиля, если API-план её не знает. */
+export function applyProfileGoalToPlan(plan: FinancialPlan, primaryGoal: Goal | null): FinancialPlan {
+  if (!primaryGoal) return plan
+
+  const goalProgress = buildGoalProgressText(primaryGoal)
+  const steps = plan.steps.map((step) =>
+    step.title === GOAL_STEP_TITLE ? { ...step, description: goalProgress } : step
+  )
+
+  return {
+    ...plan,
+    goalTitle: primaryGoal.title,
+    goalProgress,
+    steps
+  }
+}
+
 export function buildFinancialPlan(input: {
   primaryGoal: Goal | null
   summary: DashboardSummary

@@ -29,7 +29,7 @@ function logout() {
 
 <template>
   <header
-    class="mm-app-shell-header sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur-sm sm:h-16 sm:gap-3 sm:px-6 mm-safe-top md:border-b-0"
+    class="mm-app-shell-header z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur-sm sm:h-16 sm:gap-3 sm:px-6 mm-safe-top md:border-b-0"
   >
     <div class="flex min-w-0 shrink-0 items-center gap-2 md:gap-0">
       <SidebarTrigger class="md:hidden" />

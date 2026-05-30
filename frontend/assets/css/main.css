@@ -248,6 +248,20 @@ body {
     }
   }
 
+  /* App shell: header фиксирован сверху, скролл только в main */
+  .mm-app-shell-inset {
+    min-height: 100svh;
+    max-height: 100svh;
+    overflow: hidden;
+  }
+
+  .mm-app-shell-main {
+    min-height: 0;
+    overflow-x: clip;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Одна линия под верхней полосой: сайдбар + header (десктоп) */
   @media (min-width: 768px) {
     .mm-app-shell {
@@ -2355,6 +2369,38 @@ body {
 
   .mm-onb-tabs__btn:not(.mm-onb-tabs__btn--active):hover {
     @apply text-[color:var(--mm-text)];
+  }
+
+  .mm-purchase-sheet {
+    @apply border-[color:var(--mm-border)] bg-[color:var(--mm-bg)] shadow-xl;
+  }
+
+  .mm-purchase-sheet > button.absolute {
+    @apply right-3 top-3 rounded-full;
+    background: color-mix(in srgb, var(--mm-bg-muted, #eef6fc) 80%, transparent);
+  }
+
+  .mm-purchase-success {
+    @apply flex flex-col items-center justify-center gap-3 rounded-2xl px-4 py-8 text-center;
+    border: 1px solid color-mix(in srgb, var(--mm-primary, #0d8bf2) 22%, transparent);
+    background: color-mix(in srgb, var(--mm-primary-soft, #e8f4fd) 55%, var(--mm-bg, #fff));
+  }
+
+  .mm-purchase-success__icon {
+    @apply flex size-16 items-center justify-center rounded-full;
+    color: var(--mm-primary, #0d8bf2);
+    background: color-mix(in srgb, var(--mm-primary-soft, #e8f4fd) 90%, #fff);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--mm-primary, #0d8bf2) 12%, transparent);
+  }
+
+  .mm-purchase-success__title {
+    @apply text-xl font-semibold tracking-tight;
+    color: var(--mm-text, #0f172a);
+  }
+
+  .mm-purchase-success__hint {
+    @apply max-w-sm text-sm leading-relaxed;
+    color: var(--mm-text-muted, #64748b);
   }
 
   @media (prefers-reduced-motion: reduce) {

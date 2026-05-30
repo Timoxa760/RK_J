@@ -15,13 +15,17 @@ import { useAuthStore } from '~/store/authStore'
 export type ReceiptSubmitResult = ReceiptManualResponse | ReceiptVoiceResponse
 
 function voiceResultFromExpense(text: string, res: ManualExpenseResponse): ReceiptVoiceResponse {
-  const label = text.trim().slice(0, 48) || res.category || 'Покупка'
+  const label =
+    res.description?.trim() ||
+    text.trim().slice(0, 48) ||
+    res.category ||
+    'Покупка'
   return {
     receipt_id: res.id || `voice-${Date.now()}`,
     store: label,
     items: [
       {
-        name: res.category || label,
+        name: label,
         price: res.amount,
         quantity: 1,
         category: res.category

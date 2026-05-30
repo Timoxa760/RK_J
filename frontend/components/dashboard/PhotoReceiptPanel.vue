@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Camera, Loader2 } from 'lucide-vue-next'
 
+defineProps<{
+  embedded?: boolean
+}>()
+
 const emit = defineEmits<{
   synced: []
 }>()
@@ -56,7 +60,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="space-y-4">
-    <p class="text-sm text-muted-foreground">
+    <p v-if="!embedded" class="text-sm text-muted-foreground">
       Сфотографируйте QR на бумажном чеке — Поток проверит его через ФНС.
     </p>
 

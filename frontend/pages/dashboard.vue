@@ -5,7 +5,7 @@ import { buildCategoriesSummary } from '~/utils/chartSummaries'
 
 const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
-const { profile, loadProfile } = useFinancialProfile()
+const { profile, loadProfile, fetchProfileFromApi } = useFinancialProfile()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
 const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan } = useAiPlan()
 const {
@@ -116,6 +116,7 @@ async function refreshAll() {
 
 onMounted(async () => {
   loadProfile()
+  await fetchProfileFromApi()
   await refreshAll()
 })
 

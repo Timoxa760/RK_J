@@ -278,6 +278,7 @@ export interface ManualExpenseResponse {
   id: string
   amount: number
   category: string
+  description?: string
   parsed: boolean
 }
 
