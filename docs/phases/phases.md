@@ -66,7 +66,7 @@
 | Plan / diagnosis | `backend/internal/advisor/plan.go` |
 | Chat | `backend/internal/advisor/chat.go` |
 | HTTP handlers | `backend/services/money-intelligence/ai-processor/internal/advisor/handler.go` |
-| LLM prompts | `backend/internal/onlysq/prompts_advisor.go` |
+| LLM prompts | `backend/internal/llm/prompts_advisor.go` |
 | Gateway | `/api/v1/ai/*` → ai-processor |
 | Front | `useAiPlan`, `useAdvisorChat`, `FinancialPlanCard`, sidebar advisor host |
 
@@ -78,7 +78,7 @@
 4. `GET /api/v1/ai/plan` — plan + diagnosis (цель из profile, DTI из PDF scans).
 5. `GET /api/v1/ai/diagnosis` — score, indicators, main_action.
 6. `POST /api/v1/ai/chat` — клиент шлёт только `message` + `history`; snapshot на сервере.
-7. OnlySQ с regex/эвристик fallback; onboarding parse: `POST /onboarding/parse`.
+7. Gemini с regex/эвристик fallback; onboarding parse: `POST /onboarding/parse`.
 
 ```mermaid
 flowchart LR
@@ -95,7 +95,7 @@ flowchart LR
     Snap[UserFinanceSnapshot]
     Plan["GET /ai/plan"]
     Chat["POST /ai/chat"]
-    OnlySQ[OnlySQ LLM]
+    Gemini[Google Gemini]
   end
   Voice --> Expenses
   FNS --> Expenses
@@ -104,8 +104,8 @@ flowchart LR
   Expenses --> Snap
   Snap --> Plan
   Snap --> Chat
-  OnlySQ --> Plan
-  OnlySQ --> Chat
+  Gemini --> Plan
+  Gemini --> Chat
 ```
 
 ### Критерии готовности
