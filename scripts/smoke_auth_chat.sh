@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E2E smoke: register → login → profile → advisor chat
+# E2E smoke: register → login → profile → advisor chat (history + stream)
 # Usage:
 #   SMOKE_PHONE=+79284018652 SMOKE_PASSWORD=secret123 ./scripts/smoke_auth_chat.sh
 
@@ -46,7 +46,22 @@ CHAT=$(curl -sf -X POST "$API/ai/chat" \
   -H 'Content-Type: application/json' \
   "${AUTH[@]}" \
   -d '{"message":"Сколько откладывать на цель?","history":[]}')
-echo "$CHAT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('reply:', (d.get('reply') or '')[:200])"
+echo "$CHAT" | python3 -c "import sys,json; d=json.load(sys.stdin); print('reply:', (d.get('reply') or '')[:200]); print('source:', d.get('source','?'))"
+
+step "6. GET /ai/chat/history"
+HIST=$(curl -sf "${AUTH[@]}" "$API/ai/chat/history?limit=10")
+echo "$HIST" | python3 -c "import sys,json; d=json.load(sys.stdin); print('messages:', len(d.get('messages',[])))"
+
+step "7. POST /ai/chat/stream (first events)"
+STREAM=$(curl -sf -N -X POST "$API/ai/chat/stream" \
+  -H 'Content-Type: application/json' \
+  "${AUTH[@]}" \
+  -d '{"message":"Где урезать траты?","history":[]}' | head -20)
+echo "$STREAM" | head -5
+
+step "8. DELETE /ai/chat/history"
+curl -sf -X DELETE "${AUTH[@]}" "$API/ai/chat/history" \
+  | python3 -m json.tool 2>/dev/null || echo "cleared"
 
 echo
 echo "OK smoke_auth_chat"

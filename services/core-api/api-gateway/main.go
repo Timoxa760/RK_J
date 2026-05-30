@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -73,6 +74,7 @@ func main() {
 		}
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
 		proxy.ModifyResponse = stripUpstreamCORS
+		proxy.FlushInterval = 100 * time.Millisecond
 		registerProxy(r, rt, proxy, jwtSecret)
 	}
 

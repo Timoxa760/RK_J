@@ -1,6 +1,8 @@
 package advisor
 
 import (
+	"context"
+
 	"backend_project/internal/creditstore"
 	"backend_project/internal/profile"
 )
@@ -9,10 +11,16 @@ import (
 type Snapshot struct {
 	Profile          profile.FinancialProfile `json:"profile"`
 	Credits          creditstore.Dashboard    `json:"credits"`
+	Spending         SpendingSummary          `json:"spending"`
 	DataCompleteness map[string]string        `json:"data_completeness"`
 }
 
-func BuildSnapshot(profiles profile.Store, credits *creditstore.FileStore, userID string) Snapshot {
+func BuildSnapshot(
+	profiles profile.Store,
+	credits *creditstore.FileStore,
+	spending SpendingProvider,
+	userID string,
+) Snapshot {
 	p, _ := profiles.Get(userID)
 	income := p.ActiveIncome + p.PassiveIncome
 	if p.SkippedIncome {
@@ -23,14 +31,35 @@ func BuildSnapshot(profiles profile.Store, credits *creditstore.FileStore, userI
 		cushion = p.EmergencyFund
 	}
 	dash := credits.Dashboard(userID, income, cushion)
+
+	var spend SpendingSummary
+	if spending != nil {
+		spend = spending.MonthSummary(context.Background(), userID)
+	}
+
 	dc := map[string]string{
 		"income":   completenessIncome(p),
 		"cushion":  completenessCushion(p),
 		"goal":     completenessGoal(p),
-		"expenses": completenessExpenses(p),
+		"expenses": completenessExpenses(p, spend),
 		"credits":  completenessCredits(dash),
 	}
-	return Snapshot{Profile: p, Credits: dash, DataCompleteness: dc}
+	return Snapshot{Profile: p, Credits: dash, Spending: spend, DataCompleteness: dc}
+}
+
+func completenessExpenses(p profile.FinancialProfile, spend SpendingSummary) string {
+	if spend.MonthTotal > 0 || spend.RecentCount > 0 {
+		return "known"
+	}
+	if p.SkippedExpenses {
+		return "skipped"
+	}
+	for _, e := range p.FixedExpenses {
+		if e.Amount > 0 {
+			return "known"
+		}
+	}
+	return "unknown"
 }
 
 func completenessIncome(p profile.FinancialProfile) string {
@@ -59,18 +88,6 @@ func completenessGoal(p profile.FinancialProfile) string {
 	}
 	if p.GoalAmount >= 1000 {
 		return "known"
-	}
-	return "unknown"
-}
-
-func completenessExpenses(p profile.FinancialProfile) string {
-	if p.SkippedExpenses {
-		return "skipped"
-	}
-	for _, e := range p.FixedExpenses {
-		if e.Amount > 0 {
-			return "known"
-		}
 	}
 	return "unknown"
 }

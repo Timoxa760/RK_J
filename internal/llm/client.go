@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -131,4 +132,80 @@ func extractText(resp generateResponse) string {
 		}
 	}
 	return strings.TrimSpace(b.String())
+}
+
+// StreamComplete стримит фрагменты текста через onDelta и возвращает полный ответ.
+func (c *Client) StreamComplete(ctx context.Context, systemPrompt, userPrompt string, onDelta func(string) error) (string, error) {
+	if !c.Enabled() {
+		return "", fmt.Errorf("gemini: api key not configured")
+	}
+
+	body, err := json.Marshal(generateRequest{
+		SystemInstruction: &contentBlock{
+			Parts: []part{{Text: systemPrompt}},
+		},
+		Contents: []contentMessage{
+			{Role: "user", Parts: []part{{Text: userPrompt}}},
+		},
+		GenerationConfig: generationConfig{
+			Temperature:     0.2,
+			MaxOutputTokens: 4096,
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("gemini: marshal: %w", err)
+	}
+
+	url := fmt.Sprintf("%s/models/%s:streamGenerateContent?alt=sse&key=%s", c.baseURL, c.model, c.apiKey)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("gemini: request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gemini: http: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		return "", fmt.Errorf("gemini: status %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var full strings.Builder
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		payload := strings.TrimPrefix(line, "data: ")
+		var chunk generateResponse
+		if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
+			continue
+		}
+		if chunk.Error != nil && chunk.Error.Message != "" {
+			return "", fmt.Errorf("gemini: api error: %s", chunk.Error.Message)
+		}
+		delta := extractText(chunk)
+		if delta == "" {
+			continue
+		}
+		full.WriteString(delta)
+		if onDelta != nil {
+			if err := onDelta(delta); err != nil {
+				return full.String(), err
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return full.String(), err
+	}
+	text := strings.TrimSpace(full.String())
+	if text == "" {
+		return "", fmt.Errorf("gemini: empty stream response")
+	}
+	return text, nil
 }

@@ -15,6 +15,7 @@ import (
 	root 	"backend_project/internal"
 	"backend_project/internal/creditstore"
 	"backend_project/internal/expensestore"
+	iadvisor "backend_project/internal/advisor"
 	"backend_project/internal/llm"
 	"backend_project/internal/postgres"
 	"backend_project/internal/profile"
@@ -157,7 +158,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("credit store: %v", err)
 	}
-	advisor.NewHandler(profileStore, creditStore, llmClient).Register(r)
+
+	var spending iadvisor.SpendingProvider = iadvisor.NewPGSpendingProvider(pgPool, fileStore)
+	var chatStore *iadvisor.ChatStore
+	if pgPool != nil && postgres.Ping(ctx, pgPool) {
+		chatStore = iadvisor.NewChatStore(pgPool)
+		if err := chatStore.EnsureSchema(ctx); err != nil {
+			log.Printf("advisor chat schema: %v", err)
+		}
+	}
+
+	advisor.NewHandler(profileStore, creditStore, spending, chatStore, llmClient).Register(r)
 
 	srv := &http.Server{
 		Addr:         ":" + port,
