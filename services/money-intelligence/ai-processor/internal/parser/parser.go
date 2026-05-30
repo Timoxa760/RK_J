@@ -97,17 +97,7 @@ func Parse(rawText string) *ParsedExpense {
 		return nil
 	}
 
-	category := "Прочие расходы"
-	if cat := categorizer.CategoryForText(text); cat != "Прочее" {
-		category = cat
-	} else {
-		for _, cw := range categoryWords {
-			if strings.Contains(text, cw.keyword) {
-				category = cw.cat
-				break
-			}
-		}
-	}
+	category := inferCategory(text, amount)
 
 	store := detectStore(text)
 	desc := shortDescription(store, category, text, amount)
@@ -118,6 +108,43 @@ func Parse(rawText string) *ParsedExpense {
 		Description: desc,
 		Store:       store,
 	}
+}
+
+func inferCategory(text string, amount float64) string {
+	if cat := categorizer.CategoryForText(text); cat != "Прочее" {
+		return cat
+	}
+	for _, cw := range categoryWords {
+		if strings.Contains(text, cw.keyword) {
+			return cw.cat
+		}
+	}
+	if isNonGroceryHint(text) {
+		return "Прочие расходы"
+	}
+	if label := extractSpendLabel(text, amount); label != "" {
+		return "Продукты"
+	}
+	if categorizer.ProductLabelFromText(text) != "" {
+		return "Продукты"
+	}
+	return "Прочие расходы"
+}
+
+var nonGroceryHints = []string{
+	"такси", "кафе", "ресторан", "бензин", "метро", "каршеринг", "транспорт",
+	"подписк", "kion", "spotify", "steam", "кино", "концерт", "игр",
+	"аптек", "врач", "анализ", "кредит", "ипотек", "ozon", "wildberries",
+	"одежд", "куртк", "обув", "наушник", "зарядк", "связь", "интернет",
+}
+
+func isNonGroceryHint(text string) bool {
+	for _, hint := range nonGroceryHints {
+		if strings.Contains(text, hint) {
+			return true
+		}
+	}
+	return false
 }
 
 func shortDescription(store, category, rawText string, amount float64) string {

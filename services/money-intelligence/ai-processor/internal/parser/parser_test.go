@@ -50,6 +50,22 @@ func TestParse_Kolbasa(t *testing.T) {
 	}
 }
 
+func TestParse_UnknownGrocery(t *testing.T) {
+	p := Parse("брокколи 250 руб")
+	if p == nil {
+		t.Fatal("expected parse result")
+	}
+	if p.Category != "Продукты" {
+		t.Fatalf("category=%q", p.Category)
+	}
+}
+
+func TestParse_ProductWithoutAmount(t *testing.T) {
+	if Parse("колбаса") != nil {
+		t.Fatal("expected nil without amount")
+	}
+}
+
 func TestParse_Kosar(t *testing.T) {
 	p := Parse("потратил 5 косарей на такси")
 	if p == nil || p.Amount != 5000 || p.Category != "Транспорт" {
