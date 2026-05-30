@@ -1,6 +1,6 @@
-<script setup lang="ts">
 import type { AdvisorChatAction } from '~/types/api'
-import { decodeAskQuery } from '~/utils/advisorChat'
+import { decodeAskQuery, type AdvisorContext } from '~/utils/advisorChat'
+import { scrollToAdvisorChat } from '~/composables/useOpenAdvisorChat'
 
 const advisorShellKey = Symbol('advisor-shell')
 
@@ -60,6 +60,7 @@ function createAdvisorShell() {
       return
     }
     bootstrapped.value = true
+    typing.value = false
     await refreshAdvisorContext({ silent: true })
     await initChat()
     await processAskFromQuery()
@@ -91,7 +92,7 @@ function createAdvisorShell() {
   }
 }
 
-/** Только внутри SidebarProvider (AppShellAdvisorHost). */
+/** Только внутри AppShellAdvisorScope (предок сайдбара и страниц). */
 export function useAdvisorShellProvider() {
   const api = createAdvisorShell()
   provide(advisorShellKey, api)

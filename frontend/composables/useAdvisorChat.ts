@@ -1,4 +1,5 @@
 import type { AdvisorChatAction, AiChatHistoryResponse, AiChatResponse } from '~/types/api'
+import { useAuthStore } from '~/store/authStore'
 import { currentUserStorageKey } from '~/utils/userStorage'
 import {
   buildAdvisorGreeting,
@@ -43,9 +44,8 @@ function newId() {
 }
 
 export function useAdvisorChat(getContext: () => AdvisorContext) {
-  const { apiFetch } = useApi()
+  const { apiFetch, apiV1Base } = useApi()
   const authStore = useAuthStore()
-  const config = useRuntimeConfig()
 
   const messages = useState<ChatTurn[]>('advisor-chat-messages', () => [])
   const typing = useState('advisor-chat-typing', () => false)
@@ -130,13 +130,12 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
     })
 
     const token = authStore.token
-    const apiBase = String(config.public.apiBase || '')
 
-    if (import.meta.client && token && apiBase) {
+    if (import.meta.client && token) {
       try {
         let streamed = ''
         const res = await streamAdvisorChat(
-          apiBase,
+          `${apiV1Base.value}/ai/chat/stream`,
           token,
           { message: trimmed, history },
           (delta) => {
@@ -180,6 +179,8 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
   async function sendMessage(text: string) {
     const trimmed = text.trim()
     if (!trimmed || typing.value) return
+
+    await initChat()
 
     error.value = null
     messages.value.push({

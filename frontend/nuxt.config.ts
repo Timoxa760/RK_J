@@ -22,6 +22,14 @@ export default defineNuxtConfig({
     typeCheck: false
   },
   vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000',
+          changeOrigin: true
+        }
+      }
+    },
     plugins: [patchVueRouterDevtools(), vueSfcRegisterTs()],
     optimizeDeps: {
       include: ['typescript'],
@@ -93,7 +101,8 @@ export default defineNuxtConfig({
     '/receipts': { ssr: false },
     '/credits': { ssr: false },
     '/digest': { ssr: false },
-    '/onboarding': { ssr: false }
+    '/onboarding': { ssr: false },
+    '/advisor': { ssr: false }
   },
   nitro: {
     devProxy: {

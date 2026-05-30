@@ -30,15 +30,16 @@ watch(showDemoTour, (enabled) => {
     class="mm-app-shell mm-app-shell--with-advisor"
     :style="{ '--sidebar-width': '20rem' }"
   >
-    <AppShellAdvisorHost />
-    <AppSidebar />
-    <SidebarInset class="mm-app-shell-inset">
-      <SharedAppHeader />
-      <div class="mm-app-shell-main flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
-        <slot />
-      </div>
-      <SharedMobileTabBar />
-    </SidebarInset>
+    <AppShellAdvisorScope>
+      <AppSidebar />
+      <SidebarInset class="mm-app-shell-inset">
+        <SharedAppHeader />
+        <div class="mm-app-shell-main flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
+          <slot />
+        </div>
+        <SharedMobileTabBar />
+      </SidebarInset>
+    </AppShellAdvisorScope>
     <ClientOnly>
       <DashboardAddExpenseSheet v-model:open="addExpenseOpen" @added="notifyAdded" />
     </ClientOnly>

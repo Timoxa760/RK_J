@@ -7,6 +7,10 @@ export function useApi() {
   const authStore = useAuthStore()
 
   const apiV1Base = computed(() => {
+    // В dev браузер ходит через nitro devProxy (/api → gateway), без CORS.
+    if (import.meta.dev && import.meta.client) {
+      return '/api/v1'
+    }
     const base = String(config.public.apiBase).replace(/\/$/, '')
     return `${base}/api/v1`
   })

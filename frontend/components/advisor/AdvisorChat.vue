@@ -54,13 +54,13 @@ function onPrompt(text: string) {
 }
 
 function isLocalSource(msg: ChatTurn) {
-  return msg.source === 'heuristic' || msg.source === 'local'
+  return msg.source === 'local'
 }
 </script>
 
 <template>
   <Card
-    id="advisor-chat"
+    :id="fullPage ? 'advisor-chat' : undefined"
     data-demo="advisor-chat"
     class="flex flex-col overflow-hidden"
     :class="[

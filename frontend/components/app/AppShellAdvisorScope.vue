@@ -25,5 +25,5 @@ onMounted(async () => {
 </script>
 
 <template>
-  <span class="sr-only" aria-hidden="true" />
+  <slot />
 </template>
