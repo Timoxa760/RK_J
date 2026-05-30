@@ -1,4 +1,3 @@
--- +goose Up
 CREATE TABLE IF NOT EXISTS user_credits (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -16,6 +15,3 @@ CREATE TABLE IF NOT EXISTS user_credits (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_credits_user_id ON user_credits (user_id);
-
--- +goose Down
-DROP TABLE IF EXISTS user_credits;

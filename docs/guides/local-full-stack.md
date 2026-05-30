@@ -18,16 +18,23 @@ powershell -File scripts\start_stack.ps1
 powershell -File scripts\verify_e2e.ps1
 ```
 
-Фронт (отдельный репозиторий):
+## Быстрый старт (macOS / Linux, Docker)
 
-```powershell
-cd C:\potok-front\frontend
-$env:NUXT_PUBLIC_API_BASE = "http://127.0.0.1:8000"
-$env:NUXT_PUBLIC_DEMO_MODE = "false"
-npm run dev -- --host 127.0.0.1 --port 3000
+```bash
+cd backend
+cp .env.example .env   # JWT_SECRET один для gateway + user-service + ai-processor
+make up-full           # docker compose up + migrate-pg + migrate-ch
+./scripts/smoke_api.sh
 ```
 
-Логин: любой телефон, код **0000**.
+Фронт:
+
+```bash
+cd frontend
+NUXT_PUBLIC_API_BASE=http://127.0.0.1:8000 NUXT_PUBLIC_DEMO_MODE=false npm run dev -- --port 3000
+```
+
+Логин: телефон + пароль (регистрация через `/auth/register`). В `DEMO_MODE=true` — код **0000**.
 
 ## Что поднимает `start_stack.ps1`
 
@@ -43,6 +50,11 @@ npm run dev -- --host 127.0.0.1 --port 3000
 | Компонент | Порт |
 |-----------|------|
 | api-gateway | 8000 |
+| user-service | 8001 |
+| receipt-service | 8002 |
+| ai-processor | 8100 |
+| analytics-service | 8101 |
+| credit-service | 8009 |
 | postgres | 5432 |
 | kafka | 9092 |
 | clickhouse HTTP | 8123 |
@@ -81,9 +93,11 @@ powershell -File scripts\stop_stack.ps1 -WithInfra # + docker compose down
 
 | Симптом | Решение |
 |---------|---------|
-| `pgxpool` timeout | Docker Desktop запущен? `scripts\start_infra.ps1` |
-| Dashboard пустой | `DEMO_MODE=false`, миграции применены, JWT тот же (`JWT_SECRET=test-secret`) |
-| 502 на `/banks/*` | Пересобрать: `make build`, перезапустить `start_services.ps1` |
+| `pgxpool` timeout | Docker Desktop запущен? `docker compose up -d postgres` |
+| **502** на `/dashboard/*`, `/insights` | Поднять **receipt-service** (:8002) и **analytics-service** (:8101): `make up-full` или `docker compose up -d` |
+| **500** на `PATCH /users/me/profile` | Миграции не применены: `make up-full` или `docker compose --profile tools run --rm migrate-pg`. Нужна таблица `user_financial_profiles` (009) |
+| Dashboard пустой | `DEMO_MODE=false`, миграции применены, JWT одинаковый во всех сервисах |
+| 502 на `/banks/*` | Пересобрать: `docker compose up -d --build bank-service` |
 | Voice 503 | `docker compose --profile ai up -d whisper` |
 
 Логи сервисов: `logs\*.log`, `logs\*.err`.

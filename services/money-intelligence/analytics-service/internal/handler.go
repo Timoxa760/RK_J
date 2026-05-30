@@ -86,18 +86,7 @@ type forecastResponse struct {
 }
 
 func (h *Handler) forecast(w http.ResponseWriter, r *http.Request) {
-	start := time.Date(2026, 5, 30, 0, 0, 0, 0, time.UTC)
-	points := make([]forecastPoint, 7)
-	var total float64
-	for i := 0; i < 7; i++ {
-		amt := 9800 + float64(i*120)
-		points[i] = forecastPoint{
-			Date:   start.AddDate(0, 0, i).Format("2006-01-02"),
-			Amount: amt,
-		}
-		total += amt
-	}
-	writeJSON(w, forecastResponse{Days: 7, Total: total, Points: points})
+	writeJSON(w, forecastResponse{Days: 7, Total: 0, Points: []forecastPoint{}})
 }
 
 type simulateRequest struct {

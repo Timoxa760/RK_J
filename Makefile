@@ -1,9 +1,16 @@
-.PHONY: up down build test migrate migrate-down migrate-ch seed clean
+.PHONY: up up-full down build test migrate migrate-down migrate-ch seed clean
 
 POSTGRES_URL=postgres://postgres:postgres@localhost:5432/moneymind?sslmode=disable
+COMPOSE_NETWORK=backend_moneymind_network
 
 up:
 	docker compose up -d
+
+# Полный стек: все сервисы + миграции PG/CH (без этого profile PATCH → 500, insights → 502)
+up-full: up
+	docker compose --profile tools run --rm migrate-pg
+	docker compose --profile tools run --rm migrate-ch
+	@echo "Stack up. Gateway: http://localhost:8000  Analytics: http://localhost:8101"
 
 down:
 	docker compose down
@@ -29,21 +36,21 @@ test:
 	go test -v ./internal/... ./services/...
 
 migrate:
-	docker run --rm --network moneymind_network \
+	docker run --rm --network $(COMPOSE_NETWORK) \
 		-v $(CURDIR)/db/migrations/postgres:/migrations \
 		migrate/migrate \
 		-path=/migrations \
-		-database "$(POSTGRES_URL)" up
+		-database "postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable" up
 
 migrate-down:
-	docker run --rm --network moneymind_network \
+	docker run --rm --network $(COMPOSE_NETWORK) \
 		-v $(CURDIR)/db/migrations/postgres:/migrations \
 		migrate/migrate \
 		-path=/migrations \
-		-database "$(POSTGRES_URL)" down 1
+		-database "postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable" down 1
 
 migrate-ch:
-	docker run --rm --network moneymind_network \
+	docker run --rm --network $(COMPOSE_NETWORK) \
 		-v $(CURDIR)/db/migrations/clickhouse:/migrations \
 		clickhouse/clickhouse-server:25.12 \
 		clickhouse-client --host clickhouse --user clickhouse_user --password clickhouse_password \

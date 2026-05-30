@@ -117,6 +117,9 @@
 | important | `GET /forecast` | OK | demo |
 | important | `GET /analytics/insights` | OK | алиас front |
 | important | `POST /scenarios/simulate` | OK | demo |
+| important | `GET /users/me/profile` | OK | PG + file (`user_financial_profiles`, миграция 009) |
+| important | `PATCH /users/me/profile` | OK | нужен `make up-full` / migrate-pg |
+| important | `POST /users/me/onboarding/complete` | OK | PG + file |
 | important | `POST /goals` | OK | in-memory demo |
 | important | `GET /goals/{id}` | OK | in-memory demo |
 | optional | `GET /digest/latest` | OK | demo |
@@ -134,10 +137,10 @@
 
 | Эндпоинт | Статус |
 |----------|--------|
-| `PATCH /users/me/profile` | Roadmap (onboarding) |
-| `POST /users/me/onboarding/complete` | Roadmap |
 | Live x5club / magnit sync | Код есть, E2E smoke нет |
 | PG-backed credits / insights | Demo JSON, не из `manual_expenses` |
+
+502 на profile/dashboard обычно означает **не запущен upstream** или **нет миграций** — см. [local-full-stack.md](../guides/local-full-stack.md).
 
 С 2026-05-30 optional API (`/banks/*`, `/categories`, `/budgets`, `/challenges`) отвечают demo JSON при запущенных сервисах (см. `start_services.ps1`).
 

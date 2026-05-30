@@ -365,23 +365,8 @@ func (h *Handler) queryTimemachinePG(ctx context.Context, userID string) *timema
 		return nil
 	}
 
-	months := make([]string, len(data))
-	real := make([]float64, len(data))
-	opt := make([]float64, len(data))
-	var cumulative float64
-	for i, row := range data {
-		months[i] = row.month
-		cumulative += row.spent
-		real[i] = cumulative
-		opt[i] = cumulative * 0.85
-	}
-
-	return &timemachineResponse{
-		Months:           months,
-		RealSavings:      real,
-		OptimizedSavings: opt,
-		DifferenceFinal:  int(opt[len(opt)-1] - real[len(real)-1]),
-	}
+	// Накопления считаются на фронте из профиля и трат; не отдаём сумму расходов как savings.
+	return nil
 }
 
 func startOfMonth(t time.Time) time.Time {

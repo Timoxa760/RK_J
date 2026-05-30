@@ -1,4 +1,3 @@
--- +goose Up
 CREATE TABLE IF NOT EXISTS user_financial_profiles (
     user_id TEXT PRIMARY KEY,
     active_income NUMERIC NOT NULL DEFAULT 0,
@@ -17,6 +16,3 @@ CREATE TABLE IF NOT EXISTS user_financial_profiles (
     onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- +goose Down
-DROP TABLE IF EXISTS user_financial_profiles;
