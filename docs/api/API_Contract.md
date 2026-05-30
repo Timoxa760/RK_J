@@ -674,7 +674,7 @@ type Severity = 'info' | 'warning' | 'critical'
 
 ---
 
-## 5. AI API (Money Intelligence)
+## 14. AI API (Money Intelligence)
 
 ### GET /api/v1/ai/diagnosis — 🔴 critical
 Финансовый диагноз пользователя.
