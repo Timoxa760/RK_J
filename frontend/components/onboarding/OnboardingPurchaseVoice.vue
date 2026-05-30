@@ -8,16 +8,7 @@ const listening = ref(false)
 const speechSupported = ref(false)
 const submitError = ref('')
 
-const { submitting, submitVoiceTranscript, lastResult } = useReceiptSubmit()
-
-const addedHint = computed(() => {
-  const res = lastResult.value
-  if (!res) return null
-  if ('total' in res) {
-    return `${res.store} — ${res.total.toLocaleString('ru-RU')} ₽ · ${res.category}`
-  }
-  return `${res.store} — ${res.amount.toLocaleString('ru-RU')} ₽ · ${res.category}`
-})
+const { submitting, submitVoiceTranscript } = useReceiptSubmit()
 
 type SpeechRecognitionCtor = new () => {
   lang: string
@@ -122,13 +113,5 @@ onUnmounted(() => {
     </p>
 
     <p v-if="submitError" class="text-sm text-destructive">{{ submitError }}</p>
-
-    <div
-      v-if="addedHint && !submitting"
-      class="rounded-xl border border-[color:var(--mm-primary)]/25 bg-[color:var(--mm-primary-soft)]/60 px-4 py-3 text-center text-sm text-[color:var(--mm-text)]"
-    >
-      <span class="font-medium text-[color:var(--mm-primary)]">Записали: </span>
-      {{ addedHint }}
-    </div>
   </div>
 </template>
