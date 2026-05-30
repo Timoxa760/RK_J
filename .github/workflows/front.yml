@@ -1,4 +1,4 @@
-name: Deploy Frontend
+name: Frontend CI
 
 on:
   push:
@@ -28,24 +28,3 @@ jobs:
       - run: npm run build
         env:
           NUXT_PUBLIC_DEMO_MODE: 'true'
-
-  deploy:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/front'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - name: Deploy to Vercel
-        run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

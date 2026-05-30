@@ -32,7 +32,7 @@ type(scope): subject
 | feat | `feat(advisor): POST /ai/chat` |
 | fix | `fix(credits): empty dashboard without scans` |
 | docs | `docs(api): profile skip flags` |
-| ci | `ci(front): vercel deploy workflow` |
+| ci | `ci(front): frontend build workflow` |
 | refactor | `refactor(profile): file store` |
 | test | `test(credits): scan handler` |
 | chore | `chore(deps): bump go version` |
@@ -43,7 +43,7 @@ type(scope): subject
 
 | Изменения | cwd | Ветка | push |
 |-----------|-----|-------|------|
-| frontend, docs | корень RK_J | front | `origin front`, Vercel |
+| frontend, docs | корень RK_J | front | `origin front` |
 | backend | `backend/` | back | `origin back`, CI only |
 
 ## Запреты

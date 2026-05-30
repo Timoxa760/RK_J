@@ -59,7 +59,7 @@ npm run dev
 | `NUXT_PUBLIC_API_BASE` | `http://localhost:8000` | Базовый URL API (без `/api/v1`) |
 | `NUXT_PUBLIC_DEMO_MODE` | `true` | Моки при недоступном API |
 
-Для staging (Vercel и т.п.): задайте `NUXT_PUBLIC_API_BASE` на URL бэкенда и `NUXT_PUBLIC_DEMO_MODE=false`. Демо-тур: откройте любой экран приложения с `?tour=1` при включённом demo mode.
+Для staging: задайте `NUXT_PUBLIC_API_BASE` на URL бэкенда и `NUXT_PUBLIC_DEMO_MODE=false`. Демо-тур: откройте любой экран приложения с `?tour=1` при включённом demo mode.
 
 ## Скрипты
 

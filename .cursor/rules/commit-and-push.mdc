@@ -1,0 +1,63 @@
+---
+description: Google-style коммиты после каждого изменения; push только в origin/docs, origin/back, origin/front
+alwaysApply: true
+---
+
+# Коммиты и push (Google style, три ветки)
+
+После **каждого логического изменения** (задача, фича, фикс, docs) — коммит и push в нужную ветку. Не копить незакоммиченные правки.
+
+## Формат сообщения (Google / Conventional Commits)
+
+```
+type(scope): subject
+
+[optional body — зачем, не что]
+```
+
+- **subject**: императив, строчные буквы, без точки в конце, ≤72 символа
+- **type**: `feat`, `fix`, `docs`, `refactor`, `test`, `ci`, `chore`, `perf`
+- **scope**: `front`, `api`, `advisor`, `credits`, `docs`, `ci`, `ai-processor`
+
+```bash
+# ✅ GOOD
+feat(front): load AI plan on dashboard
+fix(api): resolve profile handler import alias
+docs(api): document credit PDF scan flow
+
+# ❌ BAD
+Fixed stuff
+feat: dashboard
+feat(front): Added AI plan.
+```
+
+## Куда коммитить и пушить
+
+| Зона | cwd | Ветка | push |
+|------|-----|-------|------|
+| `docs/` | `/Users/denis/RK_J-docs` | `docs` | `git push origin docs` |
+| `backend/` | `/Users/denis/RK_J/backend` | `back` | `git push origin back` |
+| `frontend/`, root CI front | `/Users/denis/RK_J` | `front` | `git push origin front` |
+
+**Только** `origin/docs`, `origin/back`, `origin/front`.
+
+## Порядок действий
+
+1. Проверить ветку: `git branch --show-current`
+2. `git add` только файлы своей зоны (см. [dual-branch-layout.mdc](./dual-branch-layout.mdc))
+3. Коммит с Google-style сообщением (HEREDOC)
+4. `git push origin <branch>`
+5. При расхождении с remote — `git pull --rebase origin <branch>`, разрешить конфликты, снова push
+
+## Разделение изменений
+
+- Только docs → worktree `RK_J-docs`, ветка `docs`
+- Только backend → `backend/`, ветка `back`
+- Только frontend → корень, ветка `front`
+- Смешанный стек → **отдельные коммиты** в каждую ветку, push по очереди
+
+## Запреты
+
+- Не коммитить `backend/` из корня и `frontend/` из `backend/`
+- Не включать секреты (`.env`, ключи)
+- Не пушить на remotes кроме `origin` (три ветки выше)
