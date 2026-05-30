@@ -545,52 +545,7 @@ Body:
 
 ---
 
-## 9. Expenses API (AI Processor) — 🔴 critical для «Поток»
-
-### POST /api/v1/expenses/manual
-
-Голосовой или ручной ввод. Текст в `raw_text` парсится на бэкенде (`parser.Parse`).
-
-**Body:**
-```json
-{
-  "user_id": "uuid-or-phone-id",
-  "raw_text": "купил продукты на 5000 и кроссовки за 16000",
-  "amount": 0,
-  "category": "",
-  "description": "",
-  "date": "2026-05-30",
-  "source": "voice"
-}
-```
-
-| Поле | Обязательно | Описание |
-|------|-------------|----------|
-| `user_id` | да | ID пользователя |
-| `raw_text` | нет* | Текст для LLM/парсера |
-| `amount` | нет* | Если задан — используется напрямую |
-| `source` | нет | `manual` (default) \| `voice` |
-
-\* Нужен `raw_text` с распознанной суммой **или** `amount` > 0.
-
-**200 OK:**
-```json
-{
-  "success": true,
-  "id": "uuid",
-  "amount": 5000,
-  "category": "Продукты",
-  "parsed": true
-}
-```
-
-**400** — `user_id required`, `amount required`, invalid JSON | **500** — save failed
-
-> **Roadmap:** один запрос → несколько транзакций из одной фразы (сейчас — одна запись).
-
----
-
-## 10. FNS & Ingest API (Scraper Service)
+## 9. FNS & Ingest API (Scraper Service)
 
 Опциональный автослой. ФНС не обязательна для MVP.
 
@@ -609,21 +564,22 @@ Body:
 
 **400** | **502** — ФНС недоступна
 
-### POST /api/v1/fns/qr
+### POST /api/v1/fns/ticket/manual — 🟡 important
 
-Fallback по QR-строке (аналог ticket).
-
-### POST /api/v1/fns/mco/auth
-
-Начало OAuth-потока MCO (мобильный кабинет налогоплательщика).
-
-### POST /api/v1/fns/mco/auth/verify
-
-Подтверждение кода MCO.
+Fallback по отдельным полям fn/fd/fp (если QR не распознаётся).
+**Body**:
+```json
+{
+  "fn": "9285000100351475",
+  "fd": "1234567890",
+  "fp": "1234567890"
+}
+```
+200 OK: нормализованный чек
 
 ---
 
-## 11. Goals API (Finance Core)
+## 10. Goals API (Finance Core)
 
 ### POST /api/v1/goals — 🟡 important
 
@@ -654,7 +610,7 @@ Fallback по QR-строке (аналог ticket).
 
 ---
 
-## 12. Onboarding Profile — ⏳ roadmap
+## 11. Onboarding Profile — ⏳ roadmap
 
 Эндпоинты для wizard `/onboarding` (ещё не в `back`):
 
@@ -667,7 +623,7 @@ Fallback по QR-строке (аналог ticket).
 
 ---
 
-## 13. Согласование с `front`
+## 12. Согласование с `front`
 
 Типы в `frontend/types/api.ts` — эталон для dashboard. Отличия от примеров ниже:
 
@@ -681,7 +637,7 @@ Fallback по QR-строке (аналог ticket).
 
 ---
 
-## 14. Типы данных (TypeScript для Nuxt)
+## 13. Типы данных (TypeScript для Nuxt)
 
 ```typescript
 // Все типы строго соответствуют JSON-ответам выше.
@@ -710,10 +666,108 @@ interface Challenge {
   created_by: string; created_at: string
 }
 
-type ProviderType = 'x5club' | 'magnit' | 'lenta' | 'vkusvill' | 'ozon' | 'wb' | 'fns' | 'email'
+type ProviderType = 'fns' | 'manual' | 'voice'
 
 type InsightType = 'subscription' | 'duplicate' | 'overprice'
 type Severity = 'info' | 'warning' | 'critical'
 ```
+
+---
+
+## 5. AI API (Money Intelligence)
+
+### GET /api/v1/ai/diagnosis — 🔴 critical
+Финансовый диагноз пользователя.
+
+200 OK:
+```json
+{
+  "score": 72,
+  "grade": "B",
+  "indicators": [
+    {"name": "Долговая нагрузка", "value": 28, "norm": "<30", "status": "good"},
+    {"name": "Подушка безопасности", "value": 4.2, "norm": ">3", "status": "good"},
+    {"name": "Накопления от дохода", "value": 15, "norm": ">20", "status": "warning"},
+    {"name": "Импульсивные траты", "value": 32, "norm": "<25", "status": "critical"},
+    {"name": "Стабильность доходов", "value": 85, "norm": ">70", "status": "good"}
+  ],
+  "main_action": {
+    "title": "Сократите доставку еды",
+    "description": "Вы тратите 9 000 ₽ в месяц на доставку. Готовьте дома 3 раза в неделю — это сэкономит 4 500 ₽ в месяц.",
+    "potential_savings": 4500,
+    "difficulty": "easy"
+  },
+  "next_check_days": 30
+}
+```
+401 | 404 — недостаточно данных для диагноза
+
+### POST /api/v1/ai/chat — 🔴 critical
+Чат с AI-ассистентом.
+Body:
+```json
+{
+  "question": "Как мне накопить на iPhone?"
+}
+```
+200 OK:
+```json
+{
+  "answer": "Вы откладываете 5 000 ₽ в месяц. Если сократить доставку на 4 500 ₽, вы накопите за 10 месяцев вместо 16.",
+  "suggested_actions": ["Сократить доставку", "Увеличить автоплатёж до 9 500 ₽"],
+  "confidence": 0.89
+}
+```
+400 — вопрос не задан | 401
+
+### GET /api/v1/ai/goal/{goal_id}/forecast — 🟡 important
+Прогноз достижения цели.
+
+Path params: goal_id — UUID цели
+
+200 OK:
+```json
+{
+  "goal_id": "uuid",
+  "name": "iPhone 16 Pro",
+  "target": 100000,
+  "current": 21000,
+  "monthly_saving": 5000,
+  "forecast_months": 15.8,
+  "forecast_date": "2026-09-15",
+  "suggestions": [
+    {
+      "action": "Сократить доставку",
+      "monthly_saving_increase": 4500,
+      "new_forecast_months": 10.2,
+      "new_forecast_date": "2026-03-01"
+    }
+  ],
+  "recommended_action": {
+    "action": "Сократить доставку",
+    "reason": "Самый большой потенциал экономии — 4 500 ₽ в месяц"
+  }
+}
+```
+401 | 404 — цель не найдена
+
+### GET /api/v1/ai/recommendation/daily — 🟢 optional
+Ежедневная персонализированная рекомендация.
+
+200 OK:
+```json
+{
+  "id": "rec_2026_05_30_001",
+  "title": "Неделя без доставки",
+  "description": "За последние 3 месяца вы потратили 27 000 ₽ на доставку. Это 9 000 ₽ в месяц.",
+  "action": "Откажитесь от доставки на неделю. Замените её приготовлением дома 3 раза.",
+  "expected_saving": 2250,
+  "impact": {
+    "diagnosis_score_increase": 8,
+    "goal_months_reduction": 2.5
+  }
+}
+```
+401 | 404 — недостаточно данных для рекомендации
 
 > **Важно:** Все денежные значения — `Float64` (копейки). Даты — ISO 8601 (`string`). Enum-поля валидируются на бэкенде.
