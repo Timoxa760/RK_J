@@ -6,9 +6,7 @@ Workflow: `.github/workflows/front.yml`
 
 - Trigger: push/PR в `front`, paths `frontend/**`
 - Jobs: `npm ci`, `npm run build`
-- Deploy: Vercel (secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`)
-
-Remote: `vercel/front` → potok-vercel.
+- **Без autodeploy** — только проверки и push в git (`origin/front`)
 
 ## Backend (ветка `back`)
 
