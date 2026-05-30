@@ -73,34 +73,39 @@ func main() {
 			log.Fatalf("invalid target %s: %v", rt.target, err)
 		}
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-		r.HandleFunc(rt.prefix+"*", func(w http.ResponseWriter, r *http.Request) {
-			if !rt.noAuth {
-				tokenStr := extractToken(r)
-				if tokenStr == "" {
-					http.Error(w, `{"error":"missing authorization header"}`, http.StatusUnauthorized)
-					return
-				}
-				token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-					if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-						return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-					}
-					return []byte(jwtSecret), nil
-				})
-				if err != nil || !token.Valid {
-					http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
-					return
-				}
-			}
-			// Путь без изменений: сервисы регистрируют полные /api/v1/... маршруты (см. API_Contract).
-			proxy.ServeHTTP(w, r)
-		})
+		registerProxy(r, rt, proxy, jwtSecret)
 	}
 
 	fmt.Printf("Service %s started on port %s...\n", serviceName, port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		panic(err)
 	}
+}
+
+func registerProxy(r *chi.Mux, rt route, proxy *httputil.ReverseProxy, jwtSecret string) {
+	handler := func(w http.ResponseWriter, req *http.Request) {
+		if !rt.noAuth {
+			tokenStr := extractToken(req)
+			if tokenStr == "" {
+				http.Error(w, `{"error":"missing authorization header"}`, http.StatusUnauthorized)
+				return
+			}
+			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				}
+				return []byte(jwtSecret), nil
+			})
+			if err != nil || !token.Valid {
+				http.Error(w, `{"error":"invalid or expired token"}`, http.StatusUnauthorized)
+				return
+			}
+		}
+		proxy.ServeHTTP(w, req)
+	}
+	base := strings.TrimSuffix(rt.prefix, "/")
+	r.HandleFunc(base, handler)
+	r.HandleFunc(base+"/*", handler)
 }
 
 func extractToken(r *http.Request) string {

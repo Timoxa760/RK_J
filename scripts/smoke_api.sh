@@ -12,6 +12,8 @@ export KAFKA_BROKERS="${KAFKA_BROKERS:-127.0.0.1:9092}"
 export USER_SERVICE_URL=http://127.0.0.1:8001
 export RECEIPT_SERVICE_URL=http://127.0.0.1:8002
 export AI_PROCESSOR_URL=http://127.0.0.1:8100
+export CREDIT_SERVICE_URL=http://127.0.0.1:8009
+export ANALYTICS_SERVICE_URL=http://127.0.0.1:8101
 
 API="http://127.0.0.1:8000/api/v1"
 PHONE="+79991234567"
@@ -23,7 +25,7 @@ fail() { echo "FAIL: $1"; FAIL=1; }
 http_code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 
 cleanup() {
-  kill "${USPID:-}" "${RSPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
+  kill "${USPID:-}" "${RSPID:-}" "${CRPID:-}" "${ANPID:-}" "${AIPID:-}" "${GWPID:-}" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -34,12 +36,18 @@ build() {
 
 build user-service "$ROOT/services/core-api/user-service/"
 build receipt-service "$ROOT/services/receipt-engine/receipt-service/"
+build credit-service "$ROOT/services/finance-core/credit-service/"
+build analytics-service "$ROOT/services/money-intelligence/analytics-service/"
 build api-gateway "$ROOT/services/core-api/api-gateway/"
 
 "$ROOT/bin/user-service" &
 USPID=$!
 "$ROOT/bin/receipt-service" &
 RSPID=$!
+"$ROOT/bin/credit-service" &
+CRPID=$!
+"$ROOT/bin/analytics-service" &
+ANPID=$!
 
 AIPID=""
 if build ai-processor "$ROOT/services/money-intelligence/ai-processor/" 2>/dev/null; then
@@ -97,11 +105,14 @@ else
   pass "ai-processor skip"
 fi
 
-echo "=== 6. Stubs (404 или 502 без запущенного сервиса) ==="
-for path in credits/dashboard insights; do
-  CODE=$(http_code "${AUTH[@]}" "$API/$path")
-  [[ "$CODE" == "404" || "$CODE" == "502" ]] && pass "GET /$path stub ($CODE)" || fail "GET /$path expected 404/502 got $CODE"
-done
+echo "=== 6. Credits + insights ==="
+CODE=$(http_code "${AUTH[@]}" "$API/credits/dashboard")
+[[ "$CODE" == "200" ]] && pass "GET /credits/dashboard" || fail "GET /credits/dashboard ($CODE)"
+CODE=$(http_code "${AUTH[@]}" "$API/insights")
+[[ "$CODE" == "200" ]] && pass "GET /insights" || fail "GET /insights ($CODE)"
+SIM=$(curl -sf -X POST "$API/scenarios/simulate" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"scenario":"reduce_delivery","reduction_percent":50,"months":3}' | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if len(d.get('months',[]))==3 else 1)" 2>/dev/null && echo ok || echo fail)
+[[ "$SIM" == "ok" ]] && pass "POST /scenarios/simulate" || fail "POST /scenarios/simulate"
 
 echo "=== 7. Auth без JWT ==="
 NCODE=$(http_code "$API/dashboard/sankey")
