@@ -2,11 +2,8 @@ package manual
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
-	"backend_project/services/money-intelligence/ai-processor/internal/categorizer"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
 )
 
@@ -63,7 +60,10 @@ func NewProcessor(parser *expense.Parser, store Storage) *Processor {
 // Create обрабатывает текстовый ввод.
 func (p *Processor) Create(ctx context.Context, req CreateRequest) (CreateResponse, int, error) {
 	if req.UserID == "" {
-		return CreateResponse{}, 400, fmt.Errorf("Сначала войдите в аккаунт.")
+		return CreateResponse{}, 400, &APIError{
+			Code:    "user_id_required",
+			Message: "Не удалось определить пользователя. Войдите снова.",
+		}
 	}
 	if req.Source == "" {
 		req.Source = "manual"
@@ -82,12 +82,18 @@ func (p *Processor) Create(ctx context.Context, req CreateRequest) (CreateRespon
 		Description: req.Description,
 	})
 	if len(parsed.Expenses) == 0 {
-		return CreateResponse{}, 400, fmt.Errorf("%s", parseFailureMessage(req.RawText))
+		return CreateResponse{}, 400, &APIError{
+			Code:    "amount_required",
+			Message: "Не услышали сумму. Скажите, например: «колбаса 300 рублей».",
+		}
 	}
 
 	saved, err := p.store.SaveExpenses(ctx, req.UserID, req.Source, date, parsed.Expenses)
 	if err != nil {
-		return CreateResponse{}, 500, fmt.Errorf("Не удалось сохранить покупку. Попробуйте позже.")
+		return CreateResponse{}, 500, &APIError{
+			Code:    "save_failed",
+			Message: "Не удалось сохранить покупку. Попробуйте ещё раз.",
+		}
 	}
 
 	return buildResponse(saved, parsed, req.Source, ""), 200, nil
@@ -120,19 +126,4 @@ func buildResponse(saved []ExpenseDTO, parsed expense.Result, source, transcript
 		resp.Description = saved[0].Description
 	}
 	return resp
-}
-
-func parseFailureMessage(rawText string) string {
-	text := strings.TrimSpace(rawText)
-	if text == "" {
-		return "Укажите сумму покупки, например: «колбаса 300 рублей»."
-	}
-	if product := categorizer.ProductLabelFromText(text); product != "" {
-		return fmt.Sprintf(
-			"Не удалось найти сумму для «%s». Назовите цену, например: «%s 300 рублей».",
-			product,
-			product,
-		)
-	}
-	return "Не удалось найти сумму. Скажите цену, например: «колбаса 300 рублей»."
 }

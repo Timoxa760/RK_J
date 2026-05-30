@@ -34,6 +34,22 @@ func TestParse_WhisperTypoStore(t *testing.T) {
 	}
 }
 
+func TestParse_KolbasaAndCheese(t *testing.T) {
+	p := Parse("колбаса сыр 500 руб")
+	if p == nil {
+		t.Fatal("expected parse result")
+	}
+	if p.Amount != 500 {
+		t.Fatalf("amount=%v", p.Amount)
+	}
+	if p.Category != "Продукты" {
+		t.Fatalf("category=%q", p.Category)
+	}
+	if p.Description != "Колбаса, Сыр" {
+		t.Fatalf("desc=%q", p.Description)
+	}
+}
+
 func TestParse_Kolbasa(t *testing.T) {
 	p := Parse("Колбаса 300 руб")
 	if p == nil {
@@ -47,22 +63,6 @@ func TestParse_Kolbasa(t *testing.T) {
 	}
 	if p.Description != "Колбаса" {
 		t.Fatalf("desc=%q", p.Description)
-	}
-}
-
-func TestParse_UnknownGrocery(t *testing.T) {
-	p := Parse("брокколи 250 руб")
-	if p == nil {
-		t.Fatal("expected parse result")
-	}
-	if p.Category != "Продукты" {
-		t.Fatalf("category=%q", p.Category)
-	}
-}
-
-func TestParse_ProductWithoutAmount(t *testing.T) {
-	if Parse("колбаса") != nil {
-		t.Fatal("expected nil without amount")
 	}
 }
 

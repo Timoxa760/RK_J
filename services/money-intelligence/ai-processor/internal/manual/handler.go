@@ -27,24 +27,14 @@ func NewHandlerWithStorage(store Storage, parser *expense.Parser) (*Handler, *Pr
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	var req CreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Не удалось прочитать запрос.")
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
 		return
 	}
 	resp, code, err := h.proc.Create(r.Context(), req)
 	if err != nil {
-		status := http.StatusBadRequest
-		if code == 500 {
-			status = http.StatusInternalServerError
-		}
-		writeError(w, status, err.Error())
+		respondError(w, code, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
-}
-
-func writeError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
 }

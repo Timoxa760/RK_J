@@ -37,6 +37,24 @@ func TestDemoHandler_Create_Voice(t *testing.T) {
 	}
 }
 
+func TestDemoHandler_MissingAmount(t *testing.T) {
+	h, _ := NewDemoHandler(expense.NewParser(nil))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/expenses/manual", strings.NewReader(`{"user_id":"u1","raw_text":"колбаса"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.Create(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status %d", w.Code)
+	}
+	var errResp APIError
+	if err := json.NewDecoder(w.Body).Decode(&errResp); err != nil {
+		t.Fatal(err)
+	}
+	if errResp.Code != "amount_required" {
+		t.Fatalf("code=%q", errResp.Code)
+	}
+}
+
 func TestDemoHandler_MissingUser(t *testing.T) {
 	h, _ := NewDemoHandler(expense.NewParser(nil))
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/expenses/manual", strings.NewReader(`{"raw_text":"500"}`))

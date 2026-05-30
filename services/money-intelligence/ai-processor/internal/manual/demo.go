@@ -28,11 +28,7 @@ func (h *DemoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, code, err := h.proc.Create(r.Context(), req)
 	if err != nil {
-		status := http.StatusBadRequest
-		if code == 500 {
-			status = http.StatusInternalServerError
-		}
-		http.Error(w, `{"error":"`+err.Error()+`"}`, status)
+		respondError(w, code, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
