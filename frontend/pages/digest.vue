@@ -77,7 +77,7 @@ const periodLabel = computed(() => {
         <Card>
           <CardHeader class="pb-2">
             <CardTitle class="text-base">Траты под контролем</CardTitle>
-            <CardDescription>{{ digest.insights_summary }}</CardDescription>
+            <CardDescription v-if="digest.insights_summary">{{ digest.insights_summary }}</CardDescription>
           </CardHeader>
           <CardContent>
             <p class="text-3xl font-bold text-primary">{{ digest.mindfulness_rating }}/100</p>

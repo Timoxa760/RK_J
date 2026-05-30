@@ -359,28 +359,41 @@ export function useOnboarding() {
     return isOnboardingComplete()
   }
 
+  function profilePayloadFromDraft(
+    current: OnboardingDraft,
+    onboardingCompleted = false
+  ): FinancialProfile {
+    return {
+      active_income: Math.max(0, current.active_income),
+      passive_income: Math.max(0, current.passive_income),
+      emergency_fund: Math.max(0, current.emergency_fund),
+      emergency_breakdown: current.emergency_breakdown,
+      fixed_expenses: current.skipped_expenses ? [] : current.fixed_expenses,
+      goal_kind: current.goal_kind,
+      goal_title: current.goal_title,
+      goal_amount: current.skipped_goal ? 0 : Math.max(0, current.goal_amount),
+      skipped_income: current.skipped_income ?? false,
+      skipped_cushion: current.skipped_cushion ?? false,
+      skipped_goal: current.skipped_goal ?? false,
+      skipped_expenses: current.skipped_expenses ?? false,
+      survey_input_mode: current.survey_input_mode,
+      onboarding_completed: onboardingCompleted
+    }
+  }
+
+  async function syncDraftProfileToApi() {
+    const profilePayload = profilePayloadFromDraft(draft.value)
+    saveProfile(profilePayload)
+    loadProfile()
+    await syncProfileToApi(profilePayload)
+  }
+
   async function completeOnboarding() {
     finishing.value = true
     error.value = null
 
     try {
-      const current = draft.value
-      const profilePayload: FinancialProfile = {
-        active_income: Math.max(0, current.active_income),
-        passive_income: Math.max(0, current.passive_income),
-        emergency_fund: Math.max(0, current.emergency_fund),
-        emergency_breakdown: current.emergency_breakdown,
-        fixed_expenses: current.skipped_expenses ? [] : current.fixed_expenses,
-        goal_kind: current.goal_kind,
-        goal_title: current.goal_title,
-        goal_amount: current.skipped_goal ? 0 : Math.max(0, current.goal_amount),
-        skipped_income: current.skipped_income ?? false,
-        skipped_cushion: current.skipped_cushion ?? false,
-        skipped_goal: current.skipped_goal ?? false,
-        skipped_expenses: current.skipped_expenses ?? false,
-        survey_input_mode: current.survey_input_mode,
-        onboarding_completed: true
-      }
+      const profilePayload = profilePayloadFromDraft(draft.value, true)
 
       saveProfile(profilePayload)
       loadProfile()
@@ -421,6 +434,7 @@ export function useOnboarding() {
     selectSurveyMode,
     completeVoiceSurvey,
     syncProfileToApi,
+    syncDraftProfileToApi,
     nextStep,
     prevStep,
     isComplete,

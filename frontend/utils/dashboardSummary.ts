@@ -1,4 +1,5 @@
 import type {
+  CategoriesResponse,
   CreditsDashboardResponse,
   FinancialProfile,
   InsightItem,
@@ -6,6 +7,7 @@ import type {
 } from '~/types/api'
 import { ACTIONS, GOALS, HEALTH, CREDITS, formatRub } from '~/constants/productCopy'
 import { percentDti } from '~/utils/apiNormalize'
+import { isPlaceholderTimemachine } from '~/utils/dashboardProjections'
 
 export type HealthTone = 'good' | 'warn' | 'risk'
 
@@ -40,15 +42,25 @@ function profileIncome(profile: FinancialProfile | null | undefined): number {
   return (profile.active_income ?? 0) + (profile.passive_income ?? 0)
 }
 
-/** Агрегаты из профиля и credits dashboard. */
+/** Агрегаты из профиля, категорий и credits dashboard. */
 function sumFromProfile(input: {
   profile: FinancialProfile | null | undefined
   credits: CreditsDashboardResponse | null
+  categories?: CategoriesResponse | null
 }): { income: number; expenses: number; savings: number } {
   const profileIncomeValue = profileIncome(input.profile)
   const fixedExpenses = sumFixedExpenses(input.profile)
+  const variableExpenses = (input.categories?.categories ?? []).reduce(
+    (sum, row) => sum + (row.amount ?? row.total ?? 0),
+    0
+  )
   const income = input.credits?.monthly_income ?? profileIncomeValue
-  const expenses = fixedExpenses > 0 ? fixedExpenses : 0
+  const expenses =
+    fixedExpenses > 0 && variableExpenses > 0
+      ? fixedExpenses + variableExpenses
+      : variableExpenses > 0
+        ? variableExpenses
+        : fixedExpenses
   const savings = input.credits?.savings ?? input.profile?.emergency_fund ?? 0
   return { income, expenses, savings }
 }
@@ -137,19 +149,24 @@ export function buildGoalForecast(
   timemachine: TimeMachineResponse | null,
   profile?: FinancialProfile | null
 ): string {
-  if (!timemachine?.points?.length) {
+  const savingsBalance = profile?.emergency_fund ?? 0
+  const useTimemachine =
+    timemachine?.points.length &&
+    !isPlaceholderTimemachine(timemachine, savingsBalance)
+
+  if (!useTimemachine) {
     return buildProfileGoalHint(profile)
   }
 
-  const diff = timemachine.difference_final ?? timemachine.delta ?? 0
-  const horizon = timemachine.points.length
+  const diff = timemachine!.difference_final ?? timemachine!.delta ?? 0
+  const horizon = timemachine!.points.length
 
   if (diff > 0) {
     const thousands = Math.round(diff / 1000)
     return GOALS.savingsOpportunity(thousands, horizon)
   }
 
-  const last = timemachine.points[timemachine.points.length - 1]
+  const last = timemachine!.points[timemachine!.points.length - 1]
   if (last) {
     const formatted = Math.round(last.actual / 1000)
     return GOALS.savingsOnTrack(formatted, horizon)
@@ -176,8 +193,13 @@ function buildProfileGoalHint(profile: FinancialProfile | null | undefined): str
   return `Цель «${title}» — ${formatRub(amount)}.`
 }
 
-function goalOpportunityThousands(timemachine: TimeMachineResponse | null): number | null {
-  if (!timemachine?.points?.length) return null
+function goalOpportunityThousands(
+  timemachine: TimeMachineResponse | null,
+  savingsBalance = 0
+): number | null {
+  if (!timemachine?.points.length || isPlaceholderTimemachine(timemachine, savingsBalance)) {
+    return null
+  }
   const diff = timemachine.difference_final ?? timemachine.delta ?? 0
   if (diff <= 0) return null
   return Math.round(diff / 1000)
@@ -188,10 +210,12 @@ export function buildDashboardSummary(input: {
   timemachine: TimeMachineResponse | null
   credits: CreditsDashboardResponse | null
   topInsight: InsightItem | null
+  categories?: CategoriesResponse | null
 }): DashboardSummary {
   const { income, expenses, savings } = sumFromProfile({
     profile: input.profile,
-    credits: input.credits
+    credits: input.credits,
+    categories: input.categories
   })
 
   const monthlyIncome = income
@@ -214,7 +238,10 @@ export function buildDashboardSummary(input: {
   })
 
   const goalForecast = buildGoalForecast(input.timemachine, input.profile)
-  const opportunityThousands = goalOpportunityThousands(input.timemachine)
+  const opportunityThousands = goalOpportunityThousands(
+    input.timemachine,
+    input.profile?.emergency_fund ?? 0
+  )
   const insightText =
     input.topInsight?.description ?? input.topInsight?.body ?? input.topInsight?.title ?? null
 

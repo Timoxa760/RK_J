@@ -35,13 +35,17 @@ const snapshot = computed(() => {
   const last = points[points.length - 1]!
   const months = points.length
   const diff = last.optimistic - last.actual
+  const monthlyDelta = months > 0 ? (last.actual - now) / months : 0
+
+  // Не показываем «Через N мес.», если прогноз не осмысленный (нет движения к цели)
+  const showForecast = Math.abs(monthlyDelta) >= 1 || diff > 0
 
   return {
     months,
     now,
-    forecast: last.actual,
-    optimistic: last.optimistic,
-    diff
+    forecast: showForecast ? last.actual : null,
+    optimistic: showForecast ? last.optimistic : null,
+    diff: showForecast ? diff : 0
   }
 })
 </script>

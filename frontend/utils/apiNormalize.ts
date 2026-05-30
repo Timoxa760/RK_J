@@ -104,20 +104,36 @@ export function normalizeForecast(raw: ForecastResponse): ForecastResponse {
   if (raw.dates?.length && raw.forecast?.length) {
     return raw
   }
-  if (raw.points?.length) {
+
+  const legacyPoints = raw.points as Array<{ month?: string; date?: string; amount: number }> | undefined
+  if (legacyPoints?.length) {
     return {
-      dates: raw.points.map((p) => p.month),
-      forecast: raw.points.map((p) => p.amount),
-      upper_bound: raw.points.map((p) => Math.round(p.amount * 1.2)),
-      lower_bound: raw.points.map((p) => Math.round(p.amount * 0.8))
+      dates: legacyPoints.map((p) => p.date ?? p.month ?? ''),
+      forecast: legacyPoints.map((p) => p.amount),
+      upper_bound: legacyPoints.map((p) => Math.round(p.amount * 1.2)),
+      lower_bound: legacyPoints.map((p) => Math.round(p.amount * 0.8))
     }
   }
+
+  const apiPoints = (raw as { points?: Array<{ date?: string; amount?: number }> }).points
+  if (apiPoints?.length) {
+    return {
+      dates: apiPoints.map((p) => p.date ?? ''),
+      forecast: apiPoints.map((p) => p.amount ?? 0),
+      upper_bound: apiPoints.map((p) => Math.round((p.amount ?? 0) * 1.2)),
+      lower_bound: apiPoints.map((p) => Math.round((p.amount ?? 0) * 0.8))
+    }
+  }
+
   return { dates: [], forecast: [] }
 }
 
 export function normalizeInsights(raw: InsightsResponse): InsightsResponse {
+  const placeholderTypes = new Set(['subscription', 'duplicate', 'overprice'])
   return {
-    insights: raw.insights.map((item, i) => normalizeInsight(item, i))
+    insights: (raw.insights ?? [])
+      .filter((item) => !placeholderTypes.has(item.type))
+      .map((item, i) => normalizeInsight(item, i))
   }
 }
 

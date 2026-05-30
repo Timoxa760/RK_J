@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import type { CategoriesResponse, ForecastResponse, TimeMachineResponse } from '~/types/api'
+import type { CategoriesResponse, TimeMachineResponse } from '~/types/api'
 import { ADVISOR } from '~/constants/productCopy'
 
 defineProps<{
   categories: CategoriesResponse | null
-  forecast: ForecastResponse | null
   timemachine: TimeMachineResponse | null
   categoriesSummary: string
   currentSavings?: number | null
@@ -39,29 +38,20 @@ defineProps<{
 
         <Separator />
 
-        <div class="grid gap-5 lg:grid-cols-2 lg:gap-6">
-          <section
-            class="rounded-xl border bg-muted/30 p-4"
-            aria-label="Накопления"
-            data-demo="timemachine"
-          >
-            <h3 class="text-base font-semibold text-foreground">
-              {{ ADVISOR.savingsTitle }}
-            </h3>
-            <ChartsSimpleSavingsChart
-              :data="timemachine"
-              :current-savings="currentSavings"
-              class="mt-3"
-            />
-          </section>
-
-          <section class="rounded-xl border bg-muted/30 p-4" aria-label="Прогноз трат">
-            <h3 class="text-base font-semibold text-foreground">
-              {{ ADVISOR.forecastTitle }}
-            </h3>
-            <ChartsSimpleForecastChart :data="forecast" class="mt-3" />
-          </section>
-        </div>
+        <section
+          class="rounded-xl border bg-muted/30 p-4"
+          aria-label="Накопления"
+          data-demo="timemachine"
+        >
+          <h3 class="text-base font-semibold text-foreground">
+            {{ ADVISOR.savingsTitle }}
+          </h3>
+          <ChartsSimpleSavingsChart
+            :data="timemachine"
+            :current-savings="currentSavings"
+            class="mt-3"
+          />
+        </section>
       </template>
     </component>
   </component>

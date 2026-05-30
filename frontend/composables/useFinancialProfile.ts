@@ -104,6 +104,17 @@ function isEndpointMissing(error: unknown): boolean {
   return false
 }
 
+/** Бэкенд недоступен или таблица не создана — оставляем localStorage, не роняем UI. */
+function isRecoverableProfileError(error: unknown): boolean {
+  if (isEndpointMissing(error)) return true
+  const status = (error as { statusCode?: number })?.statusCode
+  if (status != null && status >= 500) return true
+  if (error instanceof Error) {
+    return /502|503|500|bad gateway|internal server error|fetch failed/i.test(error.message)
+  }
+  return false
+}
+
 export function useFinancialProfile() {
   const { apiFetch, demoMode } = useApi()
   const profile = useState<FinancialProfile>('financial-profile', () => ({
@@ -174,7 +185,10 @@ export function useFinancialProfile() {
         await syncProfileToApi(merged)
       }
     } catch (error) {
-      if (!isEndpointMissing(error)) throw error
+      if (!isRecoverableProfileError(error)) {
+        profile.value = local
+        if (!isEndpointMissing(error)) throw error
+      }
     }
   }
 
@@ -187,7 +201,7 @@ export function useFinancialProfile() {
         body: { onboarding_completed: true }
       })
     } catch (error) {
-      if (!isEndpointMissing(error)) throw error
+      if (!isRecoverableProfileError(error)) throw error
     }
   }
 

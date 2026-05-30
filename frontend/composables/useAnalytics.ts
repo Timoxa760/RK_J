@@ -1,17 +1,18 @@
-import type {
-  ForecastResponse,
-  SimulateScenarioRequest,
-  SimulateScenarioResponse,
-  TimeMachineResponse
-} from '~/types/api'
+import type { SimulateScenarioRequest, SimulateScenarioResponse, TimeMachineResponse } from '~/types/api'
 import { formatScenarioResult } from '~/utils/analyticsNarrative'
-import { normalizeForecast, normalizeTimeMachine } from '~/utils/apiNormalize'
+import { normalizeTimeMachine } from '~/utils/apiNormalize'
+import {
+  buildScenarioResult,
+  isPlaceholderTimemachine
+} from '~/utils/dashboardProjections'
+import { useDashboardStore } from '~/store/dashboardStore'
 
 export function useAnalytics() {
   const { apiFetch } = useApi()
+  const { profile } = useFinancialProfile()
+  const dashboardStore = useDashboardStore()
 
   const timeMachine = ref<TimeMachineResponse | null>(null)
-  const forecast = ref<ForecastResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const scenarioResult = ref<string | null>(null)
@@ -22,16 +23,11 @@ export function useAnalytics() {
     loading.value = true
     error.value = null
     try {
-      const [tmRaw, fcRaw] = await Promise.all([
-        apiFetch<TimeMachineResponse>('/dashboard/timemachine'),
-        apiFetch<ForecastResponse>('/forecast?days=7')
-      ])
+      const tmRaw = await apiFetch<TimeMachineResponse>('/dashboard/timemachine')
       timeMachine.value = normalizeTimeMachine(tmRaw)
-      forecast.value = normalizeForecast(fcRaw)
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки аналитики'
       timeMachine.value = null
-      forecast.value = null
     } finally {
       loading.value = false
     }
@@ -57,6 +53,22 @@ export function useAnalytics() {
         method: 'POST',
         body
       })
+      const normalized = normalizeTimeMachine(res)
+      const savingsBalance = profile.value.emergency_fund ?? 0
+
+      if (isPlaceholderTimemachine(normalized, savingsBalance)) {
+        const local = buildScenarioResult({
+          profile: profile.value,
+          categories: dashboardStore.categories,
+          scenario: params.scenario,
+          reductionPercent: params.reduction_percent,
+          months: params.months ?? 12
+        })
+        scenarioResult.value = local.message
+        scenarioSimulation.value = local.timemachine
+        return
+      }
+
       const monthlySaving =
         res.scenario?.monthly_saving ?? res.difference_final / (params.months ?? 60)
       scenarioResult.value = formatScenarioResult(
@@ -64,9 +76,17 @@ export function useAnalytics() {
         monthlySaving,
         params.reduction_percent
       )
-      scenarioSimulation.value = normalizeTimeMachine(res)
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Ошибка симуляции'
+      scenarioSimulation.value = normalized
+    } catch {
+      const local = buildScenarioResult({
+        profile: profile.value,
+        categories: dashboardStore.categories,
+        scenario: params.scenario,
+        reductionPercent: params.reduction_percent,
+        months: params.months ?? 12
+      })
+      scenarioResult.value = local.message
+      scenarioSimulation.value = local.timemachine
     } finally {
       scenarioLoading.value = false
     }
@@ -74,7 +94,6 @@ export function useAnalytics() {
 
   return {
     timeMachine,
-    forecast,
     loading,
     error,
     scenarioResult,

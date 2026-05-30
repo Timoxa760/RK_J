@@ -21,7 +21,7 @@ const {
   skipSurveyStep,
   selectSurveyMode,
   completeVoiceSurvey,
-  syncProfileToApi,
+  syncDraftProfileToApi,
   nextStep,
   prevStep,
   completeOnboarding
@@ -38,8 +38,12 @@ onMounted(() => {
 
 watch(step, async (s) => {
   if (s !== 7) return
-  await syncProfileToApi()
-  await loadDiagnosis()
+  try {
+    await syncDraftProfileToApi()
+    await loadDiagnosis()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Не удалось сохранить профиль'
+  }
 })
 
 const progressView = computed(() => {

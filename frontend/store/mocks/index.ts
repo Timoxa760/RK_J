@@ -26,10 +26,8 @@ export { mockDiagnosis } from '~/store/mocks/diagnosis'
 export { mockChatReplies } from '~/store/mocks/advisor'
 
 export const mockForecast: ForecastResponse = {
-  dates: ['2026-05-28', '2026-05-29', '2026-05-30', '2026-05-31'],
-  forecast: [5200, 5100, 5300, 4950],
-  upper_bound: [6240, 6120, 6360, 5940],
-  lower_bound: [4160, 4080, 4240, 3960]
+  dates: [],
+  forecast: []
 }
 
 export const mockChallenges: ChallengeItem[] = [
@@ -73,7 +71,7 @@ export const mockDigest: DigestResponse = {
   ],
   mindfulness_rating: 72,
   ai_advice: 'Попробуйте сократить доставку — это около 9 000 ₽ в месяц',
-  insights_summary: 'Найдено 2 скрытые подписки и 3 переплаты'
+  insights_summary: ''
 }
 
 export const mockGoals: Goal[] = [

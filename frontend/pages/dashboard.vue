@@ -2,21 +2,13 @@
 import { buildDashboardSummary, hasCreditsData } from '~/utils/dashboardSummary'
 import { narrativeFromDiagnosis, narrativeFromDashboardSummary } from '~/utils/pageNarrative'
 import { buildCategoriesSummary } from '~/utils/chartSummaries'
+import { resolveSavingsTimemachine } from '~/utils/dashboardProjections'
 
 const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
 const { profile, loadProfile, fetchProfileFromApi } = useFinancialProfile()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
 const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan } = useAiPlan()
-const {
-  forecast,
-  loading: forecastLoading,
-  error: forecastError,
-  scenarioResult,
-  scenarioLoading,
-  loadAll: loadForecast,
-  simulateScenario
-} = useAnalytics()
 
 const { refreshAdvisorContext } = useAdvisorContext()
 
@@ -27,12 +19,17 @@ const scenario = ref<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' 
 )
 const percent = ref(20)
 
+const projectedTimemachine = computed(() =>
+  resolveSavingsTimemachine(timemachine.value, profile.value, categories.value)
+)
+
 const summary = computed(() =>
   buildDashboardSummary({
     profile: profile.value,
-    timemachine: timemachine.value,
+    timemachine: projectedTimemachine.value,
     credits: credits.value,
-    topInsight: topInsight.value
+    topInsight: topInsight.value,
+    categories: categories.value
   })
 )
 
@@ -60,11 +57,7 @@ const pageNarrative = computed(() => {
 const narrativeLoading = computed(
   () =>
     !initialLoadDone.value &&
-    (loading.value ||
-      creditsLoading.value ||
-      insightsLoading.value ||
-      aiPlanLoading.value ||
-      forecastLoading.value)
+    (loading.value || creditsLoading.value || insightsLoading.value || aiPlanLoading.value)
 )
 
 const planLoading = computed(
@@ -79,7 +72,7 @@ async function rebuildPlan() {
   planRefreshing.value = true
   await fetchPlan({
     summary: summary.value,
-    timemachine: timemachine.value,
+    timemachine: projectedTimemachine.value,
     topInsight: topInsight.value
   })
   planRefreshing.value = false
@@ -98,12 +91,7 @@ const allInsights = computed(() => insights.value?.insights ?? [])
 async function refreshData(options?: { soft?: boolean }) {
   if (options?.soft) chartsRefreshing.value = true
   loadProfile()
-  await Promise.all([
-    loadAll({ silent: options?.soft }),
-    fetchDashboard(),
-    fetchInsights(),
-    loadForecast()
-  ])
+  await Promise.all([loadAll({ silent: options?.soft }), fetchDashboard(), fetchInsights()])
   await rebuildPlan()
   await refreshAdvisorContext({ silent: true })
   if (options?.soft) chartsRefreshing.value = false
@@ -123,14 +111,6 @@ onMounted(async () => {
 watch(addedVersion, () => {
   refreshData({ soft: true })
 })
-
-async function runSimulation() {
-  await simulateScenario({
-    scenario: scenario.value,
-    reduction_percent: percent.value,
-    months: 60
-  })
-}
 </script>
 
 <template>
@@ -144,8 +124,8 @@ async function runSimulation() {
       :diagnosis="displayDiagnosis"
       :diagnosis-loading="aiPlanLoading && !displayDiagnosis"
       :categories="categories"
-      :forecast="forecast"
-      :timemachine="timemachine"
+      :profile="profile"
+      :timemachine="projectedTimemachine"
       :categories-summary="categoriesSummary"
       :charts-loading="chartsLoading"
       :credits="credits"
@@ -155,11 +135,8 @@ async function runSimulation() {
       :insights="allInsights"
       v-model:scenario="scenario"
       v-model:percent="percent"
-      :scenario-result="scenarioResult"
-      :scenario-loading="scenarioLoading"
       :loading="planLoading || planRefreshing"
       @refresh="rebuildPlan"
-      @simulate="runSimulation"
     />
 
     <Alert v-if="error" variant="destructive">
@@ -170,10 +147,6 @@ async function runSimulation() {
           Повторить
         </Button>
       </AlertDescription>
-    </Alert>
-
-    <Alert v-if="forecastError" variant="destructive">
-      <AlertDescription class="text-base">{{ forecastError }}</AlertDescription>
     </Alert>
   </div>
 </template>

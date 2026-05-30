@@ -103,38 +103,14 @@ export const mockCompare: CompareResponse = {
 }
 
 export const mockTimeMachine: TimeMachineApiResponse = {
-  months: ['2026-05', '2026-06', '2026-07'],
-  real_savings: [500000, 512000, 524500],
-  optimized_savings: [500000, 516000, 532500],
-  difference_final: 467000
+  months: [],
+  real_savings: [],
+  optimized_savings: [],
+  difference_final: 0
 }
 
 export const mockInsights: InsightsResponse = {
-  insights: [
-    {
-      type: 'subscription',
-      severity: 'warning',
-      title: 'Найдена скрытая подписка',
-      description: 'Списывается 299 ₽ каждый месяц',
-      amount: 299,
-      merchant: 'Яндекс.Плюс'
-    },
-    {
-      type: 'duplicate',
-      severity: 'info',
-      title: 'Дублирование в чеке',
-      description: "Товар 'Молоко 3.2%' пробит дважды",
-      amount: 156
-    },
-    {
-      type: 'overprice',
-      severity: 'warning',
-      title: 'Переплата за товар',
-      description: 'Молоко 3.2% куплено за 95 ₽, средняя — 78 ₽',
-      amount: 17,
-      store: 'Пятёрочка'
-    }
-  ]
+  insights: []
 }
 
 export const mockCredits: CreditsDashboardResponse = {

@@ -4,7 +4,7 @@ import type {
   AiDiagnosisResponse,
   CategoriesResponse,
   CreditsDashboardResponse,
-  ForecastResponse,
+  FinancialProfile,
   InsightItem,
   TimeMachineResponse
 } from '~/types/api'
@@ -20,7 +20,7 @@ const props = withDefaults(
     diagnosis: AiDiagnosisResponse | null
     diagnosisLoading?: boolean
     categories: CategoriesResponse | null
-    forecast: ForecastResponse | null
+    profile: FinancialProfile | null
     timemachine: TimeMachineResponse | null
     categoriesSummary: string
     chartsLoading?: boolean
@@ -29,8 +29,6 @@ const props = withDefaults(
     showCredits?: boolean
     dtiTone?: HealthTone
     insights: InsightItem[]
-    scenarioResult: string | null
-    scenarioLoading?: boolean
     loading?: boolean
     /** Полный план на дашборде — все блоки подряд */
     mega?: boolean
@@ -46,7 +44,6 @@ const percent = defineModel<number>('percent', { default: 20 })
 
 const emit = defineEmits<{
   refresh: []
-  simulate: []
 }>()
 
 const planTab = ref('steps')
@@ -206,7 +203,6 @@ const opportunityBadge = computed(() => {
             <DashboardMoneyPicture
               embedded
               :categories="categories"
-              :forecast="forecast"
               :timemachine="timemachine"
               :categories-summary="categoriesSummary"
               :current-savings="summary?.savingsBalance ?? null"
@@ -235,9 +231,8 @@ const opportunityBadge = computed(() => {
               v-model:scenario="scenario"
               v-model:percent="percent"
               embedded
-              :result="scenarioResult"
-              :loading="scenarioLoading"
-              @simulate="emit('simulate')"
+              :profile="profile"
+              :categories="categories"
             />
             <AnalyticsDetective v-if="insights.length" embedded :insights="insights" />
           </section>
@@ -344,7 +339,6 @@ const opportunityBadge = computed(() => {
             <DashboardMoneyPicture
               embedded
               :categories="categories"
-              :forecast="forecast"
               :timemachine="timemachine"
               :categories-summary="categoriesSummary"
               :current-savings="summary?.savingsBalance ?? null"
@@ -368,9 +362,8 @@ const opportunityBadge = computed(() => {
               v-model:scenario="scenario"
               v-model:percent="percent"
               embedded
-              :result="scenarioResult"
-              :loading="scenarioLoading"
-              @simulate="emit('simulate')"
+              :profile="profile"
+              :categories="categories"
             />
             <AnalyticsDetective v-if="insights.length" embedded :insights="insights" />
           </TabsContent>
