@@ -15,7 +15,7 @@ import (
 	root 	"backend_project/internal"
 	"backend_project/internal/creditstore"
 	"backend_project/internal/expensestore"
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/internal/postgres"
 	"backend_project/internal/profile"
 	"backend_project/services/money-intelligence/ai-processor/internal"
@@ -42,7 +42,7 @@ func main() {
 	chDB := getEnv("CLICKHOUSE_DB", "default")
 	databaseURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/moneymind?sslmode=disable")
 
-	llmClient := onlysq.NewClient(onlysqBaseURL(), getEnv("ONLYSQ_API_KEY", ""), getEnv("ONLYSQ_MODEL", ""))
+	llmClient := llm.NewFromEnv()
 	expenseParser := expense.NewParser(llmClient)
 	whisperClient := whisper.NewClient(getEnv("WHISPER_URL", ""), getEnv("WHISPER_API_KEY", ""), getEnv("WHISPER_MODEL", ""))
 
@@ -169,7 +169,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("ai-processor HTTP server started on port %s (demo=%v onlysq=%v whisper=%v)",
+		log.Printf("ai-processor HTTP server started on port %s (demo=%v gemini=%v whisper=%v)",
 			port, demoMode, llmClient.Enabled(), whisperClient.Enabled())
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("server: %v", err)
@@ -193,11 +193,4 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-func onlysqBaseURL() string {
-	if u := os.Getenv("ONLYSQ_BASE_URL"); u != "" {
-		return u
-	}
-	return os.Getenv("ONLYSQ_URL")
 }

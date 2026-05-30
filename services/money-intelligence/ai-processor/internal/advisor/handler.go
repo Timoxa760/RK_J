@@ -8,7 +8,7 @@ import (
 	iadvisor "backend_project/internal/advisor"
 	iroot "backend_project/internal/auth"
 	"backend_project/internal/creditstore"
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/internal/profile"
 
 	"github.com/go-chi/chi/v5"
@@ -17,10 +17,10 @@ import (
 type Handler struct {
 	profiles *profile.FileStore
 	credits  *creditstore.FileStore
-	llm      *onlysq.Client
+	llm      *llm.Client
 }
 
-func NewHandler(profiles *profile.FileStore, credits *creditstore.FileStore, llm *onlysq.Client) *Handler {
+func NewHandler(profiles *profile.FileStore, credits *creditstore.FileStore, llm *llm.Client) *Handler {
 	return &Handler{profiles: profiles, credits: credits, llm: llm}
 }
 

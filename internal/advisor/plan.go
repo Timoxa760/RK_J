@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/internal/profile"
 )
 
@@ -53,21 +53,21 @@ type PlanResponse struct {
 	Diagnosis Diagnosis `json:"diagnosis"`
 }
 
-func BuildPlanResponse(snap Snapshot, llm *onlysq.Client) PlanResponse {
-	if llm != nil && llm.Enabled() {
-		if resp, ok := tryLLMPlan(snap, llm); ok {
+func BuildPlanResponse(snap Snapshot, client *llm.Client) PlanResponse {
+	if client != nil && client.Enabled() {
+		if resp, ok := tryLLMPlan(snap, client); ok {
 			return resp
 		}
 	}
 	return heuristicPlan(snap)
 }
 
-func tryLLMPlan(snap Snapshot, llm *onlysq.Client) (PlanResponse, bool) {
+func tryLLMPlan(snap Snapshot, client *llm.Client) (PlanResponse, bool) {
 	ctxJSON, err := json.Marshal(snap)
 	if err != nil {
 		return PlanResponse{}, false
 	}
-	raw, err := llm.Complete(context.Background(), onlysq.PlanGenerationPrompt, string(ctxJSON))
+	raw, err := client.Complete(context.Background(), llm.PlanGenerationPrompt, string(ctxJSON))
 	if err != nil {
 		return PlanResponse{}, false
 	}
@@ -180,6 +180,6 @@ func buildGoalProgress(p profile.FinancialProfile) string {
 	return fmt.Sprintf("Цель «%s» — %.0f ₽.", p.GoalTitle, p.GoalAmount)
 }
 
-func BuildDiagnosis(snap Snapshot, llm *onlysq.Client) Diagnosis {
-	return BuildPlanResponse(snap, llm).Diagnosis
+func BuildDiagnosis(snap Snapshot, client *llm.Client) Diagnosis {
+	return BuildPlanResponse(snap, client).Diagnosis
 }

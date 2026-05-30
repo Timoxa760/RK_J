@@ -1,4 +1,4 @@
-package onlysq
+package llm
 
 // ExpenseSystemPrompt — системный промпт для извлечения трат из текста пользователя.
 const ExpenseSystemPrompt = `Ты финансовый ассistant «Поток». Из текста пользователя извлеки траты и дай одну короткую рекомендацию.

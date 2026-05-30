@@ -11,6 +11,6 @@ type Item struct {
 type Result struct {
 	Expenses  []Item
 	Advice    string
-	ParsedBy  string // onlysq | regex
+	ParsedBy  string // gemini | regex
 	Parsed    bool
 }

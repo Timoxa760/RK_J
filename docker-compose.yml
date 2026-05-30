@@ -230,8 +230,9 @@ services:
       - moneymind_network
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
-      - ONLYSQ_BASE_URL=${ONLYSQ_BASE_URL:-https://api.onlysq.ru/v1}
-      - ONLYSQ_API_KEY=${ONLYSQ_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
     restart: unless-stopped
 
   bank-service:
@@ -276,9 +277,10 @@ services:
       - CLICKHOUSE_PASSWORD=clickhouse_password
       - CLICKHOUSE_DB=default
       - KAFKA_BROKERS=kafka:9092
-      - ONLYSQ_BASE_URL=${ONLYSQ_BASE_URL:-https://api.onlysq.ru/v1}
-      - ONLYSQ_API_KEY=${ONLYSQ_API_KEY:-}
-      - ONLYSQ_MODEL=${ONLYSQ_MODEL:-gpt-4o-mini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       - WHISPER_URL=${WHISPER_URL:-http://whisper:9000}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
     restart: unless-stopped

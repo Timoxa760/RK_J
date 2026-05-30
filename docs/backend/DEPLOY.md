@@ -4,7 +4,7 @@
 
 ## Связи
 
-- **Зависит от:** Docker, `.env`, OnlySQ API key, Cloudflare Tunnel (или HTTPS reverse proxy)
+- **Зависит от:** Docker, `.env`, Gemini API key, Cloudflare Tunnel (или HTTPS reverse proxy)
 - **Используется:** Nuxt front, `docs/api/API_Contract.md`
 - **Связанные документы:** [API_Contract.md](../api/API_Contract.md), [STATUS.md](./STATUS.md)
 
@@ -22,9 +22,10 @@ cp .env.example .env
 | Переменная | Пример | Обязательно |
 |------------|--------|-------------|
 | `JWT_SECRET` | длинная случайная строка | да |
-| `ONLYSQ_API_KEY` | ключ с api.onlysq.ru | да (для LLM и advice) |
+| `GEMINI_API_KEY` | ключ [Google AI Studio](https://aistudio.google.com/apikey) | да (для LLM и advice) |
 | `DEMO_MODE` | `true` (demo) / `false` (PG) | да |
-| `ONLYSQ_BASE_URL` | `https://api.onlysq.ru/v1` | по умолчанию ок |
+| `GEMINI_MODEL` | `gemini-2.0-flash` | по умолчанию ок |
+| `GEMINI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta` | по умолчанию ок |
 | `WHISPER_URL` | `http://whisper:9000/v1/audio/transcriptions` | в compose по умолчанию |
 
 ---
@@ -109,5 +110,5 @@ bash scripts/smoke_critical.sh
 |---------|---------|
 | 401 на API | Нет JWT или другой `JWT_SECRET` |
 | 503 на `/expenses/voice` | Whisper не поднят или `WHISPER_URL` неверный |
-| Нет `advice` в ответе | Нет `ONLYSQ_API_KEY` — работает regex fallback |
+| Нет `advice` в ответе | Нет `GEMINI_API_KEY` — работает regex fallback |
 | Фронт не достучался до API | Нет HTTPS tunnel / неверный URL в env фронта |

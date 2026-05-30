@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 )
 
 type ChatMessage struct {
@@ -23,12 +23,12 @@ type ChatResponse struct {
 	Reply string `json:"reply"`
 }
 
-func BuildChatReply(snap Snapshot, req ChatRequest, llm *onlysq.Client) string {
-	if llm != nil && llm.Enabled() {
+func BuildChatReply(snap Snapshot, req ChatRequest, client *llm.Client) string {
+	if client != nil && client.Enabled() {
 		ctxJSON, _ := json.Marshal(snap)
 		hist, _ := json.Marshal(req.History)
 		userPrompt := fmt.Sprintf("Snapshot:\n%s\n\nHistory:\n%s\n\nUser message:\n%s", ctxJSON, hist, req.Message)
-		if raw, err := llm.Complete(context.Background(), onlysq.AdvisorSystemPrompt, userPrompt); err == nil && strings.TrimSpace(raw) != "" {
+		if raw, err := client.Complete(context.Background(), llm.AdvisorSystemPrompt, userPrompt); err == nil && strings.TrimSpace(raw) != "" {
 			return strings.TrimSpace(raw)
 		}
 	}

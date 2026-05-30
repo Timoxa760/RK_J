@@ -26,9 +26,8 @@ $env:CLICKHOUSE_USER = "clickhouse_user"
 $env:CLICKHOUSE_PASSWORD = "clickhouse_password"
 $env:CLICKHOUSE_DB = "default"
 
-# OnlySQ и Whisper — опционально; без ключей manual работает через regex
-$env:ONLYSQ_BASE_URL = "https://api.onlysq.ru/v1"
-if (-not $env:ONLYSQ_API_KEY) { $env:ONLYSQ_API_KEY = "" }
+# Gemini и Whisper — опционально; без ключей manual работает через regex
+if (-not $env:GEMINI_API_KEY) { $env:GEMINI_API_KEY = "" }
 $env:WHISPER_URL = "http://127.0.0.1:9001"
 
 # URL upstream-сервисов для api-gateway (локальный запуск без Docker DNS)

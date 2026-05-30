@@ -179,7 +179,7 @@ func mapVoiceResponse(resp manual.CreateResponse, transcript string) VoiceRespon
 	}
 
 	confidence := 0.75
-	if resp.ParsedBy == "onlysq" {
+	if resp.ParsedBy == "gemini" {
 		confidence = 0.92
 	} else if resp.Parsed {
 		confidence = 0.85

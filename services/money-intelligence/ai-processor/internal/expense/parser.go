@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/services/money-intelligence/ai-processor/internal/parser"
 )
 
@@ -17,14 +17,14 @@ type llmPayload struct {
 	Advice   string `json:"advice"`
 }
 
-// Parser извлекает траты из текста через OnlySQ с fallback на regex.
+// Parser извлекает траты из текста через Gemini с fallback на regex.
 type Parser struct {
-	llm *onlysq.Client
+	llm *llm.Client
 }
 
 // NewParser создаёт парсер расходов.
-func NewParser(llm *onlysq.Client) *Parser {
-	return &Parser{llm: llm}
+func NewParser(llmClient *llm.Client) *Parser {
+	return &Parser{llm: llmClient}
 }
 
 // ParseInput — входные переопределения из HTTP-запроса.
@@ -50,7 +50,7 @@ func (p *Parser) Parse(ctx context.Context, in ParseInput) Result {
 }
 
 func (p *Parser) parseLLM(ctx context.Context, text string) (Result, bool) {
-	raw, err := p.llm.Complete(ctx, onlysq.ExpenseSystemPrompt, text)
+	raw, err := p.llm.Complete(ctx, llm.ExpenseSystemPrompt, text)
 	if err != nil {
 		return Result{}, false
 	}
@@ -66,7 +66,7 @@ func (p *Parser) parseLLM(ctx context.Context, text string) (Result, bool) {
 	return Result{
 		Expenses: items,
 		Advice:   strings.TrimSpace(payload.Advice),
-		ParsedBy: "onlysq",
+		ParsedBy: "gemini",
 		Parsed:   true,
 	}, true
 }

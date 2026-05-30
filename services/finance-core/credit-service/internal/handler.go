@@ -15,7 +15,7 @@ import (
 	iroot "backend_project/internal/auth"
 	"backend_project/internal/creditstore"
 	"backend_project/internal/mortgage"
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/internal/pdfextract"
 	"backend_project/internal/profile"
 	"backend_project/internal/rates"
@@ -32,15 +32,15 @@ type Handler struct {
 	credits  *creditstore.FileStore
 	profiles *profile.FileStore
 	rates    *rates.Client
-	llm      *onlysq.Client
+	llm      *llm.Client
 }
 
-func NewHandler(credits *creditstore.FileStore, profiles *profile.FileStore, llm *onlysq.Client) *Handler {
+func NewHandler(credits *creditstore.FileStore, profiles *profile.FileStore, llmClient *llm.Client) *Handler {
 	return &Handler{
 		credits:  credits,
 		profiles: profiles,
 		rates:    rates.NewClient(),
-		llm:      llm,
+		llm:      llmClient,
 	}
 }
 

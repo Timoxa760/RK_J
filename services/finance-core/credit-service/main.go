@@ -7,7 +7,7 @@ import (
 
 	root "backend_project/internal"
 	"backend_project/internal/creditstore"
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 	"backend_project/internal/profile"
 	cred "backend_project/services/finance-core/credit-service/internal"
 )
@@ -24,10 +24,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	llm := onlysq.NewClient(os.Getenv("ONLYSQ_BASE_URL"), os.Getenv("ONLYSQ_API_KEY"), os.Getenv("ONLYSQ_MODEL"))
+	llmClient := llm.NewFromEnv()
 
 	r := root.NewRouter()
-	cred.NewHandler(creditStore, profileStore, llm).Register(r)
+	cred.NewHandler(creditStore, profileStore, llmClient).Register(r)
 
 	fmt.Printf("Service %s started on port %s...\n", serviceName, port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"backend_project/internal/onlysq"
+	"backend_project/internal/llm"
 )
 
 type ParseRequest struct {
@@ -21,12 +21,12 @@ type ParseResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-// Handler — POST /onboarding/parse (OnlySQ + regex fallback).
+// Handler — POST /onboarding/parse (Gemini + regex fallback).
 type Handler struct {
-	llm *onlysq.Client
+	llm *llm.Client
 }
 
-func NewHandler(llm *onlysq.Client) *Handler {
+func NewHandler(llm *llm.Client) *Handler {
 	return &Handler{llm: llm}
 }
 
@@ -64,7 +64,7 @@ func (h *Handler) Parse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) parseLLM(r *http.Request, step Step, text string) (ParseResult, bool) {
-	prompt := onlysq.OnboardingParsePrompt + "\nШаг: " + string(step)
+	prompt := llm.OnboardingParsePrompt + "\nШаг: " + string(step)
 	raw, err := h.llm.Complete(r.Context(), prompt, text)
 	if err != nil {
 		return ParseResult{}, false

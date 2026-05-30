@@ -62,8 +62,8 @@ powershell -File scripts\verify_e2e.ps1
 # Whisper
 docker compose --profile ai up -d whisper
 
-# OnlySQ — ключ в .env или переменной окружения перед start_services
-$env:ONLYSQ_API_KEY = "your-key"
+# Gemini — ключ в .env (не коммитить)
+$env:GEMINI_API_KEY = "your-gemini-key"
 powershell -File scripts\stop_stack.ps1
 powershell -File scripts\start_services.ps1
 ```
