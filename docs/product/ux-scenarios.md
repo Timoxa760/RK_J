@@ -10,8 +10,8 @@
 - главный риск;
 - **главное действие недели** (одно).
 
-**Экраны `front`:** `/onboarding` (первый вход) → `/dashboard`.  
-**Бэкенд:** `credit-service`, `analytics-service`, `receipt-service` (dashboard).
+**Экраны `front`:** `/onboarding` (первый вход) → `/dashboard` (Советник: чат, план, метрики).  
+**Бэкенд:** `credit-service`, `analytics-service`, `ai-processor` (`/ai/diagnosis`, `/ai/chat`), `receipt-service` (dashboard).
 
 ---
 
@@ -51,8 +51,8 @@
 
 > Сократите расходы на доставку на 10% — цель станет ближе на 2 месяца.
 
-**Экран `front`:** `/dashboard`, `/analytics`, `/digest`.  
-**Бэкенд:** `analytics-service` (`/api/v1/insights/`), `reporting-service` (дайджест).
+**Экран `front`:** `/dashboard` (чат + блок «Ваш план»), `/digest`.  
+**Бэкенд:** `analytics-service` (`/api/v1/insights/`), `ai-processor` (`/ai/chat`), `reporting-service` (дайджест).
 
 ---
 
@@ -69,6 +69,8 @@
 
 | Блок | Содержание |
 |------|------------|
+| Советник (чат) | ответы на вопросы, быстрые подсказки |
+| Ваш план | цель, срок, 3 шага |
 | Текущая картина | доходы, расходы, остаток |
 | Прогноз цели | срок при текущем поведении |
 | Финансовая устойчивость | runway в месяцах |
