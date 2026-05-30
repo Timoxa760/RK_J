@@ -26,6 +26,7 @@ type Provider struct {
 	ruCaptchaKey string
 	tokenDir     string
 	httpClient   *http.Client
+	demoMode     bool
 
 	mu    sync.Mutex
 	auths map[string]*authFlow
@@ -36,7 +37,7 @@ type authFlow struct {
 	done   chan error
 }
 
-func NewProvider(ruCaptchaKey, tokenDir string) *Provider {
+func NewProvider(ruCaptchaKey, tokenDir string, demoMode bool) *Provider {
 	if tokenDir == "" {
 		tokenDir = "mco_tokens"
 	}
@@ -44,12 +45,17 @@ func NewProvider(ruCaptchaKey, tokenDir string) *Provider {
 	return &Provider{
 		ruCaptchaKey: ruCaptchaKey,
 		tokenDir:     tokenDir,
+		demoMode:     demoMode,
 		httpClient:   &http.Client{Timeout: 30 * time.Second},
 		auths:        make(map[string]*authFlow),
 	}
 }
 
 func (p *Provider) StartAuth(phone string) error {
+	if p.demoMode {
+		return p.saveDemoTokens(phone)
+	}
+
 	ts := &fileTokenStorage{dir: p.tokenDir}
 
 	tokens, err := ts.LoadTokens(context.Background(), phone)
@@ -107,6 +113,10 @@ func (p *Provider) StartAuth(phone string) error {
 }
 
 func (p *Provider) VerifyAuth(phone, code string) error {
+	if p.demoMode {
+		return p.saveDemoTokens(phone)
+	}
+
 	p.mu.Lock()
 	af, ok := p.auths[phone]
 	p.mu.Unlock()
@@ -134,6 +144,10 @@ func (p *Provider) VerifyAuth(phone, code string) error {
 }
 
 func (p *Provider) SyncReceipts(ctx context.Context, phone string) ([]scrap.RawReceipt, error) {
+	if p.demoMode {
+		return demoMCOReceipts(phone), nil
+	}
+
 	ts := &fileTokenStorage{dir: p.tokenDir}
 
 	client, err := lkdr.NewClient(lkdr.ClientParams{
@@ -330,4 +344,36 @@ func mapToRawReceiptFromFiscalData(fd *lkdr.FiscalDataOut, userID string, fn, fd
 	rp := mapToRawReceipt(fd, userID)
 	rp.ID = fmt.Sprintf("fns-%s-%s", fn, fdStr)
 	return rp
+}
+
+func (p *Provider) saveDemoTokens(phone string) error {
+	ts := &fileTokenStorage{dir: p.tokenDir}
+	return ts.UpdateTokens(context.Background(), phone, &lkdr.Tokens{
+		Token:        "demo-mco-access",
+		RefreshToken: "demo-mco-refresh",
+	})
+}
+
+func demoMCOReceipts(phone string) []scrap.RawReceipt {
+	now := time.Now()
+	return []scrap.RawReceipt{
+		{
+			ID:       "mco-demo-001",
+			UserID:   phone,
+			Provider: "fns_mco",
+			Store:    "Пятёрочка",
+			Date:     now.Add(-24 * time.Hour),
+			Total:    892.40,
+			Items:    []scrap.RawItem{{Name: "Молоко", Price: 78, Quantity: 2}},
+		},
+		{
+			ID:       "mco-demo-002",
+			UserID:   phone,
+			Provider: "fns_mco",
+			Store:    "Магнит",
+			Date:     now.Add(-72 * time.Hour),
+			Total:    1540.00,
+			Items:    []scrap.RawItem{{Name: "Продукты", Price: 1540, Quantity: 1}},
+		},
+	}
 }

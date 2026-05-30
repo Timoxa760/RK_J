@@ -60,13 +60,14 @@ func main() {
 	imapCli := email.NewIMAPClient(oauthMgr)
 	emailParser := email.NewParser()
 	fnsHandler := fns.NewHandler(demoMode)
-	mcoProvider := fns_mco.NewProvider(os.Getenv("RUCAPTCHA_KEY"), os.Getenv("MCO_TOKEN_DIR"))
+	mcoProvider := fns_mco.NewProvider(os.Getenv("RUCAPTCHA_KEY"), os.Getenv("MCO_TOKEN_DIR"), demoMode)
 	x5Client := x5club.NewClient(demoMode)
 	magnitClient := magnit.NewClient(demoMode)
 	magnitINN := magnit.NewINNDetector()
 	magnitMapper := magnit.NewMapper(magnitINN)
 
 	r.Post("/api/v1/fns/ticket", fnsHandler.ServeHTTP)
+	r.Post("/api/v1/receipt/fns/scan", fns.NewScanHandler(fnsHandler, producer).ServeHTTP)
 
 	r.Post("/api/v1/fns/mco/auth", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {

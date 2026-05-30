@@ -121,6 +121,10 @@ FNS=$(curl -sf -X POST "$API/fns/ticket" -H 'Content-Type: application/json' "${
   -d '{"fn":"9289000100123456","fd":"12345","fp":"1234567890","sum":"999.99","date":"2026-05-01","time":"12:00"}' 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('store_name') else 1)" 2>/dev/null && echo ok || echo fail)
 [[ "$FNS" == "ok" ]] && record critical "POST /fns/ticket (gateway→scraper)" PASS "demo receipt" || record critical "POST /fns/ticket" FAIL ""
 
+FNS_SCAN=$(http_code -X POST "$API/receipt/fns/scan" -H 'Content-Type: application/json' "${AUTH[@]}" \
+  -d '{"fn":"9289000100123456","fd":"12345","fp":"1234567890"}')
+[[ "$FNS_SCAN" == "200" ]] && record important "POST /receipt/fns/scan" PASS "" || record important "POST /receipt/fns/scan" FAIL "HTTP $FNS_SCAN"
+
 MCO=$(http_code -X POST "$API/fns/mco/sync" -H 'Content-Type: application/json' "${AUTH[@]}" -d "{\"phone\":\"$PHONE\"}")
 if [[ "$MCO" == "200" ]]; then
   record important "POST /fns/mco/sync" PASS ""

@@ -35,6 +35,7 @@ var routes = []route{
 	{prefix: "/api/v1/budgets/",    target: svcURL("BUDGET_SERVICE_URL", "http://budget-service:8005")},
 	{prefix: "/api/v1/categories/", target: svcURL("CATEGORY_SERVICE_URL", "http://category-service:8004")},
 	{prefix: "/api/v1/expenses/",   target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
+	{prefix: "/api/v1/receipt/fns/", target: svcURL("SCRAPER_SERVICE_URL", "http://scraper-service:8003")},
 	{prefix: "/api/v1/receipt/",    target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/voice/",      target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/onboarding/", target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
