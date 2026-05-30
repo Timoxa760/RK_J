@@ -1,11 +1,11 @@
 # Деплой бэкенда на домашний сервер (Docker Compose)
 
-> Для hunamuna123 и команды. Gateway — единственная точка входа для Vercel-фронта.
+> Gateway — единственная точка входа для Nuxt-фронта.
 
 ## Связи
 
 - **Зависит от:** Docker, `.env`, OnlySQ API key, Cloudflare Tunnel (или HTTPS reverse proxy)
-- **Используется:** Nuxt front (Vercel), `docs/api/API_Contract.md`
+- **Используется:** Nuxt front, `docs/api/API_Contract.md`
 - **Связанные документы:** [API_Contract.md](../api/API_Contract.md), [STATUS.md](./STATUS.md)
 
 ---
@@ -52,9 +52,9 @@ curl -s -X POST http://localhost:8000/api/v1/auth/login \
 
 ---
 
-## 3. HTTPS для Vercel
+## 3. HTTPS для фронта
 
-Фронт на Vercel — HTTPS. Браузер блокирует HTTP API с HTTPS-страницы.
+Если фронт отдаётся по HTTPS, браузер блокирует HTTP API с HTTPS-страницы.
 
 **Рекомендация:** Cloudflare Tunnel на `:8000`:
 
@@ -110,4 +110,4 @@ bash scripts/smoke_critical.sh
 | 401 на API | Нет JWT или другой `JWT_SECRET` |
 | 503 на `/expenses/voice` | Whisper не поднят или `WHISPER_URL` неверный |
 | Нет `advice` в ответе | Нет `ONLYSQ_API_KEY` — работает regex fallback |
-| Vercel не достучался | Нет HTTPS tunnel / неверный URL в env фронта |
+| Фронт не достучался до API | Нет HTTPS tunnel / неверный URL в env фронта |
