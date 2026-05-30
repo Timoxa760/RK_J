@@ -219,7 +219,6 @@ export function useOnboarding() {
 
   const { saveProfile, loadProfile, syncProfileToApi, markOnboardingCompleteOnApi } =
     useFinancialProfile()
-  const { createGoal } = useGoals()
 
   const summary = computed(() => buildOnboardingSummary(draft.value))
 
@@ -372,6 +371,14 @@ export function useOnboarding() {
         emergency_fund: Math.max(0, current.emergency_fund),
         emergency_breakdown: current.emergency_breakdown,
         fixed_expenses: current.skipped_expenses ? [] : current.fixed_expenses,
+        goal_kind: current.goal_kind,
+        goal_title: current.goal_title,
+        goal_amount: current.skipped_goal ? 0 : Math.max(0, current.goal_amount),
+        skipped_income: current.skipped_income ?? false,
+        skipped_cushion: current.skipped_cushion ?? false,
+        skipped_goal: current.skipped_goal ?? false,
+        skipped_expenses: current.skipped_expenses ?? false,
+        survey_input_mode: current.survey_input_mode,
         onboarding_completed: true
       }
 
@@ -379,14 +386,6 @@ export function useOnboarding() {
       loadProfile()
 
       await syncProfileToApi(profilePayload)
-
-      if (current.goal_amount >= 1000) {
-        await createGoal({
-          title: current.goal_title,
-          target_amount: current.goal_amount,
-          auto_save_percent: 10
-        })
-      }
 
       await markOnboardingCompleteOnApi()
 

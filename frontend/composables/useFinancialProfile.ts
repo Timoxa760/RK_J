@@ -9,6 +9,13 @@ export const defaultFinancialProfile: FinancialProfile = {
   emergency_fund: 0,
   emergency_breakdown: { cash: 0, deposit: 0, investments: 0 },
   fixed_expenses: [],
+  goal_kind: 'save',
+  goal_title: '',
+  goal_amount: 0,
+  skipped_income: false,
+  skipped_cushion: false,
+  skipped_goal: false,
+  skipped_expenses: false,
   onboarding_completed: false
 }
 
@@ -82,11 +89,31 @@ export function useFinancialProfile() {
       passive_income: Math.max(0, source.passive_income),
       emergency_fund: Math.max(0, source.emergency_fund),
       emergency_breakdown: source.emergency_breakdown,
-      fixed_expenses: source.fixed_expenses ?? []
+      fixed_expenses: source.fixed_expenses ?? [],
+      goal_kind: source.goal_kind,
+      goal_title: source.goal_title,
+      goal_amount: Math.max(0, source.goal_amount ?? 0),
+      skipped_income: source.skipped_income,
+      skipped_cushion: source.skipped_cushion,
+      skipped_goal: source.skipped_goal,
+      skipped_expenses: source.skipped_expenses,
+      survey_input_mode: source.survey_input_mode,
+      onboarding_completed: source.onboarding_completed
     }
 
     try {
       await apiFetch('/users/me/profile', { method: 'PATCH', body })
+    } catch (error) {
+      if (!isEndpointMissing(error)) throw error
+    }
+  }
+
+  async function fetchProfileFromApi() {
+    if (demoMode.value) return
+    try {
+      const remote = await apiFetch<FinancialProfile>('/users/me/profile')
+      profile.value = { ...defaultFinancialProfile, ...remote }
+      writeStoredProfile(profile.value)
     } catch (error) {
       if (!isEndpointMissing(error)) throw error
     }
@@ -112,6 +139,7 @@ export function useFinancialProfile() {
     saveProfile,
     resetProfile,
     syncProfileToApi,
+    fetchProfileFromApi,
     markOnboardingCompleteOnApi
   }
 }

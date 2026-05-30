@@ -5,8 +5,7 @@ import {
   Home,
   Newspaper,
   PieChart,
-  ReceiptText,
-  Users
+  ReceiptText
 } from 'lucide-vue-next'
 import { useAuthStore } from '~/store/authStore'
 import { isAppFeatureEnabled } from '~/constants/featureFlags'
@@ -28,7 +27,6 @@ const mainNav = computed(() =>
     isAppFeatureEnabled('creditsNav')
       ? { to: '/credits', label: 'Кредиты', icon: CreditCard }
       : null,
-    { to: '/social', label: 'Привычки', icon: Users },
     { to: '/digest', label: 'Сводка', icon: Newspaper },
     { to: '/profile', label: 'Профиль', icon: PieChart }
   ].filter(Boolean) as Array<{ to: string; label: string; icon: typeof Home }>

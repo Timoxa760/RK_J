@@ -1,18 +1,9 @@
-# Social — гипотеза (низкий приоритет)
+# Social — REMOVED from MVP
 
-> **Статус: гипотеза.** Не входит в core «Поток» и **не в сценарий demo** на хакатон. Оставлено для возможного развития после MVP.
+> **Статус: removed.** Челленджи, `/social`, `social-service` не входят в текущий scope.
 
-## Идея
+Историческая гипотеза: групповые челленджи с друзьями.
 
-Групповые челленджи с друзьями: кто меньше потратил, кто больше отложил, streak без нарушений.
+Актуальный scope: [scope.md](../product/scope.md).
 
-## Если когда-нибудь реализуем
-
-- `social-service` — `/api/v1/challenges/`
-- Redis sorted sets — лидерборды
-- `front` — `/social` (страница уже есть, demo)
-
-## Связи
-
-- [phases/phases.md](../phases/phases.md) — фаза 12
-- [NAVI.md](../../NAVI.md)
+Фронт: маршрут `/social` → redirect на `/dashboard`.

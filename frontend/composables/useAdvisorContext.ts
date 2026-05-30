@@ -7,7 +7,7 @@ import type { InsightsResponse } from '~/types/api'
 /** Данные для советника в сайдбаре (на всех страницах приложения). */
 export function useAdvisorContext() {
   const { profile, loadProfile } = useFinancialProfile()
-  const { primaryGoal, fetchGoals } = useGoals()
+  const { primaryGoal } = useGoals()
   const { diagnosis, fetchDiagnosis } = useDiagnosis()
   const { topInsight, fetchInsights } = useInsights()
   const { timemachine, loadAll: loadDashboardSlice } = useDashboard()
@@ -54,8 +54,7 @@ export function useAdvisorContext() {
         fetchCredits(),
         fetchInsights(),
         loadInsightCard(),
-        fetchDiagnosis(),
-        fetchGoals()
+        fetchDiagnosis()
       ])
     } finally {
       if (!options?.silent) loading.value = false

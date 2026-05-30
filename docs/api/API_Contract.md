@@ -1,6 +1,6 @@
 # API Contract — Поток
 
-> **Единый источник правды (ветка `docs`).** Любые изменения API — сначала здесь, затем код в `back` / `front`.  
+> **Единый источник правды (ветка `front`, папка `docs/`).** Scope: [scope.md](../product/scope.md).  
 > **Machine-readable:** [openapi.yaml](../contracts/openapi.yaml) (OpenAPI 3.1)  
 > **Карта проекта:** [NAVI.md](../../NAVI.md)
 
@@ -20,8 +20,9 @@
 | `/receipt/manual`, `/receipt/voice`, `/receipt/fns/` | scraper-service | 8003 |
 | `/ai/` | ai-processor | 8100 |
 | `/credits/` | credit-service | 8009 |
+| `/users/me/` | user-service | 8001 |
 | `/banks/` | bank-service | 8011 |
-| `/goals/`, `/budgets/`, `/categories/` | finance-core | 8006–8005–8004 |
+| `/budgets/`, `/categories/` | finance-core | 8005–8004 |
 | `/insights/`, `/forecast/`, `/scenarios/` | analytics-service | 8101 |
 | `/digest/` | reporting-service | 8010 |
 
@@ -41,13 +42,18 @@
 | 🟡 important | GET | `/dashboard/timemachine` | Накопления за 60 мес | Receipt Engine |
 | 🟡 important | GET | `/dashboard/stores` | Пузырьковая по магазинам | Receipt Engine |
 | 🟡 important | GET | `/dashboard/compare` | Сравнение месяцев | Receipt Engine |
-| 🔴 critical | GET | `/ai/diagnosis` | Финансовый диагноз | Money Intelligence |
-| 🔴 critical | POST | `/ai/chat` | Чат с AI-ассистентом | Money Intelligence |
-| 🟡 important | GET | `/ai/goal/{goal_id}/forecast` | Прогноз достижения цели | Money Intelligence |
-| 🟢 optional | GET | `/ai/recommendation/daily` | Ежедневная рекомендация | Money Intelligence |
-| 🟡 important | GET | `/credits/dashboard` | DTI, подушка, stress-test | Finance Core |
-| 🟡 important | POST | `/credits/scan` | AI-скан договора | Finance Core |
-| 🟡 important | POST | `/goals` | Создать цель | Finance Core |
+| 🔴 critical | GET | `/ai/plan` | Финансовый план + diagnosis | ai-processor |
+| 🔴 critical | GET | `/ai/diagnosis` | Финансовый диагноз | ai-processor |
+| 🔴 critical | POST | `/ai/chat` | Чат с AI-ассистентом | ai-processor |
+| 🟡 important | GET | `/users/me/profile` | Финансовый профиль | user-service |
+| 🟡 important | PATCH | `/users/me/profile` | Обновить профиль | user-service |
+| 🟡 important | POST | `/users/me/onboarding/complete` | Завершить онбординг | user-service |
+| 🟡 important | POST | `/onboarding/parse` | Парсинг ответа опроса | ai-processor |
+| 🟡 important | GET | `/credits/dashboard` | DTI из PDF-сканов | credit-service |
+| 🟡 important | POST | `/credits/scan` | AI-скан PDF договора | credit-service |
+| ~~removed~~ | ~~POST~~ | ~~`/goals`~~ | ~~CRUD целей~~ | ~~goal-service~~ |
+| ~~removed~~ | ~~GET~~ | ~~`/ai/goal/{id}/forecast`~~ | — | — |
+| ~~removed~~ | ~~*~~ | ~~`/challenges/*`~~ | — | — |
 | 🟡 important | GET | `/insights` | Инсайты (подписки, дубли, переплаты) | Money Intelligence |
 | 🟡 important | POST | `/scenarios/simulate` | Time Machine симуляция | Money Intelligence |
 | 🟢 optional | GET | `/forecast` | Прогноз трат на 7 дней | Money Intelligence |
@@ -295,25 +301,29 @@ Body:
 
 ## 4. Credits API (Finance Core)
 
+> **Единственный источник кредитных данных** — PDF-скан. См. [credit-scan.md](../features/credit-scan.md).
+
 ### GET /api/v1/credits/dashboard — 🟡 important
 
-Кредитный дашборд: DTI, подушка, список кредитов.
+Агрегат по таблице `user_credits` пользователя. **Пустой**, если сканов не было.
 
-**200 OK:**
+**200 OK (есть сканы):**
 ```json
 {
-  "dti": 0.28,
+  "dti": 28,
   "stress_test_months": 4.2,
-  "savings": 340000,
-  "total_debt": 1200000,
+  "savings": 0,
+  "total_debt": 980000,
   "monthly_payments": 42000,
-  "monthly_income": 180000,
+  "monthly_income": 0,
   "credits": [
     {
       "id": "uuid",
       "bank": "Т-Банк",
       "amount": 1200000,
       "rate": 14.5,
+      "benchmark_rate": 12.1,
+      "rate_vs_market": "above",
       "term_months": 36,
       "remaining": 980000,
       "monthly_payment": 42000,
@@ -322,11 +332,14 @@ Body:
   ]
 }
 ```
+
+`dti` — **проcentы** 0–100. `monthly_income` для DTI берётся из profile при наличии.
+
 **401**
 
 ### POST /api/v1/credits/scan — 🟡 important
 
-Загрузить PDF договора, OnlySQ извлекает условия.
+PDF договора → OnlySQ → сохранение в PG → rates-aggregator.
 
 **Body:** `multipart/form-data` — поле `file` (PDF)
 
@@ -337,10 +350,17 @@ Body:
     "amount": 1200000, "rate": 14.5, "term_months": 36,
     "monthly_payment": 42000, "bank": "Т-Банк"
   },
-  "confidence": 0.87
+  "benchmark_rate": 12.1,
+  "rate_vs_market": "above",
+  "confidence": 0.87,
+  "credit_id": "uuid"
 }
 ```
 **400** — не PDF | **422** — не распознано
+
+### DELETE /api/v1/credits/{id} — 🟢 optional
+
+Удалить сохранённый скан.
 
 ---
 
@@ -655,51 +675,116 @@ Fallback по QR-строке (аналог ticket).
 
 ---
 
-## 11. Goals API (Finance Core)
+## 11. Goals API — REMOVED
 
-### POST /api/v1/goals — 🟡 important
+> Цель хранится в **profile** (`goal_kind`, `goal_title`, `goal_amount`, `skipped_goal`).  
+> `goal-service` и `/goals/*` **не используются** в MVP.
 
-Создание цели (онбординг, сценарий №2).
+---
 
-**Body (ориентир):**
-```json
-{
-  "title": "Отпуск",
-  "target_amount": 150000,
-  "target_date": "2026-12-01",
-  "auto_save_percent": 10
-}
-```
+## 12. Profile & Onboarding
+
+### GET /api/v1/users/me/profile — 🟡 important
 
 **200 OK:**
 ```json
 {
-  "id": "uuid",
-  "title": "Отпуск",
-  "target_amount": 150000,
-  "current_amount": 0,
-  "progress_percent": 0
+  "active_income": 150000,
+  "passive_income": 20000,
+  "emergency_fund": 340000,
+  "emergency_breakdown": {"cash": 50000, "deposit": 200000, "investments": 90000},
+  "fixed_expenses": [{"title": "Аренда", "amount": 45000}],
+  "goal_kind": "save",
+  "goal_title": "Отпуск",
+  "goal_amount": 150000,
+  "skipped_income": false,
+  "skipped_cushion": false,
+  "skipped_goal": false,
+  "skipped_expenses": false,
+  "survey_input_mode": "voice",
+  "onboarding_completed": true
 }
 ```
 
-Проксируется через gateway → `goal-service:8006`. CRUD: `/goals/{id}`.
+### PATCH /api/v1/users/me/profile
+
+Partial update. Те же поля, все optional.
+
+### POST /api/v1/users/me/onboarding/complete
+
+**Body:** `{"onboarding_completed": true}`
+
+### POST /api/v1/onboarding/parse
+
+**Body:** `{"step": "income|cushion|goal|expenses", "raw_text": "...", "locale": "ru"}`
+
+**Response:** `{"parsed": true, "step": "...", "patch": {...}}`
 
 ---
 
-## 12. Onboarding Profile — ⏳ roadmap
+## 13. Advisor API (ai-processor)
 
-Эндпоинты для wizard `/onboarding` (ещё не в `back`):
+См. [advisor.md](../product/advisor.md).
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| PATCH | `/users/me/profile` | active_income, passive_income, emergency_fund |
-| POST | `/users/me/onboarding/complete` | `onboarding_completed: true` |
+### GET /api/v1/ai/plan — 🔴 critical
 
-До реализации — данные можно собирать локально на front + `POST /goals` + `POST /receipt/manual` или `POST /receipt/voice`.
+**200 OK:**
+```json
+{
+  "plan": {
+    "goalTitle": "Отпуск",
+    "goalProgress": "Накоплено 12% — осталось 132 000 ₽",
+    "steps": [
+      {"title": "...", "description": "..."},
+      {"title": "...", "description": "..."},
+      {"title": "...", "description": "..."}
+    ],
+    "runwayText": "Запас примерно на 5 мес.",
+    "freeCashflowText": "После расходов остаётся 85 000 ₽/мес.",
+    "updatedAt": 1717000000000
+  },
+  "diagnosis": {
+    "score": 72,
+    "grade": "B",
+    "indicators": [],
+    "main_action": {
+      "title": "Сократите доставку",
+      "description": "...",
+      "potential_savings": 4500,
+      "difficulty": "easy"
+    },
+    "next_check_days": 30
+  }
+}
+```
+
+### GET /api/v1/ai/diagnosis
+
+Только `diagnosis` объект (или тот же shape без plan).
+
+### POST /api/v1/ai/chat — 🔴 critical
+
+**Body:**
+```json
+{
+  "message": "Составь план",
+  "history": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
+}
+```
+
+**200 OK:** `{"reply": "..."}`
+
+Контекст (profile, credits, expenses) — server-side по JWT.
 
 ---
 
-## 13. Согласование с `front`
+## 14. Challenges API — REMOVED
+
+> `/social`, `/challenges/*`, `social-service` — out of scope. См. [social.md](../features/social.md).
+
+---
+
+## 15. Согласование с `front`
 
 Типы в `frontend/types/api.ts` — эталон для dashboard. Отличия от примеров ниже:
 
@@ -713,7 +798,7 @@ Fallback по QR-строке (аналог ticket).
 
 ---
 
-## 14. Типы данных (TypeScript для Nuxt)
+## 16. Типы данных (TypeScript для Nuxt)
 
 ```typescript
 // Все типы строго соответствуют JSON-ответам выше.

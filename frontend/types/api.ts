@@ -235,7 +235,10 @@ export interface CreditScanResponse {
     monthly_payment: number
     bank: string
   }
+  benchmark_rate?: number
+  rate_vs_market?: string
   confidence: number
+  credit_id?: string
 }
 
 export interface ReceiptLineItem {
@@ -329,6 +332,15 @@ export interface ProfilePatchRequest {
   emergency_fund?: number
   emergency_breakdown?: EmergencyFundBreakdown
   fixed_expenses?: FixedExpense[]
+  goal_kind?: GoalKind
+  goal_title?: string
+  goal_amount?: number
+  skipped_income?: boolean
+  skipped_cushion?: boolean
+  skipped_goal?: boolean
+  skipped_expenses?: boolean
+  survey_input_mode?: 'text' | 'voice' | null
+  onboarding_completed?: boolean
 }
 
 export interface OnboardingCompleteResponse {
@@ -460,7 +472,27 @@ export interface FinancialProfile {
   emergency_fund: number
   emergency_breakdown?: EmergencyFundBreakdown
   fixed_expenses?: FixedExpense[]
+  goal_kind?: GoalKind
+  goal_title?: string
+  goal_amount?: number
+  skipped_income?: boolean
+  skipped_cushion?: boolean
+  skipped_goal?: boolean
+  skipped_expenses?: boolean
+  survey_input_mode?: 'text' | 'voice' | null
   onboarding_completed?: boolean
+}
+
+export interface AiPlanApiResponse {
+  plan: {
+    goalTitle: string
+    goalProgress: string
+    steps: { title: string; description: string }[]
+    runwayText: string | null
+    freeCashflowText: string | null
+    updatedAt: number
+  }
+  diagnosis: AiDiagnosisResponse
 }
 
 export type GoalKind = 'save' | 'purchase' | 'cushion' | 'other'
@@ -495,14 +527,14 @@ export interface OnboardingDraft {
 /** Шаг опроса онбординга — совпадает с id в `ONBOARDING_VOICE_QUESTIONS`. */
 export type OnboardingParseStep = 'income' | 'cushion' | 'goal' | 'expenses'
 
-/** @deprecated API v3 — парсер опроса только локально на front. */
+/** @deprecated API v3 — парсер опроса: POST /onboarding/parse с fallback локально. */
 export interface OnboardingParseRequest {
   step: OnboardingParseStep
   raw_text: string
   locale?: string
 }
 
-/** @deprecated API v3 — парсер опроса только локально на front. */
+/** @deprecated prefer POST /onboarding/parse */
 export interface OnboardingParseResponse {
   parsed: boolean
   step: OnboardingParseStep

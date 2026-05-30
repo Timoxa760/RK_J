@@ -4,14 +4,15 @@ import { buildProfilePageNarrative } from '~/utils/pageNarrative'
 import { needsOnboarding, resetOnboardingForCurrentUser } from '~/composables/useOnboarding'
 
 const { profile, totalIncome, loadProfile } = useFinancialProfile()
-const { goals, loading: goalsLoading, fetchGoals } = useGoals()
-
-const pageLoading = computed(() => goalsLoading.value)
+const { primaryGoal } = useGoals()
 
 const showSurveyPrompt = computed(() => needsOnboarding())
 
 const profileIncomplete = computed(
-  () => totalIncome.value <= 0 && profile.value.emergency_fund <= 0
+  () =>
+    totalIncome.value <= 0 &&
+    profile.value.emergency_fund <= 0 &&
+    !primaryGoal.value
 )
 
 async function retakeSurvey() {
@@ -22,19 +23,18 @@ async function retakeSurvey() {
 const pageNarrative = computed(() =>
   buildProfilePageNarrative({
     profile: profile.value,
-    goals: goals.value
+    goals: primaryGoal.value ? [primaryGoal.value] : []
   })
 )
 
 onMounted(() => {
   loadProfile()
-  void fetchGoals()
 })
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-4xl space-y-6">
-    <SharedPageNarrative :narrative="pageNarrative" :loading="pageLoading && !goals.length" />
+    <SharedPageNarrative :narrative="pageNarrative" />
 
     <Alert v-if="showSurveyPrompt">
       <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
@@ -49,7 +49,7 @@ onMounted(() => {
       </AlertDescription>
     </Alert>
 
-    <Alert v-else-if="profileIncomplete && !goals.length">
+    <Alert v-else-if="profileIncomplete">
       <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
       <AlertDescription class="space-y-2">
         <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
@@ -63,7 +63,6 @@ onMounted(() => {
     </Alert>
 
     <ProfileFinancialForm />
-    <ProfileGoalsSection />
     <ProfileProvidersSection />
   </div>
 </template>

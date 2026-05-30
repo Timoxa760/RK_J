@@ -1,19 +1,17 @@
 <script setup lang="ts">
 import { buildDashboardSummary, hasCreditsData } from '~/utils/dashboardSummary'
 import { narrativeFromDiagnosis, narrativeFromDashboardSummary } from '~/utils/pageNarrative'
-import { buildFinancialPlan } from '~/utils/financialPlan'
 import { mockInsights } from '~/store/mocks'
 import { normalizeInsights } from '~/utils/apiNormalize'
 import { buildCategoriesSummary } from '~/utils/chartSummaries'
-import type { FinancialPlan } from '~/utils/financialPlan'
 import type { InsightsResponse } from '~/types/api'
 
 const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
 const { diagnosis, loading: diagnosisLoading, fetchDiagnosis } = useDiagnosis()
 const { profile, loadProfile } = useFinancialProfile()
-const { primaryGoal, fetchGoals } = useGoals()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
+const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan } = useAiPlan()
 const {
   forecast,
   loading: forecastLoading,
@@ -56,9 +54,15 @@ const summary = computed(() =>
   })
 )
 
+const displayDiagnosis = computed(() => diagnosisFromPlan.value ?? diagnosis.value)
+
+const topInsightRef = computed(
+  () => topInsight.value ?? insightsData.value?.insights?.[0] ?? null
+)
+
 const displaySummary = computed(() => {
   const base = summary.value
-  const d = diagnosis.value
+  const d = displayDiagnosis.value
   if (!d) return base
   return {
     ...base,
@@ -67,14 +71,10 @@ const displaySummary = computed(() => {
   }
 })
 
-const topInsightRef = computed(
-  () => topInsight.value ?? insightsData.value?.insights?.[0] ?? null
-)
-
 const pageNarrative = computed(() => {
   const insight = topInsightRef.value
-  if (diagnosis.value) {
-    return narrativeFromDiagnosis(diagnosis.value, summary.value, insight)
+  if (displayDiagnosis.value) {
+    return narrativeFromDiagnosis(displayDiagnosis.value, summary.value, insight)
   }
   return narrativeFromDashboardSummary(summary.value, insight)
 })
@@ -90,21 +90,18 @@ const narrativeLoading = computed(
 )
 
 const planLoading = computed(
-  () => !initialLoadDone.value && narrativeLoading.value
+  () => !initialLoadDone.value && (narrativeLoading.value || aiPlanLoading.value)
 )
 
 const showCredits = computed(() => hasCreditsData(credits.value))
 
-const plan = ref<FinancialPlan | null>(null)
 const planRefreshing = ref(false)
 
-function rebuildPlan() {
+async function rebuildPlan() {
   planRefreshing.value = true
-  plan.value = buildFinancialPlan({
-    primaryGoal: primaryGoal.value,
+  await fetchPlan({
     summary: summary.value,
     timemachine: timemachine.value,
-    diagnosis: diagnosis.value,
     topInsight: topInsight.value ?? insightsData.value?.insights?.[0] ?? null
   })
   planRefreshing.value = false
@@ -130,9 +127,9 @@ async function refreshData(options?: { soft?: boolean }) {
     loadInsightCard(),
     fetchDiagnosis(),
     loadForecast(),
-    fetchGoals()
+    fetchDiagnosis()
   ])
-  rebuildPlan()
+  await rebuildPlan()
   await refreshAdvisorContext({ silent: true })
   if (options?.soft) chartsRefreshing.value = false
 }
@@ -168,7 +165,7 @@ async function runSimulation() {
       mega
       :plan="plan"
       :summary="displaySummary"
-      :diagnosis="diagnosis"
+      :diagnosis="displayDiagnosis"
       :diagnosis-loading="diagnosisLoading && !diagnosis"
       :categories="categories"
       :forecast="forecast"

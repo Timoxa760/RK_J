@@ -1,0 +1,58 @@
+---
+description: Две папки frontend и backend — правки в разных ветках front и back
+alwaysApply: true
+---
+
+# Dual-branch layout (frontend / backend)
+
+Репозиторий разделён на две рабочие зоны. Меняем обе локально, коммитим строго в свои ветки.
+
+## Структура
+
+| Путь | Ветка | Назначение |
+|------|-------|------------|
+| `frontend/` | `front` | Nuxt-приложение |
+| `backend/` | `back` | Go-микросервисы (git worktree) |
+
+Корень репозитория — ветка `front`. Папка `backend/` — отдельный worktree на ветке `back` (`git worktree list`).
+
+## Коммиты
+
+Формат: **`type(scope): subject`** — Conventional Commits. Подробнее: [docs/guides/git-and-branches.md](../docs/guides/git-and-branches.md).
+
+**Фронт** — из корня репозитория:
+
+```bash
+git add frontend/ docs/ docker-compose.yml   # только файлы front
+git commit -m "feat(front): ..."
+git push origin front
+```
+
+**Бэк** — из папки backend:
+
+```bash
+cd backend
+git add services/ internal/ ...
+git commit -m "feat(api): ..."
+git push origin back
+```
+
+Никогда не коммить содержимое `backend/` из корня (ветка front). Никогда не коммить `frontend/` из `backend/`.
+
+## Правила для агента
+
+1. Фронтенд-задачи — правки только в `frontend/` (и связанных root-файлах front: `docs/`, корневой `docker-compose.yml`).
+2. Бэкенд-задачи — правки только в `backend/`; `git`-операции выполнять с `cwd=backend`.
+3. Перед коммитом проверять ветку: `git branch --show-current` (корень → `front`, backend → `back`).
+4. Полный стек поднимать из `backend/`: `docker compose up` (там postgres, kafka, сервисы).
+5. Фронт отдельно: из корня `docker compose up` (только frontend-контейнер) или `cd frontend && npm run dev`.
+
+## Worktree
+
+```bash
+# список worktree
+git worktree list
+
+# если backend/ пропал — восстановить
+git worktree add backend back
+```

@@ -31,7 +31,10 @@ async function submit() {
     saveProfile({
       active_income: Math.max(0, draft.value.active_income),
       passive_income: Math.max(0, draft.value.passive_income),
-      emergency_fund: Math.max(0, draft.value.emergency_fund)
+      emergency_fund: Math.max(0, draft.value.emergency_fund),
+      goal_title: draft.value.goal_title?.trim() ?? '',
+      goal_amount: Math.max(0, draft.value.goal_amount ?? 0),
+      skipped_goal: (draft.value.goal_amount ?? 0) < 1000
     })
     await syncProfileToApi(profile.value)
     saved.value = true
@@ -82,6 +85,21 @@ async function submit() {
             type="number"
             min="0"
             step="5000"
+          />
+        </div>
+
+        <div class="space-y-2 sm:col-span-2">
+          <Label for="goal-title">Финансовая цель</Label>
+          <Input id="goal-title" v-model="draft.goal_title" type="text" placeholder="Отпуск, подушка…" />
+        </div>
+        <div class="space-y-2">
+          <Label for="goal-amount">Сумма цели, ₽</Label>
+          <Input
+            id="goal-amount"
+            v-model.number="draft.goal_amount"
+            type="number"
+            min="0"
+            step="1000"
           />
         </div>
 
