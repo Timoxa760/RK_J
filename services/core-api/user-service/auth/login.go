@@ -10,17 +10,28 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const demoSMSCode = "0000"
+
+// LoginRequest — тело POST /api/v1/auth/login (API_Contract).
 type LoginRequest struct {
 	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	Code     string `json:"code"`
+	Password string `json:"password,omitempty"` // legacy, не в контракте
 }
 
+// LoginUser — объект user в ответе login.
+type LoginUser struct {
+	ID    string `json:"id"`
+	Phone string `json:"phone"`
+	Role  string `json:"role"`
+}
+
+// LoginResponse — 200 OK по API_Contract.
 type LoginResponse struct {
-	Success      bool   `json:"success"`
-	AccessToken  string `json:"access_token,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	ExpiresIn    int    `json:"expires_in,omitempty"`
-	Message      string `json:"message,omitempty"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresIn    int       `json:"expires_in"`
+	User         LoginUser `json:"user"`
 }
 
 type LoginHandler struct {
@@ -43,8 +54,13 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Phone == "" || req.Password == "" {
-		http.Error(w, `{"error":"phone and password required"}`, http.StatusBadRequest)
+	code := req.Code
+	if code == "" && req.Password != "" {
+		code = req.Password
+	}
+
+	if req.Phone == "" || code == "" {
+		http.Error(w, `{"error":"phone and code required"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -53,17 +69,20 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mu.Unlock()
 
 	if h.demoMode {
+		if code != demoSMSCode {
+			writeLoginUnauthorized(w)
+			return
+		}
 		if !exists {
 			mu.Lock()
-			users[req.Phone] = User{Phone: req.Phone, Password: req.Password}
-			user = users[req.Phone]
+			users[req.Phone] = User{Phone: req.Phone, Code: demoSMSCode}
 			mu.Unlock()
 		}
-	} else if !exists || user.Password != req.Password {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(LoginResponse{Success: false, Message: "invalid credentials"})
-		return
+	} else {
+		if !exists || user.Code != code {
+			writeLoginUnauthorized(w)
+			return
+		}
 	}
 
 	secret := getJWTSecret()
@@ -95,11 +114,21 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(LoginResponse{
-		Success:      true,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    900,
+		User: LoginUser{
+			ID:    userID,
+			Phone: req.Phone,
+			Role:  "user",
+		},
 	})
+}
+
+func writeLoginUnauthorized(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	json.NewEncoder(w).Encode(map[string]string{"error": "invalid code"})
 }
 
 func getJWTSecret() string {

@@ -6,25 +6,26 @@ import (
 	"sync"
 )
 
+// User — учётная запись в in-memory хранилище (демо / MVP).
 type User struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	Phone string `json:"phone"`
+	Code  string `json:"code"`
 }
 
 var (
-	mu     sync.Mutex
-	users  = make(map[string]User)
+	mu    sync.Mutex
+	users = make(map[string]User)
 )
 
+// RegisterRequest — POST /api/v1/auth/register (только phone).
 type RegisterRequest struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	Phone string `json:"phone"`
 }
 
+// RegisterResponse — 200 OK по API_Contract.
 type RegisterResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message,omitempty"`
-	UserID  string `json:"user_id,omitempty"`
+	Message   string `json:"message"`
+	ExpiresIn int    `json:"expires_in"`
 }
 
 type RegisterHandler struct {
@@ -47,26 +48,28 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Phone == "" || req.Password == "" {
-		http.Error(w, `{"error":"phone and password required"}`, http.StatusBadRequest)
+	if req.Phone == "" {
+		http.Error(w, `{"error":"phone required"}`, http.StatusBadRequest)
 		return
 	}
 
-	userID := req.Phone
-
 	mu.Lock()
-	if _, exists := users[req.Phone]; !exists {
-		users[req.Phone] = User{
-			Phone:    req.Phone,
-			Password: req.Password,
-		}
+	defer mu.Unlock()
+	if _, exists := users[req.Phone]; exists {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(map[string]string{"error": "user already exists"})
+		return
 	}
-	mu.Unlock()
+
+	users[req.Phone] = User{
+		Phone: req.Phone,
+		Code:  demoSMSCode,
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(RegisterResponse{
-		Success: true,
-		Message: "user registered",
-		UserID:  userID,
+		Message:   "SMS sent",
+		ExpiresIn: 300,
 	})
 }

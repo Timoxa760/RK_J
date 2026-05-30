@@ -17,5 +17,10 @@ Thumbs.db
 *.so
 bin/
 
+# Go caches (не коммитить; иначе review/IDE показывает миллионы строк)
+.gocache/
+.gomodcache/
+.tmp/
+
 # Environment
 .env

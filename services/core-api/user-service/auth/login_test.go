@@ -9,10 +9,12 @@ import (
 )
 
 func TestLogin_Success(t *testing.T) {
-	users["+79991111111"] = User{Phone: "+79991111111", Password: "pass123"}
+	mu.Lock()
+	users["+79991111111"] = User{Phone: "+79991111111", Code: demoSMSCode}
+	mu.Unlock()
 	h := NewLoginHandler(false)
 
-	body := `{"phone":"+79991111111","password":"pass123"}`
+	body := `{"phone":"+79991111111","code":"0000"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -20,14 +22,11 @@ func TestLogin_Success(t *testing.T) {
 	h.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 
 	var resp LoginResponse
 	json.NewDecoder(w.Body).Decode(&resp)
-	if !resp.Success {
-		t.Error("expected success")
-	}
 	if resp.AccessToken == "" {
 		t.Error("expected access_token")
 	}
@@ -37,11 +36,14 @@ func TestLogin_Success(t *testing.T) {
 	if resp.ExpiresIn != 900 {
 		t.Errorf("expected 900s, got %d", resp.ExpiresIn)
 	}
+	if resp.User.Phone != "+79991111111" || resp.User.Role != "user" {
+		t.Errorf("unexpected user: %+v", resp.User)
+	}
 }
 
-func TestLogin_DemoAutoRegister(t *testing.T) {
+func TestLogin_DemoCode(t *testing.T) {
 	h := NewLoginHandler(true)
-	body := `{"phone":"+79992222222","password":"pass"}`
+	body := `{"phone":"+79992222222","code":"0000"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -53,11 +55,9 @@ func TestLogin_DemoAutoRegister(t *testing.T) {
 	}
 }
 
-func TestLogin_InvalidCredentials(t *testing.T) {
-	h := NewLoginHandler(false)
-	users["+79993333333"] = User{Phone: "+79993333333", Password: "correct"}
-
-	body := `{"phone":"+79993333333","password":"wrong"}`
+func TestLogin_InvalidCode(t *testing.T) {
+	h := NewLoginHandler(true)
+	body := `{"phone":"+79993333333","code":"1234"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()

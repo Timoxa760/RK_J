@@ -22,7 +22,7 @@ import (
 
 func main() {
 	port := "8100"
-	demoMode := os.Getenv("DEMO_MODE") == "true"
+	demoMode := getEnv("DEMO_MODE", "true") == "true"
 
 	brokers := strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ",")
 	chHost := getEnv("CLICKHOUSE_HOST", "localhost")
@@ -47,13 +47,19 @@ func main() {
 		}
 	}
 
-	pgPool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		log.Fatalf("pgxpool: %v", err)
+	var pgPool *pgxpool.Pool
+	if !demoMode {
+		var err error
+		pgPool, err = pgxpool.New(ctx, databaseURL)
+		if err != nil {
+			log.Fatalf("pgxpool: %v", err)
+		}
+		defer pgPool.Close()
 	}
-	defer pgPool.Close()
 
-	consumer := svckafka.NewConsumer(brokers, "receipt.parsed", "ai-processor", func(ctx context.Context, receipt internal.RawReceipt) error {
+	var consumer *svckafka.Consumer
+	if !demoMode {
+	consumer = svckafka.NewConsumer(brokers, "receipt.parsed", "ai-processor", func(ctx context.Context, receipt internal.RawReceipt) error {
 		categorized := cat.Categorize(receipt.Items)
 		cr := &internal.CategorizedReceipt{
 			UserID:   receipt.UserID,
@@ -80,17 +86,20 @@ func main() {
 			log.Printf("consumer stopped: %v", err)
 		}
 	}()
-
-	var manualRepo *manual.Repo
-	if chWriter != nil {
-		manualRepo = manual.NewRepo(pgPool, chWriter.Conn())
-	} else {
-		manualRepo = manual.NewRepo(pgPool, nil)
 	}
-	manualHandler := manual.NewHandler(manualRepo)
 
 	r := root.NewRouter()
-	r.Post("/api/v1/expenses/manual", manualHandler.Create)
+	if demoMode {
+		r.Post("/api/v1/expenses/manual", manual.NewDemoHandler().Create)
+	} else {
+		var manualRepo *manual.Repo
+		if chWriter != nil {
+			manualRepo = manual.NewRepo(pgPool, chWriter.Conn())
+		} else {
+			manualRepo = manual.NewRepo(pgPool, nil)
+		}
+		r.Post("/api/v1/expenses/manual", manual.NewHandler(manualRepo).Create)
+	}
 
 	srv := &http.Server{
 		Addr:         ":" + port,

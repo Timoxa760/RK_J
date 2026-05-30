@@ -9,8 +9,12 @@ import (
 )
 
 func TestRegister_Success(t *testing.T) {
+	mu.Lock()
+	delete(users, "+79994444444")
+	mu.Unlock()
+
 	h := NewRegisterHandler(true)
-	body := `{"phone":"+79991111111","password":"pass123"}`
+	body := `{"phone":"+79994444444"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -23,28 +27,35 @@ func TestRegister_Success(t *testing.T) {
 
 	var resp RegisterResponse
 	json.NewDecoder(w.Body).Decode(&resp)
-	if !resp.Success {
-		t.Error("expected success")
+	if resp.Message != "SMS sent" || resp.ExpiresIn != 300 {
+		t.Errorf("unexpected response: %+v", resp)
 	}
 }
 
-func TestRegister_MissingFields(t *testing.T) {
+func TestRegister_Conflict(t *testing.T) {
+	mu.Lock()
+	users["+79995555555"] = User{Phone: "+79995555555", Code: demoSMSCode}
+	mu.Unlock()
+
 	h := NewRegisterHandler(true)
-
-	tests := []string{
-		`{"phone":"","password":"pass"}`,
-		`{"phone":"+79991111111","password":""}`,
-		`{}`,
+	body := `{"phone":"+79995555555"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict {
+		t.Errorf("expected 409, got %d", w.Code)
 	}
+}
 
-	for _, body := range tests {
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
-		h.ServeHTTP(w, req)
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("expected 400 for body %s, got %d", body, w.Code)
-		}
+func TestRegister_MissingPhone(t *testing.T) {
+	h := NewRegisterHandler(true)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", w.Code)
 	}
 }
 

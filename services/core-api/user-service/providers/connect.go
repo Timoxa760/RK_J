@@ -19,9 +19,11 @@ type ConnectRequest struct {
 	Credentials map[string]string `json:"credentials"`
 }
 
+// ConnectResponse — 200 OK по API_Contract.
 type ConnectResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message,omitempty"`
+	Message  string `json:"message"`
+	Provider string `json:"provider"`
+	Status   string `json:"status"`
 }
 
 type ConnectedProvider struct {
@@ -55,10 +57,34 @@ func (h *ConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.UserID == "" || req.Provider == "" || req.Credentials == nil {
-		http.Error(w, `{"error":"user_id, provider and credentials required"}`, http.StatusBadRequest)
+	provider := r.URL.Query().Get("provider")
+	if provider == "" {
+		provider = req.Provider
+	}
+	if provider == "" || req.Credentials == nil {
+		http.Error(w, `{"error":"provider and credentials required"}`, http.StatusBadRequest)
 		return
 	}
+
+	userID := req.UserID
+	if userID == "" {
+		userID = req.Credentials["phone"]
+	}
+	if userID == "" {
+		http.Error(w, `{"error":"user_id or credentials.phone required"}`, http.StatusBadRequest)
+		return
+	}
+
+	mu.Lock()
+	conflictKey := userID + ":" + provider
+	if _, exists := providers[conflictKey]; exists {
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusConflict)
+		json.NewEncoder(w).Encode(map[string]string{"error": "provider already connected"})
+		return
+	}
+	mu.Unlock()
 
 	credsJSON, err := json.Marshal(req.Credentials)
 	if err != nil {
@@ -72,17 +98,21 @@ func (h *ConnectHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := req.UserID + ":" + req.Provider
+	key := userID + ":" + provider
 	mu.Lock()
 	providers[key] = ConnectedProvider{
-		UserID:      req.UserID,
-		Provider:    req.Provider,
+		UserID:      userID,
+		Provider:    provider,
 		Credentials: encrypted,
 	}
 	mu.Unlock()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ConnectResponse{Success: true, Message: "provider connected"})
+	json.NewEncoder(w).Encode(ConnectResponse{
+		Message:  "Provider connected",
+		Provider: provider,
+		Status:   "active",
+	})
 }
 
 func getEncryptionKey() []byte {

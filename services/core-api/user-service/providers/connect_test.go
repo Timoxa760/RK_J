@@ -10,8 +10,8 @@ import (
 
 func TestConnect_Success(t *testing.T) {
 	h := NewConnectHandler(true)
-	body := `{"user_id":"+79991111111","provider":"x5club","credentials":{"phone":"+79991111111","password":"secret"}}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/providers/connect", strings.NewReader(body))
+	body := `{"credentials":{"phone":"+79991111111","password":"secret"}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/providers/connect?provider=x5club", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -23,8 +23,8 @@ func TestConnect_Success(t *testing.T) {
 
 	var resp ConnectResponse
 	json.NewDecoder(w.Body).Decode(&resp)
-	if !resp.Success {
-		t.Error("expected success")
+	if resp.Status != "active" || resp.Provider != "x5club" {
+		t.Errorf("unexpected response: %+v", resp)
 	}
 
 	key := "+79991111111:x5club"
@@ -53,9 +53,8 @@ func TestConnect_MissingFields(t *testing.T) {
 	h := NewConnectHandler(true)
 
 	tests := []string{
-		`{"user_id":"","provider":"x5","credentials":{"p":"s"}}`,
-		`{"user_id":"u1","provider":"","credentials":{"p":"s"}}`,
-		`{"user_id":"u1","provider":"x5","credentials":null}`,
+		`{"credentials":{"p":"s"}}`,
+		`{"credentials":null}`,
 	}
 
 	for _, body := range tests {
