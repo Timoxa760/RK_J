@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Sparkles, TrendingUp } from 'lucide-vue-next'
 import type { CategoriesResponse, FinancialProfile } from '~/types/api'
-import { SCENARIO_OPTIONS } from '~/types/api'
 import { formatRub } from '~/constants/productCopy'
+import {
+  buildUserCategoryOptions,
+  CATEGORY_EMOJI
+} from '~/constants/expenseCategories'
 import { buildScenarioPreview } from '~/utils/dashboardProjections'
 
 const props = defineProps<{
@@ -11,43 +14,60 @@ const props = defineProps<{
   embedded?: boolean
 }>()
 
-const scenario = defineModel<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
-  'scenario',
-  { default: 'reduce_cafe' }
-)
+const selectedCategory = defineModel<string>('selectedCategory', { default: '' })
 const percent = defineModel<number>('percent', { default: 20 })
 
-const scenarioMeta: Record<
-  (typeof SCENARIO_OPTIONS)[number]['value'],
-  { emoji: string; hint: string }
-> = {
-  reduce_delivery: { emoji: '🛵', hint: 'Сервисы доставки еды' },
-  reduce_cafe: { emoji: '☕', hint: 'Кофе, обеды, рестораны' },
-  reduce_entertainment: { emoji: '🎬', hint: 'Кино, подписки, досуг' },
-  custom: { emoji: '✂️', hint: 'Любая категория трат' }
-}
+const categoryOptions = computed(() => buildUserCategoryOptions(props.categories))
+
+watch(
+  categoryOptions,
+  (options) => {
+    if (!options.length) {
+      selectedCategory.value = ''
+      return
+    }
+    if (!options.some((row) => row.name === selectedCategory.value)) {
+      selectedCategory.value = options[0]!.name
+    }
+  },
+  { immediate: true }
+)
+
+const activeOption = computed(() =>
+  categoryOptions.value.find((row) => row.name === selectedCategory.value)
+)
 
 const preview = computed(() =>
   buildScenarioPreview({
     profile: props.profile,
     categories: props.categories,
-    scenario: scenario.value,
+    categoryName: selectedCategory.value,
     reductionPercent: percent.value,
     months: 12
   })
 )
 
 const compareMax = computed(() =>
-  Math.max(preview.value.baselineEnd, preview.value.optimizedEnd, 1)
+  Math.max(preview.value.currentBalance, preview.value.optimizedEnd, preview.value.baselineEnd, 1)
 )
 
 const baselineWidth = computed(() =>
-  Math.round((preview.value.baselineEnd / compareMax.value) * 100)
+  Math.round((preview.value.currentBalance / compareMax.value) * 100)
 )
 
 const optimizedWidth = computed(() =>
   Math.round((preview.value.optimizedEnd / compareMax.value) * 100)
 )
+
+const scenarioBarLabel = computed(() => {
+  const name = preview.value.categoryName
+  return `С «${name}» −${percent.value}%`
+})
+
+function categoryHint(option: (typeof categoryOptions.value)[number]): string {
+  const share = Math.round(option.share * 100)
+  return `${share}% трат · ${formatRub(option.amount)}/мес`
+}
 </script>
 
 <template>
@@ -68,7 +88,7 @@ const optimizedWidth = computed(() =>
         <div>
           <CardTitle class="text-base">А если чуть меньше тратить?</CardTitle>
           <CardDescription class="text-sm">
-            Подберите категорию — сразу увидите, сколько можно отложить
+            Категории из ваших покупок — сразу видно, сколько можно отложить
           </CardDescription>
         </div>
       </div>
@@ -77,21 +97,24 @@ const optimizedWidth = computed(() =>
     <component :is="embedded ? 'div' : 'CardContent'" class="space-y-5">
       <div class="space-y-2">
         <p class="text-sm font-medium text-foreground">Куда «резать»</p>
-        <div class="flex flex-wrap gap-2">
+        <div v-if="categoryOptions.length" class="flex flex-wrap gap-2">
           <button
-            v-for="opt in SCENARIO_OPTIONS"
-            :key="opt.value"
+            v-for="opt in categoryOptions"
+            :key="opt.name"
             type="button"
             class="mm-scenario-simulator__chip"
-            :class="{ 'mm-scenario-simulator__chip--active': scenario === opt.value }"
-            @click="scenario = opt.value"
+            :class="{ 'mm-scenario-simulator__chip--active': selectedCategory === opt.name }"
+            @click="selectedCategory = opt.name"
           >
-            <span aria-hidden="true">{{ scenarioMeta[opt.value].emoji }}</span>
-            <span>{{ opt.label }}</span>
+            <span aria-hidden="true">{{ CATEGORY_EMOJI[opt.name] ?? '📦' }}</span>
+            <span>{{ opt.name }}</span>
           </button>
         </div>
-        <p class="text-xs text-muted-foreground">
-          {{ scenarioMeta[scenario].hint }}
+        <p v-else class="text-sm text-muted-foreground">
+          Пока нет трат по категориям — добавьте покупку голосом или вручную.
+        </p>
+        <p v-if="activeOption" class="text-xs text-muted-foreground">
+          {{ categoryHint(activeOption) }}
         </p>
       </div>
 
@@ -110,6 +133,7 @@ const optimizedWidth = computed(() =>
           max="50"
           step="5"
           class="mm-scenario-simulator__range mt-3 w-full"
+          :disabled="!categoryOptions.length"
         />
         <div class="mt-1 flex justify-between text-xs text-muted-foreground">
           <span>5%</span>
@@ -120,7 +144,7 @@ const optimizedWidth = computed(() =>
       <Transition name="mm-scenario-fade" mode="out-in">
         <div
           v-if="preview.hasData"
-          :key="`${scenario}-${percent}`"
+          :key="`${selectedCategory}-${percent}`"
           class="mm-scenario-simulator__result"
         >
           <div class="mm-scenario-simulator__metrics">
@@ -139,14 +163,31 @@ const optimizedWidth = computed(() =>
           </div>
 
           <div class="space-y-3">
-            <p class="text-sm font-medium text-foreground">Накопления через год</p>
+            <p class="text-sm font-medium text-foreground">Подушка через год</p>
             <div class="space-y-2">
               <div class="mm-scenario-simulator__bar-row">
                 <span class="mm-scenario-simulator__bar-label">Как сейчас</span>
                 <div class="mm-scenario-simulator__bar-track">
                   <div
                     class="mm-scenario-simulator__bar mm-scenario-simulator__bar--base"
-                    :style="{ width: `${baselineWidth}%` }"
+                    :style="{ width: `${Math.max(baselineWidth, 8)}%` }"
+                  />
+                </div>
+                <span class="mm-scenario-simulator__bar-value">
+                  {{ formatRub(preview.currentBalance) }}
+                </span>
+              </div>
+              <div
+                v-if="preview.baselineEnd !== preview.currentBalance"
+                class="mm-scenario-simulator__bar-row"
+              >
+                <span class="mm-scenario-simulator__bar-label">Без изменений</span>
+                <div class="mm-scenario-simulator__bar-track">
+                  <div
+                    class="mm-scenario-simulator__bar mm-scenario-simulator__bar--muted"
+                    :style="{
+                      width: `${Math.max(Math.round((preview.baselineEnd / compareMax) * 100), 8)}%`
+                    }"
                   />
                 </div>
                 <span class="mm-scenario-simulator__bar-value">
@@ -154,11 +195,11 @@ const optimizedWidth = computed(() =>
                 </span>
               </div>
               <div class="mm-scenario-simulator__bar-row">
-                <span class="mm-scenario-simulator__bar-label">С «{{ preview.scenarioLabel }}» −{{ percent }}%</span>
+                <span class="mm-scenario-simulator__bar-label">{{ scenarioBarLabel }}</span>
                 <div class="mm-scenario-simulator__bar-track">
                   <div
                     class="mm-scenario-simulator__bar mm-scenario-simulator__bar--gain"
-                    :style="{ width: `${optimizedWidth}%` }"
+                    :style="{ width: `${Math.max(optimizedWidth, 8)}%` }"
                   />
                 </div>
                 <span class="mm-scenario-simulator__bar-value mm-scenario-simulator__bar-value--accent">
@@ -170,7 +211,12 @@ const optimizedWidth = computed(() =>
 
           <p class="mm-scenario-simulator__footnote">
             <TrendingUp class="size-4 shrink-0 text-primary" aria-hidden="true" />
-            <span>Разница {{ formatRub(preview.totalGain) }} — из вашего дохода и трат в профиле.</span>
+            <span>
+              «{{ preview.categoryName }}» — {{ formatRub(preview.categorySpend) }} за месяц.
+              <template v-if="preview.freeCashflow !== 0">
+                Свободно {{ preview.freeCashflow > 0 ? '+' : '' }}{{ formatRub(preview.freeCashflow) }}/мес. из профиля и трат.
+              </template>
+            </span>
           </p>
         </div>
 

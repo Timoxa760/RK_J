@@ -1,3 +1,5 @@
+<script setup lang="ts">
+import type { AdvisorChatAction } from '~/types/api'
 import { decodeAskQuery } from '~/utils/advisorChat'
 
 const advisorShellKey = Symbol('advisor-shell')
@@ -14,14 +16,36 @@ function createAdvisorShell() {
     typing,
     error: chatError,
     initChat,
+    resetChat,
     sendMessage,
     handleAskQuery
   } = useAdvisorChat(() => advisorContext.value)
 
+  async function runAction(action: AdvisorChatAction) {
+    switch (action.type) {
+      case 'navigate':
+        await navigateTo({ path: action.path ?? '/dashboard', hash: action.hash })
+        break
+      case 'open_add_expense':
+        useAddExpenseSheet().show()
+        break
+      case 'open_profile': {
+        const query = action.profileField ? { section: action.profileField } : undefined
+        await navigateTo({ path: '/profile', query })
+        break
+      }
+      case 'ask_followup':
+        if (action.ask) await sendMessage(action.ask)
+        break
+    }
+  }
+
   async function processAskFromQuery() {
     const ask = decodeAskQuery(route.query.ask)
     if (!ask) return
-    requestMobileSidebar()
+    if (route.path !== '/advisor') {
+      requestMobileSidebar()
+    }
     await handleAskQuery(ask)
     scrollToAdvisorChat()
     const { ask: _removed, ...rest } = route.query
@@ -37,7 +61,7 @@ function createAdvisorShell() {
     }
     bootstrapped.value = true
     await refreshAdvisorContext({ silent: true })
-    initChat()
+    await initChat()
     await processAskFromQuery()
   }
 
@@ -49,11 +73,19 @@ function createAdvisorShell() {
     }
   )
 
+  const { addedVersion } = useAddExpenseSheet()
+  watch(addedVersion, () => {
+    refreshAdvisorContext({ silent: true })
+  })
+
   return {
+    advisorContext,
     messages,
     typing,
     chatError,
     sendMessage,
+    resetChat,
+    runAction,
     refreshAdvisorContext,
     bootstrap
   }
@@ -73,10 +105,13 @@ export function useAdvisorShell() {
 
   const noop = async () => {}
   return {
+    advisorContext: computed(() => null),
     messages: ref([]),
     typing: ref(false),
     chatError: ref<string | null>(null),
     sendMessage: noop,
+    resetChat: noop,
+    runAction: noop,
     refreshAdvisorContext: noop,
     bootstrap: noop
   }

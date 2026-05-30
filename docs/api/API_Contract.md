@@ -801,7 +801,29 @@ Partial update. Те же поля, все optional.
 }
 ```
 
-**200 OK:** `{"reply": "..."}`
+**200 OK:**
+```json
+{
+  "reply": "...",
+  "actions": [{"type": "navigate", "label": "Открыть план", "path": "/dashboard", "hash": "#plan"}],
+  "source": "gemini",
+  "id": "uuid"
+}
+```
+
+Контекст (profile, credits, spending) — server-side по JWT. История может подтягиваться с сервера без `history` в body.
+
+### GET /api/v1/ai/chat/history?limit=50
+
+**200 OK:** `{ "messages": [{ "id", "role", "content", "actions?", "source?", "created_at" }] }`
+
+### DELETE /api/v1/ai/chat/history
+
+**200 OK:** `{ "status": "ok" }`
+
+### POST /api/v1/ai/chat/stream
+
+SSE: `event: delta` → `{"text":"..."}`; `event: done` → полный объект как у POST /ai/chat.
 
 Контекст (profile, credits, expenses) — server-side по JWT.
 

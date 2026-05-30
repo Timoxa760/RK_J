@@ -1,4 +1,5 @@
 import type { SimulateScenarioRequest, SimulateScenarioResponse, TimeMachineResponse } from '~/types/api'
+import { buildUserCategoryOptions } from '~/constants/expenseCategories'
 import { formatScenarioResult } from '~/utils/analyticsNarrative'
 import { normalizeTimeMachine } from '~/utils/apiNormalize'
 import {
@@ -6,6 +7,25 @@ import {
   isPlaceholderTimemachine
 } from '~/utils/dashboardProjections'
 import { useDashboardStore } from '~/store/dashboardStore'
+
+const SCENARIO_ENUM_TO_CATEGORY: Record<
+  Exclude<SimulateScenarioRequest['scenario'], 'custom'>,
+  string
+> = {
+  reduce_delivery: 'Доставка',
+  reduce_cafe: 'Кафе и рестораны',
+  reduce_entertainment: 'Развлечения'
+}
+
+function resolveScenarioCategory(
+  scenario: SimulateScenarioRequest['scenario'],
+  categories: ReturnType<typeof useDashboardStore>['categories']
+): string {
+  if (scenario === 'custom') {
+    return buildUserCategoryOptions(categories)[0]?.name ?? 'Прочие расходы'
+  }
+  return SCENARIO_ENUM_TO_CATEGORY[scenario]
+}
 
 export function useAnalytics() {
   const { apiFetch } = useApi()
@@ -60,7 +80,7 @@ export function useAnalytics() {
         const local = buildScenarioResult({
           profile: profile.value,
           categories: dashboardStore.categories,
-          scenario: params.scenario,
+          categoryName: resolveScenarioCategory(params.scenario, dashboardStore.categories),
           reductionPercent: params.reduction_percent,
           months: params.months ?? 12
         })
@@ -81,7 +101,7 @@ export function useAnalytics() {
       const local = buildScenarioResult({
         profile: profile.value,
         categories: dashboardStore.categories,
-        scenario: params.scenario,
+        categoryName: resolveScenarioCategory(params.scenario, dashboardStore.categories),
         reductionPercent: params.reduction_percent,
         months: params.months ?? 12
       })

@@ -4,6 +4,7 @@ import type {
   ForecastResponse,
   TimeMachineResponse
 } from '~/types/api'
+import { buildUserCategoryOptions } from '~/constants/expenseCategories'
 import { normalizeForecast, normalizeTimeMachine } from '~/utils/apiNormalize'
 
 function sumCategories(categories: CategoriesResponse | null | undefined): number {
@@ -172,84 +173,117 @@ export function resolveSavingsTimemachine(
 
 /** Локальный расчёт эффекта сценария без demo API */
 export interface ScenarioPreview {
-  scenario: 'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'
-  scenarioLabel: string
+  categoryName: string
   reductionPercent: number
   months: number
+  /** Траты по выбранной категории за текущий месяц (из API, нормализованные) */
+  categorySpend: number
   monthlySaving: number
   totalGain: number
-  startBalance: number
+  /** Подушка / emergency_fund из профиля */
+  currentBalance: number
+  freeCashflow: number
   baselineEnd: number
   optimizedEnd: number
   hasData: boolean
   message: string
 }
 
-const SCENARIO_LABELS: Record<ScenarioPreview['scenario'], string> = {
-  reduce_delivery: 'Доставка',
-  reduce_cafe: 'Кафе',
-  reduce_entertainment: 'Развлечения',
-  custom: 'Свои траты'
+function categorySpendByName(
+  categories: CategoriesResponse | null,
+  categoryName: string
+): number {
+  if (!categoryName) return 0
+  const options = buildUserCategoryOptions(categories)
+  return options.find((row) => row.name === categoryName)?.amount ?? 0
+}
+
+function totalCategorySpend(categories: CategoriesResponse | null): number {
+  return sumCategories(categories)
+}
+
+function monthlyFreeCashflow(
+  profile: FinancialProfile | null | undefined,
+  categories: CategoriesResponse | null
+): number {
+  return profileIncome(profile) - monthSpend(profile, categories)
 }
 
 export function buildScenarioPreview(input: {
   profile: FinancialProfile | null | undefined
   categories: CategoriesResponse | null
-  scenario: ScenarioPreview['scenario']
+  categoryName: string
   reductionPercent: number
   months?: number
 }): ScenarioPreview {
   const months = input.months ?? 12
-  const categoryShare: Record<string, number> = {
-    reduce_delivery: 0.07,
-    reduce_cafe: 0.22,
-    reduce_entertainment: 0.09,
-    custom: 0.15
-  }
-
-  const spend = monthSpend(input.profile, input.categories)
-  const income = profileIncome(input.profile)
-  const baseSaving = Math.max(0, income - spend)
-  const share = categoryShare[input.scenario] ?? 0.1
-  const monthlySaving = Math.round(spend * share * (input.reductionPercent / 100))
+  const categoryOptions = buildUserCategoryOptions(input.categories)
+  const categoryName =
+    categoryOptions.find((row) => row.name === input.categoryName)?.name ??
+    input.categoryName
+  const categorySpend = categorySpendByName(input.categories, categoryName)
+  const currentBalance = Math.max(0, input.profile?.emergency_fund ?? 0)
+  const freeCashflow = monthlyFreeCashflow(input.profile, input.categories)
+  const totalSpend = totalCategorySpend(input.categories)
+  const monthlySaving = Math.round(categorySpend * (input.reductionPercent / 100))
   const totalGain = monthlySaving * months
-  const startBalance = Math.max(0, input.profile?.emergency_fund ?? 0)
-  const scenarioLabel = SCENARIO_LABELS[input.scenario]
 
-  const message =
-    monthlySaving > 0
-      ? `При сокращении на ${input.reductionPercent}% экономия ~${monthlySaving.toLocaleString('ru-RU')} ₽/мес — за ${months} мес. +${totalGain.toLocaleString('ru-RU')} ₽ к накоплениям.`
-      : 'Добавьте доход и траты — тогда симулятор покажет эффект.'
+  const baselineEnd = Math.max(
+    0,
+    Math.round(currentBalance + freeCashflow * months)
+  )
+  const optimizedEnd = Math.max(
+    0,
+    Math.round(currentBalance + (freeCashflow + monthlySaving) * months)
+  )
 
-  if (monthlySaving <= 0) {
+  if (totalSpend <= 0) {
     return {
-      scenario: input.scenario,
-      scenarioLabel,
+      categoryName,
       reductionPercent: input.reductionPercent,
       months,
+      categorySpend: 0,
       monthlySaving: 0,
       totalGain: 0,
-      startBalance,
-      baselineEnd: startBalance,
-      optimizedEnd: startBalance,
+      currentBalance,
+      freeCashflow,
+      baselineEnd: currentBalance,
+      optimizedEnd: currentBalance,
       hasData: false,
-      message
+      message: 'Добавьте покупки — покажем эффект от сокращения трат.'
     }
   }
 
-  const baselineEnd = startBalance + baseSaving * months
-  const optimizedEnd = startBalance + (baseSaving + monthlySaving) * months
+  if (categorySpend <= 0) {
+    return {
+      categoryName,
+      reductionPercent: input.reductionPercent,
+      months,
+      categorySpend: 0,
+      monthlySaving: 0,
+      totalGain: 0,
+      currentBalance,
+      freeCashflow,
+      baselineEnd: currentBalance,
+      optimizedEnd: currentBalance,
+      hasData: false,
+      message: `За этот месяц нет трат в «${categoryName}». Выберите категорию, где уже есть расходы.`
+    }
+  }
+
+  const message = `Сократите «${categoryName}» на ${input.reductionPercent}% — это ~${monthlySaving.toLocaleString('ru-RU')} ₽/мес (${categorySpend.toLocaleString('ru-RU')} ₽ сейчас).`
 
   return {
-    scenario: input.scenario,
-    scenarioLabel,
+    categoryName,
     reductionPercent: input.reductionPercent,
     months,
+    categorySpend,
     monthlySaving,
     totalGain,
-    startBalance,
-    baselineEnd: Math.max(0, Math.round(baselineEnd)),
-    optimizedEnd: Math.max(0, Math.round(optimizedEnd)),
+    currentBalance,
+    freeCashflow,
+    baselineEnd,
+    optimizedEnd,
     hasData: true,
     message
   }
@@ -258,7 +292,7 @@ export function buildScenarioPreview(input: {
 export function buildScenarioResult(input: {
   profile: FinancialProfile | null | undefined
   categories: CategoriesResponse | null
-  scenario: 'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'
+  categoryName: string
   reductionPercent: number
   months?: number
 }): { message: string; timemachine: TimeMachineResponse | null; preview: ScenarioPreview } {
@@ -269,19 +303,17 @@ export function buildScenarioResult(input: {
     return { message: preview.message, timemachine: null, preview }
   }
 
-  const spend = monthSpend(input.profile, input.categories)
-  const income = profileIncome(input.profile)
-  const baseSaving = Math.max(0, income - spend)
+  const freeCashflow = preview.freeCashflow
   const monthlySaving = preview.monthlySaving
-  const start = preview.startBalance
+  const start = preview.currentBalance
   const points: TimeMachineResponse['points'] = []
   let baseline = start
   let optimized = start
   const now = new Date()
 
   for (let i = 1; i <= Math.min(months, 12); i++) {
-    baseline += baseSaving
-    optimized += baseSaving + monthlySaving
+    baseline += freeCashflow
+    optimized += freeCashflow + monthlySaving
     const date = new Date(now.getFullYear(), now.getMonth() + i, 1)
     points.push({
       month: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,

@@ -4,7 +4,7 @@ import { isAppFeatureEnabled } from '~/constants/featureFlags'
 const ACTS = [
   { path: '/dashboard', label: 'Картина недели', selector: '[data-demo="narrative"]' },
   { path: '/dashboard', label: 'Финансовый план', selector: '[data-demo="financial-plan"]' },
-  { path: '/dashboard', label: 'Советник', selector: '[data-demo="advisor-chat"]' },
+  { path: '/advisor', label: 'Советник', selector: '[data-demo="advisor-chat"]' },
   { path: '/dashboard', label: 'Добавить трату', selector: '[data-demo="add-expense"]' },
   { path: '/receipts', label: 'Лента чеков', selector: '[data-demo="receipts"]' },
   ...(isAppFeatureEnabled('creditsNav')

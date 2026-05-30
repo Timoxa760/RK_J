@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CreditCard, LayoutGrid, Menu, Plus, ReceiptText } from 'lucide-vue-next'
+import { CreditCard, LayoutGrid, Menu, MessageCircle, Plus, ReceiptText } from 'lucide-vue-next'
 import { ADVISOR } from '~/constants/productCopy'
 import { useSidebar } from '~/components/ui/sidebar/utils'
 import { isAppFeatureEnabled } from '~/constants/featureFlags'
@@ -51,6 +51,15 @@ const showCredits = computed(() => isAppFeatureEnabled('creditsNav'))
       </div>
 
       <NuxtLink
+        to="/advisor"
+        class="mm-mobile-tab-bar__item"
+        :class="route.path === '/advisor' ? 'text-primary' : 'text-muted-foreground'"
+      >
+        <MessageCircle class="size-5" stroke-width="1.75" />
+        <span class="max-w-full truncate">Советник</span>
+      </NuxtLink>
+
+      <NuxtLink
         v-if="showCredits"
         to="/credits"
         class="mm-mobile-tab-bar__item"
@@ -59,9 +68,8 @@ const showCredits = computed(() => isAppFeatureEnabled('creditsNav'))
         <CreditCard class="size-5" stroke-width="1.75" />
         <span class="max-w-full truncate">Кредиты</span>
       </NuxtLink>
-      <div v-else class="mm-mobile-tab-bar__item" aria-hidden="true" />
-
       <button
+        v-else
         type="button"
         class="mm-mobile-tab-bar__item text-muted-foreground"
         aria-label="Открыть меню"

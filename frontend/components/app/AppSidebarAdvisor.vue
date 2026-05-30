@@ -1,12 +1,18 @@
 <script setup lang="ts">
-const props = defineProps<{
-  messages: Array<{ id: string; role: 'user' | 'assistant'; content: string }>
+import type { AdvisorContext } from '~/utils/advisorChat'
+import type { AdvisorChatAction } from '~/types/api'
+import type { ChatTurn } from '~/composables/useAdvisorChat'
+
+defineProps<{
+  messages: ChatTurn[]
   typing?: boolean
   error?: string | null
+  context?: AdvisorContext | null
 }>()
 
 const emit = defineEmits<{
   send: [text: string]
+  action: [action: AdvisorChatAction]
 }>()
 </script>
 
@@ -18,8 +24,16 @@ const emit = defineEmits<{
         :messages="messages"
         :typing="typing"
         :error="error"
+        :context="context"
         @send="emit('send', $event)"
+        @action="emit('action', $event)"
       />
+      <NuxtLink
+        to="/advisor"
+        class="mt-2 block text-center text-xs text-primary underline-offset-2 hover:underline md:hidden"
+      >
+        Открыть полный чат
+      </NuxtLink>
     </div>
     <template #fallback>
       <div class="mm-sidebar-advisor flex min-h-[12rem] flex-1 flex-col gap-2 p-1">

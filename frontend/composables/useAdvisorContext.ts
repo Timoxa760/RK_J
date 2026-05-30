@@ -32,7 +32,8 @@ export function useAdvisorContext() {
     topInsight: topInsight.value,
     timemachine: projectedTimemachine.value,
     primaryGoal: primaryGoal.value,
-    goalForecast: summary.value.goalForecast
+    goalForecast: summary.value.goalForecast,
+    categories: categories.value
   }))
 
   async function refreshAdvisorContext(options?: { silent?: boolean }) {

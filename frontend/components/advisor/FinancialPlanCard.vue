@@ -36,10 +36,7 @@ const props = withDefaults(
   { mega: false }
 )
 
-const scenario = defineModel<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
-  'scenario',
-  { default: 'reduce_cafe' }
-)
+const selectedCategory = defineModel<string>('selectedCategory', { default: '' })
 const percent = defineModel<number>('percent', { default: 20 })
 
 const emit = defineEmits<{
@@ -195,6 +192,11 @@ const opportunityBadge = computed(() => {
               :indicators="diagnosis?.indicators ?? []"
               :loading="diagnosisLoading && !diagnosis"
             />
+            <AdvisorAskButton
+              v-if="diagnosis?.main_action"
+              :insight-title="diagnosis.main_action.title"
+              :insight-description="diagnosis.main_action.description"
+            />
           </section>
 
           <section class="mm-financial-plan-mega__section space-y-4">
@@ -207,6 +209,10 @@ const opportunityBadge = computed(() => {
               :categories-summary="categoriesSummary"
               :current-savings="summary?.savingsBalance ?? null"
               :loading="chartsLoading"
+            />
+            <AdvisorAskButton
+              prompt="Где больше всего уходит денег и что урезать в первую очередь?"
+              label="Спросить про траты"
             />
           </section>
 
@@ -222,13 +228,17 @@ const opportunityBadge = computed(() => {
               :dti-tone="dtiTone ?? 'warn'"
               :loading="creditsLoading"
             />
+            <AdvisorAskButton
+              prompt="Стоит ли рефинансировать кредит при моей ставке?"
+              label="Спросить про кредит"
+            />
           </section>
 
           <section class="mm-financial-plan-mega__section space-y-5">
             <h3 class="mm-financial-plan-mega__heading">{{ ADVISOR.planTabExplore }}</h3>
             <p class="text-base text-muted-foreground">{{ ADVISOR.planTabExploreHint }}</p>
             <AnalyticsScenarioSimulator
-              v-model:scenario="scenario"
+              v-model:selected-category="selectedCategory"
               v-model:percent="percent"
               embedded
               :profile="profile"
@@ -332,6 +342,11 @@ const opportunityBadge = computed(() => {
               :indicators="diagnosis?.indicators ?? []"
               :loading="diagnosisLoading && !diagnosis"
             />
+            <AdvisorAskButton
+              v-if="diagnosis?.main_action"
+              :insight-title="diagnosis.main_action.title"
+              :insight-description="diagnosis.main_action.description"
+            />
           </TabsContent>
 
           <TabsContent value="money" class="mt-4 space-y-3">
@@ -344,6 +359,10 @@ const opportunityBadge = computed(() => {
               :current-savings="summary?.savingsBalance ?? null"
               :loading="chartsLoading"
             />
+            <AdvisorAskButton
+              prompt="Где больше всего уходит денег и что урезать в первую очередь?"
+              label="Спросить про траты"
+            />
           </TabsContent>
 
           <TabsContent value="credits" class="mt-4 space-y-3">
@@ -354,12 +373,16 @@ const opportunityBadge = computed(() => {
               :dti-tone="dtiTone ?? 'warn'"
               :loading="creditsLoading"
             />
+            <AdvisorAskButton
+              prompt="Стоит ли рефинансировать кредит при моей ставке?"
+              label="Спросить про кредит"
+            />
           </TabsContent>
 
           <TabsContent value="explore" class="mt-4 space-y-4">
             <p class="text-sm text-muted-foreground">{{ ADVISOR.planTabExploreHint }}</p>
             <AnalyticsScenarioSimulator
-              v-model:scenario="scenario"
+              v-model:selected-category="selectedCategory"
               v-model:percent="percent"
               embedded
               :profile="profile"

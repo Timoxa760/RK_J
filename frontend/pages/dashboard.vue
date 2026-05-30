@@ -14,9 +14,7 @@ const { refreshAdvisorContext } = useAdvisorContext()
 
 const { addedVersion } = useAddExpenseSheet()
 
-const scenario = ref<'reduce_delivery' | 'reduce_cafe' | 'reduce_entertainment' | 'custom'>(
-  'reduce_cafe'
-)
+const selectedCategory = ref('')
 const percent = ref(20)
 
 const projectedTimemachine = computed(() =>
@@ -133,7 +131,7 @@ watch(addedVersion, () => {
       :show-credits="showCredits"
       :dti-tone="summary.dtiTone"
       :insights="allInsights"
-      v-model:scenario="scenario"
+      v-model:selected-category="selectedCategory"
       v-model:percent="percent"
       :loading="planLoading || planRefreshing"
       @refresh="rebuildPlan"

@@ -1,9 +1,13 @@
 import type {
+  AiChatMessage,
+  AiChatResponse,
   AiDiagnosisResponse,
+  CategoriesResponse,
   Goal,
   InsightItem,
   TimeMachineResponse
 } from '~/types/api'
+import { buildUserCategoryOptions } from '~/constants/expenseCategories'
 import { buildGoalForecast } from '~/utils/dashboardSummary'
 import { buildGoalProgressText } from '~/utils/pageNarrative'
 import { formatRub } from '~/constants/productCopy'
@@ -14,15 +18,33 @@ export interface AdvisorContext {
   timemachine: TimeMachineResponse | null
   primaryGoal: Goal | null
   goalForecast: string
+  categories: CategoriesResponse | null
 }
 
-const QUICK_PROMPTS = [
-  'Как сократить доставку?',
+const DEFAULT_QUICK_PROMPTS = [
+  'С чего начать экономить?',
   'Когда дойду до цели?',
-  'С чего начать экономить?'
+  'Составь план'
 ] as const
 
-export { QUICK_PROMPTS }
+export function buildDynamicQuickPrompts(ctx: AdvisorContext): string[] {
+  const prompts: string[] = []
+  const categoryOptions = buildUserCategoryOptions(ctx.categories)
+  if (categoryOptions[0]) {
+    prompts.push(`Как сократить «${categoryOptions[0].name}»?`)
+  }
+  if (ctx.primaryGoal?.title) {
+    prompts.push(`Когда дойду до цели «${ctx.primaryGoal.title}»?`)
+  } else {
+    prompts.push('Когда дойду до цели?')
+  }
+  if (ctx.diagnosis?.main_action?.title) {
+    prompts.push(`Расскажи про «${ctx.diagnosis.main_action.title}»`)
+  } else {
+    prompts.push(DEFAULT_QUICK_PROMPTS[0]!)
+  }
+  return prompts.slice(0, 3)
+}
 
 export function goalProgressPercent(goal: Goal): number {
   if (!goal.target_amount) return 0
@@ -68,8 +90,16 @@ function normalize(text: string) {
   return text.trim().toLowerCase()
 }
 
-export function buildAdvisorGreeting(_ctx: AdvisorContext): string {
-  return 'Привет! Спросите про совет недели или шаги плана.'
+export function buildAdvisorGreeting(ctx: AdvisorContext): string {
+  if (ctx.primaryGoal?.title) {
+    const pct = goalProgressPercent(ctx.primaryGoal)
+    return `Привет! Цель «${ctx.primaryGoal.title}» — ${pct}%. Спросите про план или где урезать траты.`
+  }
+  const top = buildUserCategoryOptions(ctx.categories)[0]
+  if (top) {
+    return `Привет! Больше всего уходит на «${top.name}» (${formatRub(top.amount)}/мес). Спросите, как сократить.`
+  }
+  return 'Привет! Запишите покупку или спросите «составь план» — подскажу следующий шаг.'
 }
 
 export function buildAdvisorReply(message: string, ctx: AdvisorContext): string {
@@ -90,15 +120,16 @@ export function buildAdvisorReply(message: string, ctx: AdvisorContext): string 
   }
 
   if (/урез|сократ|эконом|меньше трат|куда резать/.test(q)) {
+    const top = buildUserCategoryOptions(ctx.categories)[0]
+    if (top) {
+      return `Больше всего уходит на «${top.name}» — ${formatRub(top.amount)} за месяц. Попробуйте сократить на 10–15%.`
+    }
     if (ctx.diagnosis) {
       const saving =
         ctx.diagnosis.main_action.potential_savings > 0
           ? ` Это около ${formatRub(ctx.diagnosis.main_action.potential_savings)} в месяц.`
           : ''
       return `${ctx.diagnosis.main_action.title}: ${ctx.diagnosis.main_action.description}${saving}`
-    }
-    if (ctx.topInsight) {
-      return `${ctx.topInsight.title}. ${ctx.topInsight.body ?? ctx.topInsight.description ?? ''}`
     }
     return 'Добавьте несколько покупок — подскажу, где чаще всего «утекают» деньги.'
   }
@@ -128,4 +159,33 @@ export function buildAdvisorReply(message: string, ctx: AdvisorContext): string 
   }
 
   return 'Запишите покупку или спросите «составь план», «где урезать» или «когда дойду до цели».'
+}
+
+export function historyToTurns(
+  rows: Array<{
+    id: string
+    role: 'user' | 'assistant'
+    content: string
+    actions?: AiChatResponse['actions']
+    source?: string
+    created_at: number
+  }>
+) {
+  return rows.map((row) => ({
+    id: row.id,
+    role: row.role,
+    content: row.content,
+    createdAt: row.created_at,
+    actions: row.actions,
+    source: (row.source as 'gemini' | 'heuristic' | undefined) ?? undefined
+  }))
+}
+
+export function toApiHistory(
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+): AiChatMessage[] {
+  return messages
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .slice(-10)
+    .map((m) => ({ role: m.role, content: m.content }))
 }

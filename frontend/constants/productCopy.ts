@@ -1,8 +1,10 @@
 /** Единый копирайт приложения — простой язык, без жаргона. */
 
 export const NAV = {
-  dashboard: 'Советник',
+  dashboard: 'План',
   dashboardSubtitle: 'Советы, план и картина денег',
+  advisor: 'Советник',
+  advisorSubtitle: 'Спросите про план, цель и траты',
   receipts: 'Расходы',
   analytics: 'Советник',
   credits: 'Кредиты',
@@ -93,6 +95,9 @@ export const ADVISOR = {
   chatTitle: 'Советник',
   chatHint: 'Спросите про совет недели или план',
   chatHintSidebar: 'Спросите про план, цель или траты',
+  chatReset: 'Очистить диалог',
+  chatLocalReply: 'Локальный ответ',
+  chatWeeklyHint: 'Совет недели',
   planTitle: 'Ваш план',
   planTitleMega: 'Финансовый план',
   planHint: 'Цель, срок и три ближайших шага',

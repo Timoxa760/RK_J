@@ -23,8 +23,6 @@ export { mockReceiptListItems } from '~/store/mocks/receiptList'
 
 export { mockDiagnosis } from '~/store/mocks/diagnosis'
 
-export { mockChatReplies } from '~/store/mocks/advisor'
-
 export const mockForecast: ForecastResponse = {
   dates: [],
   forecast: []

@@ -2,6 +2,7 @@
 import {
   CreditCard,
   LayoutGrid,
+  MessageCircle,
   Newspaper,
   PieChart,
   Plus,
@@ -16,7 +17,7 @@ const authStore = useAuthStore()
 const route = useRoute()
 const { setOpenMobile, isMobile } = useSidebar()
 const { show: showAddExpense } = useAddExpenseSheet()
-const { messages, typing, chatError, sendMessage } = useAdvisorShell()
+const { messages, typing, chatError, sendMessage, advisorContext, runAction } = useAdvisorShell()
 
 async function onNavClick(to: string) {
   if (isMobile.value) setOpenMobile(false)
@@ -28,6 +29,7 @@ async function onNavClick(to: string) {
 const mainNav = computed(() =>
   [
     { to: '/dashboard', label: 'План', icon: LayoutGrid },
+    { to: '/advisor', label: 'Советник', icon: MessageCircle },
     { to: '/receipts', label: 'Расходы', icon: ReceiptText },
     isAppFeatureEnabled('creditsNav')
       ? { to: '/credits', label: 'Кредиты', icon: CreditCard }
@@ -86,7 +88,9 @@ const mainNav = computed(() =>
             :messages="messages"
             :typing="typing"
             :error="chatError"
+            :context="advisorContext"
             @send="sendMessage"
+            @action="runAction"
           />
         </div>
       </SidebarGroup>

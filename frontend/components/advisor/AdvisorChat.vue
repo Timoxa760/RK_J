@@ -1,28 +1,40 @@
 <script setup lang="ts">
-import { Send } from 'lucide-vue-next'
+import { RotateCcw, Send } from 'lucide-vue-next'
+import type { AdvisorChatAction } from '~/types/api'
 import { ADVISOR } from '~/constants/productCopy'
-import { QUICK_PROMPTS } from '~/utils/advisorChat'
+import { buildDynamicQuickPrompts, type AdvisorContext } from '~/utils/advisorChat'
+import type { ChatTurn } from '~/composables/useAdvisorChat'
 
 const props = withDefaults(
   defineProps<{
-    messages: Array<{ id: string; role: 'user' | 'assistant'; content: string }>
+    messages: ChatTurn[]
     typing?: boolean
     error?: string | null
+    context?: AdvisorContext | null
     /** Компактный чат в левом сайдбаре */
     sidebar?: boolean
+    /** Полноэкранная страница /advisor */
+    fullPage?: boolean
+    showReset?: boolean
   }>(),
-  { sidebar: false }
+  { sidebar: false, fullPage: false, showReset: false }
 )
 
 const emit = defineEmits<{
   send: [text: string]
+  reset: []
+  action: [action: AdvisorChatAction]
 }>()
 
 const draft = ref('')
 const listRef = ref<HTMLElement | null>(null)
 
+const quickPrompts = computed(() =>
+  props.context ? buildDynamicQuickPrompts(props.context) : []
+)
+
 watch(
-  () => [props.messages.length, props.typing],
+  () => [props.messages.length, props.typing, props.messages.map((m) => m.content).join('')],
   async () => {
     await nextTick()
     const el = listRef.value
@@ -40,6 +52,10 @@ function submit() {
 function onPrompt(text: string) {
   emit('send', text)
 }
+
+function isLocalSource(msg: ChatTurn) {
+  return msg.source === 'heuristic' || msg.source === 'local'
+}
 </script>
 
 <template>
@@ -47,21 +63,39 @@ function onPrompt(text: string) {
     id="advisor-chat"
     data-demo="advisor-chat"
     class="flex flex-col overflow-hidden"
-    :class="
+    :class="[
       sidebar
         ? 'mm-sidebar-advisor-card h-full min-h-0 border-0 bg-transparent shadow-none'
-        : 'h-full'
-    "
+        : fullPage
+          ? 'h-full min-h-0 border-0 bg-transparent shadow-none'
+          : 'h-full'
+    ]"
   >
     <CardHeader
       class="gap-1 shrink-0"
       :class="sidebar ? 'p-0 pb-2' : 'gap-1.5 p-4 pb-2 sm:p-5 sm:pb-3'"
     >
-      <CardTitle :class="sidebar ? 'text-sm font-semibold' : 'text-lg font-semibold'">
-        {{ ADVISOR.chatTitle }}
-      </CardTitle>
-      <CardDescription v-if="!sidebar" class="text-base">{{ ADVISOR.chatHint }}</CardDescription>
-      <p v-else class="text-xs leading-snug text-muted-foreground">{{ ADVISOR.chatHintSidebar }}</p>
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <CardTitle :class="sidebar ? 'text-sm font-semibold' : 'text-lg font-semibold'">
+            {{ ADVISOR.chatTitle }}
+          </CardTitle>
+          <CardDescription v-if="!sidebar" class="text-base">{{ ADVISOR.chatHint }}</CardDescription>
+          <p v-else class="text-xs leading-snug text-muted-foreground">{{ ADVISOR.chatHintSidebar }}</p>
+        </div>
+        <Button
+          v-if="showReset"
+          type="button"
+          variant="ghost"
+          size="sm"
+          class="shrink-0 gap-1 text-xs"
+          :disabled="typing"
+          @click="emit('reset')"
+        >
+          <RotateCcw class="size-3.5" />
+          {{ ADVISOR.chatReset }}
+        </Button>
+      </div>
     </CardHeader>
     <CardContent
       class="flex min-h-0 flex-1 flex-col space-y-2 p-0"
@@ -70,14 +104,20 @@ function onPrompt(text: string) {
       <div
         ref="listRef"
         class="min-h-0 flex-1 space-y-2 overflow-y-auto py-1"
-        :class="sidebar ? 'px-0' : 'max-h-[min(480px,52vh)] space-y-3 px-4 sm:px-5'"
+        :class="
+          sidebar
+            ? 'px-0'
+            : fullPage
+              ? 'space-y-3 px-3 sm:px-4'
+              : 'max-h-[min(480px,52vh)] space-y-3 px-4 sm:px-5'
+        "
         aria-live="polite"
       >
         <div
           v-for="msg in messages"
           :key="msg.id"
-          class="flex"
-          :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
+          class="flex flex-col"
+          :class="msg.role === 'user' ? 'items-end' : 'items-start'"
         >
           <div
             class="whitespace-pre-wrap rounded-2xl leading-relaxed shadow-sm"
@@ -88,11 +128,24 @@ function onPrompt(text: string) {
                 : 'rounded-bl-md border bg-card text-foreground'
             ]"
           >
-            {{ msg.content }}
+            <span v-if="msg.streaming && !msg.content" class="text-muted-foreground">Печатаю…</span>
+            <span v-else>{{ msg.content }}</span>
           </div>
+          <p
+            v-if="msg.role === 'assistant' && isLocalSource(msg)"
+            class="mt-1 text-[10px] text-muted-foreground"
+          >
+            {{ ADVISOR.chatLocalReply }}
+          </p>
+          <AdvisorChatActions
+            v-if="msg.role === 'assistant' && msg.actions?.length"
+            :actions="msg.actions"
+            :disabled="typing"
+            @action="emit('action', $event)"
+          />
         </div>
 
-        <div v-if="typing" class="flex justify-start">
+        <div v-if="typing && !messages.some((m) => m.streaming)" class="flex justify-start">
           <div
             class="rounded-2xl rounded-bl-md border bg-muted/50 text-muted-foreground"
             :class="sidebar ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'"
@@ -102,9 +155,9 @@ function onPrompt(text: string) {
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-1.5" :class="sidebar ? '' : 'px-4'">
+      <div class="flex flex-wrap gap-1.5" :class="sidebar ? '' : 'px-3 sm:px-4'">
         <Button
-          v-for="prompt in QUICK_PROMPTS"
+          v-for="prompt in quickPrompts"
           :key="prompt"
           type="button"
           variant="outline"
@@ -118,7 +171,11 @@ function onPrompt(text: string) {
         </Button>
       </div>
 
-      <form class="flex gap-2" :class="sidebar ? '' : 'px-4'" @submit.prevent="submit">
+      <form
+        class="flex gap-2"
+        :class="sidebar ? '' : 'px-3 sm:px-4'"
+        @submit.prevent="submit"
+      >
         <Input
           v-model="draft"
           :placeholder="ADVISOR.chatPlaceholder"
@@ -139,7 +196,9 @@ function onPrompt(text: string) {
         </Button>
       </form>
 
-      <p v-if="error" class="text-xs text-destructive" :class="sidebar ? '' : 'px-4 text-sm'">{{ error }}</p>
+      <p v-if="error" class="text-xs text-destructive" :class="sidebar ? '' : 'px-3 text-sm sm:px-4'">
+        {{ error }}
+      </p>
     </CardContent>
   </Card>
 </template>

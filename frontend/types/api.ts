@@ -170,6 +170,15 @@ export interface AiDiagnosisResponse {
   next_check_days: number
 }
 
+export interface AdvisorChatAction {
+  type: 'navigate' | 'open_add_expense' | 'open_profile' | 'ask_followup'
+  label: string
+  path?: string
+  hash?: string
+  ask?: string
+  profileField?: 'income' | 'cushion' | 'goal' | 'expenses'
+}
+
 export interface AiChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -182,6 +191,22 @@ export interface AiChatRequest {
 
 export interface AiChatResponse {
   reply: string
+  actions?: AdvisorChatAction[]
+  source?: 'gemini' | 'heuristic'
+  id?: string
+}
+
+export interface AiChatHistoryMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  actions?: AdvisorChatAction[]
+  source?: string
+  created_at: number
+}
+
+export interface AiChatHistoryResponse {
+  messages: AiChatHistoryMessage[]
 }
 
 export interface SimulateScenarioRequest {

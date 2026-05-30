@@ -707,7 +707,7 @@ body {
   }
 
   .mm-scenario-simulator {
-    @apply rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 via-card to-card;
+    @apply rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card;
   }
 
   .mm-scenario-simulator__chip {
@@ -776,6 +776,10 @@ body {
 
   .mm-scenario-simulator__bar--base {
     @apply bg-muted-foreground/35;
+  }
+
+  .mm-scenario-simulator__bar--muted {
+    @apply bg-muted-foreground/25;
   }
 
   .mm-scenario-simulator__bar--gain {

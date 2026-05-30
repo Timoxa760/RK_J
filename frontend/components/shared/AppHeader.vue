@@ -13,6 +13,7 @@ const route = useRoute()
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: NAV.dashboard, subtitle: NAV.dashboardSubtitle },
+  '/advisor': { title: NAV.advisor, subtitle: NAV.advisorSubtitle },
   '/receipts': { title: NAV.receipts, subtitle: 'Куда уходят деньги' },
   '/credits': { title: NAV.creditsTitle, subtitle: NAV.creditsSubtitle },
   '/digest': { title: NAV.digest, subtitle: 'Итоги периода' },
