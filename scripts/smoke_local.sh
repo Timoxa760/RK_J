@@ -35,10 +35,13 @@ sleep 1
 echo "==> health gateway"
 curl -sf "http://127.0.0.1:8000/health" | grep -q ok
 
-echo "==> login via gateway"
+echo "==> register + login via gateway"
+curl -sf -X POST "$API/auth/register" \
+  -H 'Content-Type: application/json' \
+  -d '{"phone":"+79991234567","password":"secret12345"}' 2>/dev/null || true
 TOKEN=$(curl -sf -X POST "$API/auth/login" \
   -H 'Content-Type: application/json' \
-  -d '{"phone":"+79991234567","code":"0000"}' | \
+  -d '{"phone":"+79991234567","password":"secret12345"}' | \
   python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
 echo "==> dashboard sankey via gateway"

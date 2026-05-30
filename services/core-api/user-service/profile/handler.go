@@ -12,10 +12,10 @@ import (
 
 // Handler — GET/PATCH profile, POST onboarding complete.
 type Handler struct {
-	store *iprofile.FileStore
+	store iprofile.Store
 }
 
-func NewHandler(store *iprofile.FileStore) *Handler {
+func NewHandler(store iprofile.Store) *Handler {
 	return &Handler{store: store}
 }
 

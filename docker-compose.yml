@@ -115,7 +115,7 @@ services:
     networks:
       - moneymind_network
     environment:
-      - DEMO_MODE=${DEMO_MODE:-true}
+      - DEMO_MODE=${DEMO_MODE:-false}
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
     restart: unless-stopped
 
@@ -129,12 +129,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - moneymind_network
+    volumes:
+      - app_data:/app/data
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
+      - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
-      - DEMO_MODE=${DEMO_MODE:-true}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - OTP_TTL=${OTP_TTL:-300}
+      - PROFILE_DATA_DIR=/app/data/profiles
     restart: unless-stopped
 
   # ============ RECEIPT ENGINE (8002-8003) ============
@@ -155,6 +162,8 @@ services:
     networks:
       - moneymind_network
     environment:
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - CLICKHOUSE_URL=http://clickhouse:8123
       - REDIS_URL=redis:6379
@@ -176,9 +185,12 @@ services:
     networks:
       - moneymind_network
     environment:
+      - DEMO_MODE=${DEMO_MODE:-true}
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - KAFKA_URL=kafka:9092
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-key-32-chars-long-for-aes256!}
+      - RUCAPTCHA_KEY=${RUCAPTCHA_KEY:-}
+      - MCO_TOKEN_DIR=${MCO_TOKEN_DIR:-mco_tokens}
     restart: unless-stopped
 
   # ============ FINANCE CORE (8004-8006, 8009, 8011) ============
@@ -229,10 +241,15 @@ services:
     networks:
       - moneymind_network
     environment:
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - CREDIT_DATA_DIR=/app/data/credits
+    volumes:
+      - app_data:/app/data
     restart: unless-stopped
 
   bank-service:
@@ -269,8 +286,11 @@ services:
         condition: service_started
     networks:
       - moneymind_network
+    volumes:
+      - app_data:/app/data
     environment:
-      - DEMO_MODE=${DEMO_MODE:-true}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - CLICKHOUSE_HOST=clickhouse
       - CLICKHOUSE_USER=clickhouse_user
@@ -280,9 +300,10 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
       - WHISPER_URL=${WHISPER_URL:-http://whisper:9000}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
+      - PROFILE_DATA_DIR=/app/data/profiles
+      - CREDIT_DATA_DIR=/app/data/credits
     restart: unless-stopped
 
   analytics-service:
@@ -300,6 +321,7 @@ services:
     networks:
       - moneymind_network
     environment:
+      - DEMO_MODE=${DEMO_MODE:-false}
       - CLICKHOUSE_URL=http://clickhouse:8123
       - KAFKA_URL=kafka:9092
     restart: unless-stopped
@@ -413,6 +435,7 @@ services:
 volumes:
   postgres_data:
   clickhouse_data:
+  app_data:
 
 networks:
   moneymind_network:

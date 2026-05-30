@@ -67,3 +67,30 @@ func TestManualCreate_Unauthorized(t *testing.T) {
 		t.Fatalf("status %d", w.Code)
 	}
 }
+
+func TestTextCreate_FromTranscript(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+
+	_, proc := manual.NewDemoHandler(expense.NewParser(nil))
+	h := NewHandler(nil, proc)
+
+	body := `{"text":"купил продукты на 3500"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/receipt/from-text", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+testToken(t, "+79991234567"))
+	w := httptest.NewRecorder()
+
+	h.TextCreate(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp VoiceResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.ReceiptID == "" || resp.Total <= 0 {
+		t.Fatalf("unexpected: %+v", resp)
+	}
+}

@@ -138,6 +138,43 @@ func (h *Handler) VoiceCreate(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(out)
 }
 
+// TextRequest — тело POST /receipt/from-text.
+type TextRequest struct {
+	Text string `json:"text"`
+	Date string `json:"date,omitempty"`
+}
+
+// TextCreate обрабатывает POST /receipt/from-text (без Whisper).
+func (h *Handler) TextCreate(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	var req TextRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
+		return
+	}
+
+	text := strings.TrimSpace(req.Text)
+	if text == "" {
+		http.Error(w, `{"error":"text required"}`, http.StatusBadRequest)
+		return
+	}
+
+	resp, code, err := h.processor.CreateFromTranscript(r.Context(), userID, text, req.Date)
+	if err != nil {
+		writeProcessorError(w, code, err)
+		return
+	}
+
+	out := mapVoiceResponse(resp, text)
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
+}
+
 func mapVoiceResponse(resp manual.CreateResponse, transcript string) VoiceResponse {
 	items := make([]VoiceLineItem, 0, len(resp.Expenses))
 	var total float64

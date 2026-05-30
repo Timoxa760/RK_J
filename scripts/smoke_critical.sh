@@ -19,7 +19,7 @@ export REPORTING_SERVICE_URL=http://127.0.0.1:8010
 
 API="http://127.0.0.1:8000/api/v1"
 PHONE="+79991234567"
-CODE="0000"
+PASS="secret12345"
 RESULTS=()
 
 record() {
@@ -66,14 +66,14 @@ sleep 2
 sleep 1
 
 # --- Auth ---
-REG_CODE=$(http_code -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\"}")
+REG_CODE=$(http_code -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}")
 if [[ "$REG_CODE" == "200" || "$REG_CODE" == "409" ]]; then
   record critical "POST /auth/register" PASS "HTTP $REG_CODE"
 else
   record critical "POST /auth/register" FAIL "HTTP $REG_CODE"
 fi
 
-LOGIN=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\"}" 2>/dev/null || echo '{}')
+LOGIN=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}" 2>/dev/null || echo '{}')
 TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('access_token',''))" 2>/dev/null || true)
 if [[ -n "$TOKEN" ]] && echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); exit(0 if d.get('token')==d.get('access_token') and d.get('user',{}).get('role')=='user' else 1)" 2>/dev/null; then
   record critical "POST /auth/login" PASS "JWT + user + token"
@@ -82,8 +82,8 @@ else
 fi
 AUTH=(-H "Authorization: Bearer $TOKEN")
 
-BAD=$(http_code -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"9999\"}")
-[[ "$BAD" == "401" ]] && record critical "login неверный code → 401" PASS "" || record critical "login неверный code → 401" FAIL "HTTP $BAD"
+BAD=$(http_code -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"wrongpass\"}")
+[[ "$BAD" == "401" ]] && record critical "login неверный password → 401" PASS "" || record critical "login неверный password → 401" FAIL "HTTP $BAD"
 
 # --- JWT gateway ---
 NCODE=$(http_code "$API/dashboard/sankey")

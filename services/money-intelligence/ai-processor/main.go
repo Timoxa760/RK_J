@@ -144,6 +144,7 @@ func main() {
 	receiptHandler := receipt.NewHandler(whisperClient, proc)
 	r.Post("/api/v1/receipt/manual", receiptHandler.ManualCreate)
 	r.Post("/api/v1/receipt/voice", receiptHandler.VoiceCreate)
+	r.Post("/api/v1/receipt/from-text", receiptHandler.TextCreate)
 
 	voiceHandler := voice.NewHandler(whisperClient, proc)
 	r.Post("/api/v1/voice/transcribe", voiceHandler.Transcribe)

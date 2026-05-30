@@ -1,20 +1,22 @@
 package auth
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"backend_project/internal/otp"
+	"backend_project/internal/userstore"
 )
 
+func testDeps() *Deps {
+	return NewDeps(userstore.NewMemory(), otp.NewMemoryStore())
+}
+
 func TestRegister_Success(t *testing.T) {
-	mu.Lock()
-	delete(users, "+79994444444")
-	mu.Unlock()
-
-	h := NewRegisterHandler(true)
-	body := `{"phone":"+79994444444"}`
+	h := NewRegisterHandler(testDeps())
+	body := `{"phone":"+79994444444","password":"secret123"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -22,51 +24,32 @@ func TestRegister_Success(t *testing.T) {
 	h.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
-	}
-
-	var resp RegisterResponse
-	json.NewDecoder(w.Body).Decode(&resp)
-	if resp.Message != "SMS sent" || resp.ExpiresIn != 300 {
-		t.Errorf("unexpected response: %+v", resp)
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
-func TestRegister_RepeatOKNonDemo(t *testing.T) {
-	mu.Lock()
-	users["+79995555555"] = User{Phone: "+79995555555", Code: demoSMSCode}
-	mu.Unlock()
+func TestRegister_Conflict(t *testing.T) {
+	deps := testDeps()
+	h := NewRegisterHandler(deps)
+	body := `{"phone":"+79995555555","password":"secret123"}`
+	for i := 0; i < 2; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if i == 0 && w.Code != http.StatusOK {
+			t.Fatalf("first register expected 200, got %d", w.Code)
+		}
+		if i == 1 && w.Code != http.StatusConflict {
+			t.Fatalf("second register expected 409, got %d", w.Code)
+		}
+	}
+}
 
-	h := NewRegisterHandler(false)
-	body := `{"phone":"+79995555555"}`
+func TestRegister_ShortPassword(t *testing.T) {
+	h := NewRegisterHandler(testDeps())
+	body := `{"phone":"+79996666666","password":"short"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200 on repeat register, got %d body=%s", w.Code, w.Body.String())
-	}
-}
-
-func TestRegister_DemoRepeatOK(t *testing.T) {
-	mu.Lock()
-	users["+79996666666"] = User{Phone: "+79996666666", Code: demoSMSCode}
-	mu.Unlock()
-
-	h := NewRegisterHandler(true)
-	body := `{"phone":"+79996666666"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	h.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200 on demo re-register, got %d", w.Code)
-	}
-}
-
-func TestRegister_MissingPhone(t *testing.T) {
-	h := NewRegisterHandler(true)
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
@@ -75,12 +58,13 @@ func TestRegister_MissingPhone(t *testing.T) {
 	}
 }
 
-func TestRegister_WrongMethod(t *testing.T) {
-	h := NewRegisterHandler(true)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/register", nil)
+func TestRegister_MissingPhone(t *testing.T) {
+	h := NewRegisterHandler(testDeps())
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(`{"password":"secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
-	if w.Code != http.StatusMethodNotAllowed {
-		t.Errorf("expected 405, got %d", w.Code)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", w.Code)
 	}
 }

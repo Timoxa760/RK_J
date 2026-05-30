@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # Demo flow для жюри — критический путь «Поток»
-# Требует: api-gateway :8000, JWT (demo login 0000)
-# Использование: ./demo_flow.sh
+# Требует: api-gateway :8000
+# Использование: DEMO_PHONE=+79991234567 DEMO_PASSWORD=secret12345 ./demo_flow.sh
 
 set -euo pipefail
 
 API="${API_BASE:-http://localhost:8000}/api/v1"
 PHONE="${DEMO_PHONE:-+79991234567}"
-CODE="${DEMO_CODE:-0000}"
+PASS="${DEMO_PASSWORD:-secret12345}"
 
 step() { echo; echo "==> $1"; }
 
-step "1. Login (demo code $CODE)"
+step "1. Register (ignore if exists)"
+curl -sf -X POST "$API/auth/register" \
+  -H 'Content-Type: application/json' \
+  -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}" 2>/dev/null || true
+
+step "2. Login"
 TOKEN=$(curl -sf -X POST "$API/auth/login" \
   -H 'Content-Type: application/json' \
-  -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\"}" | \
+  -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}" | \
   python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))" 2>/dev/null || true)
 
 if [[ -z "$TOKEN" ]]; then
-  echo "WARN: login failed — продолжаем без JWT (DEMO_MODE)"
+  echo "WARN: login failed — продолжаем без JWT"
   AUTH=()
 else
   echo "JWT ok"
@@ -75,4 +80,4 @@ step "8. Insights"
 curl -sf "${AUTH[@]}" "$API/insights" | head -c 200; echo
 
 echo
-echo "Demo flow complete. UI: http://localhost:3000 (demo code 0000, ?tour=1 для тура)"
+echo "Demo flow complete. UI: http://localhost:3000 (?tour=1 для тура)"

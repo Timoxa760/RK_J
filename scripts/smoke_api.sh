@@ -18,7 +18,7 @@ export REPORTING_SERVICE_URL=http://127.0.0.1:8010
 
 API="http://127.0.0.1:8000/api/v1"
 PHONE="+79991234567"
-CODE="0000"
+PASS="secret12345"
 FAIL=0
 
 pass() { echo "PASS: $1"; }
@@ -68,17 +68,17 @@ echo "=== 1. Gateway health ==="
 [[ "$(http_code http://127.0.0.1:8000/health)" == "200" ]] && pass "gateway /health" || fail "gateway /health"
 
 echo "=== 2. Auth (API_Contract) ==="
-REG=$(curl -sf -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\"}" 2>/dev/null || echo '{}')
-echo "$REG" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('message')=='SMS sent'" 2>/dev/null \
+REG=$(curl -sf -X POST "$API/auth/register" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}" 2>/dev/null || echo '{}')
+echo "$REG" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('message')=='registered'" 2>/dev/null \
   && pass "register (existing user may 409)" || pass "register skipped or conflict"
 
-LOGIN=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"$CODE\"}")
+LOGIN=$(curl -sf -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"$PASS\"}")
 TOKEN=$(echo "$LOGIN" | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('token')==d.get('access_token'); print(d['access_token']); assert d.get('user',{}).get('role')=='user'")
 pass "login + user + token alias"
 AUTH=(-H "Authorization: Bearer $TOKEN")
 
-BAD_CODE=$(http_code -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"code\":\"9999\"}")
-[[ "$BAD_CODE" == "401" ]] && pass "login wrong code 401" || fail "login wrong code (got $BAD_CODE)"
+BAD_CODE=$(http_code -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"phone\":\"$PHONE\",\"password\":\"wrongpass\"}")
+[[ "$BAD_CODE" == "401" ]] && pass "login wrong password 401" || fail "login wrong password (got $BAD_CODE)"
 
 echo "=== 3. Providers connect ==="
 PCODE=$(http_code -X POST "$API/providers/connect?provider=x5club" -H 'Content-Type: application/json' "${AUTH[@]}" \

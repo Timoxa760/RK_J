@@ -59,9 +59,9 @@ func main() {
 	}
 	api := baseURL + "/api/v1"
 	phone := envStr("SEED_DEMO_PHONE", "+79991234567")
-	code := envStr("SEED_DEMO_CODE", "0000")
+	pass := envStr("SEED_DEMO_PASSWORD", "secret12345")
 
-	token := login(api, phone, code)
+	token := login(api, phone, pass)
 	if token != "" {
 		seedProfile(api, token)
 	} else {
@@ -108,8 +108,8 @@ func main() {
 	fmt.Println("\nseed complete!")
 }
 
-func login(api, phone, code string) string {
-	body, _ := json.Marshal(map[string]string{"phone": phone, "code": code})
+func login(api, phone, password string) string {
+	body, _ := json.Marshal(map[string]string{"phone": phone, "password": password})
 	resp, err := http.Post(api+"/auth/login", "application/json", bytes.NewReader(body))
 	if err != nil {
 		log.Printf("login error: %v", err)

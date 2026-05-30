@@ -7,12 +7,12 @@ $Phone = "+7900" + (Get-Random -Minimum 1000000 -Maximum 9999999)
 Write-Host "1. Register $Phone"
 Invoke-RestMethod -Method Post -Uri "$Base/auth/register" `
     -ContentType "application/json" `
-    -Body (@{ phone = $Phone } | ConvertTo-Json) | Out-Null
+    -Body (@{ phone = $Phone; password = "secret12345" } | ConvertTo-Json) | Out-Null
 
 Write-Host "2. Login"
 $login = Invoke-RestMethod -Method Post -Uri "$Base/auth/login" `
     -ContentType "application/json" `
-    -Body (@{ phone = $Phone; code = "0000" } | ConvertTo-Json)
+    -Body (@{ phone = $Phone; password = "secret12345" } | ConvertTo-Json)
 
 $token = $login.access_token
 if (-not $token) { $token = $login.token }
