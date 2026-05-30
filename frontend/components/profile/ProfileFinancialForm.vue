@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { FinancialProfile } from '~/types/api'
+import { PROFILE } from '~/constants/productCopy'
 
 const { profile, loadProfile, saveProfile, syncProfileToApi } = useFinancialProfile()
 const saving = ref(false)
@@ -50,9 +51,9 @@ async function submit() {
 <template>
   <Card data-demo="profile-financial">
     <CardHeader>
-      <CardTitle class="text-base">Ваши цифры</CardTitle>
+      <CardTitle class="text-base">{{ PROFILE.formTitle }}</CardTitle>
       <CardDescription>
-        Доход и запас нужны для прогноза на главной и в разделе «Прогноз»
+        {{ PROFILE.formHint }}
       </CardDescription>
     </CardHeader>
     <CardContent>

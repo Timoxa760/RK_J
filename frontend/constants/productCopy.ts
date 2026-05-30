@@ -144,8 +144,8 @@ export const SOCIAL = {
 
 export const PROFILE = {
   headline: 'Ваши цифры',
-  formTitle: 'Ваши цифры',
-  formHint: 'Доход и запас нужны для прогноза на главной и в прогнозе',
+  formTitle: 'Финансовая модель',
+  formHint: 'Доход, запас и цель — основа прогноза на главной и в советнике',
   emptyModel: 'Пока мало данных — пройдите короткий опрос'
 } as const
 

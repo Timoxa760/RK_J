@@ -16,7 +16,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/receipts': { title: NAV.receipts, subtitle: 'Куда уходят деньги' },
   '/credits': { title: NAV.creditsTitle, subtitle: NAV.creditsSubtitle },
   '/digest': { title: NAV.digest, subtitle: 'Итоги периода' },
-  '/profile': { title: NAV.profile, subtitle: 'Настройки' }
+  '/profile': { title: NAV.profile, subtitle: 'Доход, запас и цель' }
 }
 
 const meta = computed(() => pageTitles[route.path] ?? { title: 'Поток', subtitle: '' })

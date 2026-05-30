@@ -36,7 +36,7 @@ onMounted(() => {
   <div class="mx-auto w-full max-w-4xl space-y-6">
     <SharedPageNarrative :narrative="pageNarrative" />
 
-    <Alert v-if="showSurveyPrompt">
+    <Alert v-if="showSurveyPrompt || profileIncomplete">
       <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
       <AlertDescription class="space-y-2">
         <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
@@ -49,20 +49,10 @@ onMounted(() => {
       </AlertDescription>
     </Alert>
 
-    <Alert v-else-if="profileIncomplete">
-      <AlertTitle>{{ PROFILE.emptyModel }}</AlertTitle>
-      <AlertDescription class="space-y-2">
-        <p>Укажите доход, запас и цель — тогда прогноз на других экранах станет точнее.</p>
-        <div class="flex flex-wrap gap-2">
-          <Button as-child size="sm" variant="secondary">
-            <NuxtLink to="/onboarding">Пройти короткий опрос</NuxtLink>
-          </Button>
-          <AdvisorAskButton size="sm" variant="secondary" />
-        </div>
-      </AlertDescription>
-    </Alert>
-
+    <ProfileAccountSection
+      :show-survey-prompt="showSurveyPrompt"
+      @retake-survey="retakeSurvey"
+    />
     <ProfileFinancialForm />
-    <ProfileProvidersSection />
   </div>
 </template>

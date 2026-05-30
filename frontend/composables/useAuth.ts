@@ -21,8 +21,7 @@ export function useAuth() {
     const user: AuthUser = {
       id: res.user.id,
       phone: res.user.phone,
-      role: res.user.role,
-      name: 'Пользователь'
+      role: res.user.role
     }
     authStore.setSession(res.access_token, user, res.refresh_token)
     return { token: res.access_token, user }
