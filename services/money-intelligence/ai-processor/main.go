@@ -152,10 +152,7 @@ func main() {
 	onboardingHandler := onboarding.NewHandler(llmClient)
 	r.Post("/api/v1/onboarding/parse", onboardingHandler.Parse)
 
-	profileStore, err := profile.NewFileStore(getEnv("PROFILE_DATA_DIR", ""))
-	if err != nil {
-		log.Fatalf("profile store: %v", err)
-	}
+	profileStore := buildProfileStore(pgPool, demoMode)
 	creditStore, err := creditstore.NewFileStore(getEnv("CREDIT_DATA_DIR", ""))
 	if err != nil {
 		log.Fatalf("credit store: %v", err)
@@ -194,4 +191,15 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func buildProfileStore(pool *pgxpool.Pool, demoMode bool) profile.Store {
+	fileStore, err := profile.NewFileStore(getEnv("PROFILE_DATA_DIR", ""))
+	if err != nil {
+		log.Fatalf("profile store: %v", err)
+	}
+	if pool != nil && !demoMode {
+		return profile.NewDualStore(profile.NewPGStore(pool), fileStore)
+	}
+	return fileStore
 }

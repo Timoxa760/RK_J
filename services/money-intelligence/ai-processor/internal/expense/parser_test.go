@@ -16,6 +16,20 @@ func TestParser_RegexSingle(t *testing.T) {
 	}
 }
 
+func TestParser_Kolbasa(t *testing.T) {
+	p := NewParser(nil)
+	res := p.Parse(context.Background(), ParseInput{RawText: "Колбаса 300 руб"})
+	if len(res.Expenses) != 1 || res.Expenses[0].Amount != 300 {
+		t.Fatalf("unexpected %+v", res)
+	}
+	if res.Expenses[0].Category != "Продукты" {
+		t.Fatalf("category=%q", res.Expenses[0].Category)
+	}
+	if res.Expenses[0].Description != "Колбаса" {
+		t.Fatalf("description=%q", res.Expenses[0].Description)
+	}
+}
+
 func TestParser_VoiceSlang(t *testing.T) {
 	p := NewParser(nil)
 	res := p.Parse(context.Background(), ParseInput{RawText: "вышел с пятерочки, оставил 10 тыщ"})

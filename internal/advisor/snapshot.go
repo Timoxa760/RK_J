@@ -12,7 +12,7 @@ type Snapshot struct {
 	DataCompleteness map[string]string        `json:"data_completeness"`
 }
 
-func BuildSnapshot(profiles *profile.FileStore, credits *creditstore.FileStore, userID string) Snapshot {
+func BuildSnapshot(profiles profile.Store, credits *creditstore.FileStore, userID string) Snapshot {
 	p, _ := profiles.Get(userID)
 	income := p.ActiveIncome + p.PassiveIncome
 	if p.SkippedIncome {

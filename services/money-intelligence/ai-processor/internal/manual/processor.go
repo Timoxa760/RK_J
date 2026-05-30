@@ -29,11 +29,12 @@ type CreateRequest struct {
 
 // CreateResponse — ответ expenses API.
 type CreateResponse struct {
-	Success    bool         `json:"success"`
-	ID         string       `json:"id,omitempty"`
-	Amount     float64      `json:"amount"`
-	Category   string       `json:"category"`
-	Parsed     bool         `json:"parsed"`
+	Success     bool         `json:"success"`
+	ID          string       `json:"id,omitempty"`
+	Amount      float64      `json:"amount"`
+	Category    string       `json:"category"`
+	Description string       `json:"description,omitempty"`
+	Parsed      bool         `json:"parsed"`
 	ParsedBy   string       `json:"parsed_by,omitempty"`
 	Advice     string       `json:"advice,omitempty"`
 	Transcript string       `json:"transcript,omitempty"`
@@ -114,6 +115,7 @@ func buildResponse(saved []ExpenseDTO, parsed expense.Result, source, transcript
 		resp.ID = saved[0].ID
 		resp.Amount = saved[0].Amount
 		resp.Category = saved[0].Category
+		resp.Description = saved[0].Description
 	}
 	return resp
 }

@@ -15,12 +15,12 @@ import (
 )
 
 type Handler struct {
-	profiles *profile.FileStore
+	profiles profile.Store
 	credits  *creditstore.FileStore
 	llm      *llm.Client
 }
 
-func NewHandler(profiles *profile.FileStore, credits *creditstore.FileStore, llm *llm.Client) *Handler {
+func NewHandler(profiles profile.Store, credits *creditstore.FileStore, llm *llm.Client) *Handler {
 	return &Handler{profiles: profiles, credits: credits, llm: llm}
 }
 
