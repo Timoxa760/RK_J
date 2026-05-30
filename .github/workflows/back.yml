@@ -9,7 +9,6 @@ on:
       - 'db/**'
       - 'go.mod'
       - 'go.sum'
-      - 'docker-compose.yml'
       - '.github/workflows/back.yml'
   pull_request:
     branches: [back]
@@ -24,4 +23,3 @@ jobs:
           go-version: '1.25'
       - run: go mod download
       - run: go test -count=1 ./...
-      - run: docker compose config -q

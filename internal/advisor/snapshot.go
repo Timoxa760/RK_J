@@ -18,7 +18,11 @@ func BuildSnapshot(profiles *profile.FileStore, credits *creditstore.FileStore, 
 	if p.SkippedIncome {
 		income = 0
 	}
-	dash := credits.Dashboard(userID, income)
+	cushion := float64(0)
+	if !p.SkippedCushion {
+		cushion = p.EmergencyFund
+	}
+	dash := credits.Dashboard(userID, income, cushion)
 	dc := map[string]string{
 		"income":   completenessIncome(p),
 		"cushion":  completenessCushion(p),
