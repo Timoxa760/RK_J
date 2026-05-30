@@ -31,7 +31,7 @@ export default defineNuxtRouteMiddleware((to) => {
   if (!import.meta.client) return
 
   const completed = onboardingDone()
-  const allowedDuringOnboarding = [...PUBLIC_PATHS, ONBOARDING_PATH]
+  const allowedDuringOnboarding = [...PUBLIC_PATHS, ONBOARDING_PATH, '/profile', '/receipts']
 
   if (needsOnboarding(authStore.user?.phone, authStore.user?.id) && !allowedDuringOnboarding.includes(to.path)) {
     return navigateTo(ONBOARDING_PATH)

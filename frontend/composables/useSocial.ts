@@ -41,7 +41,13 @@ export function useSocial() {
     error.value = null
     try {
       const stored = readStoredChallenges()
-      challenges.value = stored.length ? stored : mockChallenges
+      if (demoMode.value) {
+        challenges.value = stored.length ? stored : mockChallenges
+      } else if (stored.length) {
+        challenges.value = stored
+      } else {
+        challenges.value = []
+      }
       if (!selectedChallengeId.value && challenges.value.length) {
         selectedChallengeId.value = challenges.value[0]?.id ?? null
       }
@@ -50,7 +56,7 @@ export function useSocial() {
       await loadLeaderboard()
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
-      challenges.value = mockChallenges
+      challenges.value = demoMode.value ? mockChallenges : readStoredChallenges()
       await loadLeaderboard()
     } finally {
       loading.value = false
@@ -60,23 +66,28 @@ export function useSocial() {
   async function loadLeaderboard() {
     const id = selectedChallengeId.value ?? challenges.value[0]?.id
     if (!id) {
-      leaderboard.value = mockLeaderboard
+      leaderboard.value = demoMode.value ? mockLeaderboard : []
       return
     }
     try {
-      const res = await apiFetchWithDemo(`/challenges/${id}/leaderboard`, {
-        challenge_id: id,
-        type: challenges.value.find((c) => c.id === id)?.type,
-        leaderboard: mockLeaderboard.map((r) => ({
-          position: r.position,
-          username: r.username,
-          avatar: r.avatar,
-          relative_score: r.relative_score
-        }))
-      })
+      if (demoMode.value) {
+        const res = await apiFetchWithDemo(`/challenges/${id}/leaderboard`, {
+          challenge_id: id,
+          type: challenges.value.find((c) => c.id === id)?.type,
+          leaderboard: mockLeaderboard.map((r) => ({
+            position: r.position,
+            username: r.username,
+            avatar: r.avatar,
+            relative_score: r.relative_score
+          }))
+        })
+        leaderboard.value = normalizeLeaderboard(res)
+        return
+      }
+      const res = await apiFetch(`/challenges/${id}/leaderboard`)
       leaderboard.value = normalizeLeaderboard(res)
     } catch {
-      leaderboard.value = mockLeaderboard
+      leaderboard.value = demoMode.value ? mockLeaderboard : []
     }
   }
 

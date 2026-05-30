@@ -37,18 +37,14 @@ export function useApi() {
     }
   }
 
-  /** Demo: сразу mock. Иначе API; при ошибке — mock, чтобы экран не был пустым. */
+  /** Demo: mock. Production: только API, ошибки пробрасываются вызывающему коду. */
   async function apiFetchWithDemo<T>(
     path: string,
     mock: T,
     options: FetchOptions = {}
   ): Promise<T> {
     if (demoMode.value) return mock
-    try {
-      return await apiFetch<T>(path, options)
-    } catch {
-      return mock
-    }
+    return apiFetch<T>(path, options)
   }
 
   return {

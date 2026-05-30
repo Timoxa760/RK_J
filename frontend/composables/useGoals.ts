@@ -60,8 +60,9 @@ export function useGoals() {
         const merged = mergeGoals(remote.goals ?? mockGoals, readStoredGoals())
         applyGoals(merged.length ? merged : mockGoals)
       } else {
-        const stored = readStoredGoals()
-        applyGoals(stored.length ? stored : mockGoals)
+        const remote = await apiFetch<GoalsListResponse>('/goals')
+        const merged = mergeGoals(remote.goals ?? [], readStoredGoals())
+        applyGoals(merged)
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Ошибка загрузки целей'
