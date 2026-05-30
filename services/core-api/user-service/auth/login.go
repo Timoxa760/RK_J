@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
+	iroot "backend_project/internal/auth"
 )
 
 const demoSMSCode = "0000"
@@ -65,8 +67,14 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	phone := iroot.NormalizePhone(req.Phone)
+	if phone == "" {
+		http.Error(w, `{"error":"phone and code required"}`, http.StatusBadRequest)
+		return
+	}
+
 	mu.Lock()
-	user, exists := users[req.Phone]
+	user, exists := users[phone]
 	mu.Unlock()
 
 	if h.demoMode {
@@ -76,7 +84,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if !exists {
 			mu.Lock()
-			users[req.Phone] = User{Phone: req.Phone, Code: demoSMSCode}
+			users[phone] = User{Phone: phone, Code: demoSMSCode}
 			mu.Unlock()
 		}
 	} else {
@@ -87,7 +95,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	secret := getJWTSecret()
-	userID := req.Phone
+	userID := phone
 
 	accessClaims := jwt.MapClaims{
 		"sub": userID,
@@ -121,7 +129,7 @@ func (h *LoginHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ExpiresIn:    900,
 		User: LoginUser{
 			ID:    userID,
-			Phone: req.Phone,
+			Phone: phone,
 			Role:  "user",
 		},
 	})

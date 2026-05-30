@@ -73,7 +73,9 @@
 ```json
 {"message": "SMS sent", "expires_in": 300}
 ```
-**400** — неверный формат телефона | **409** — пользователь уже существует
+**400** — неверный формат телефона
+
+Повторный запрос для уже зарегистрированного номера возвращает **200** (`SMS sent`) — повторная отправка кода, как в demo-режиме.
 
 ### POST /api/v1/auth/login — 🔴 critical
 
@@ -591,6 +593,21 @@ Auth: `Authorization: Bearer <jwt>` (через gateway).
 **400** — `user_id required`, `file required`, файл слишком большой  
 **503** — Whisper недоступен (`WHISPER_URL` не задан или сервис не отвечает)  
 **500** — save failed
+
+---
+
+### Legacy: POST /api/v1/receipt/manual и POST /api/v1/receipt/voice
+
+Адаптер для текущего Nuxt-front (поля `store`, `receipt_id`, `audio`).  
+`user_id` берётся из JWT (`sub`), тело front не меняется.
+
+| Front | Адаптер → expenses |
+|-------|-------------------|
+| `POST /receipt/manual` `{store, amount, category, date}` | → `/expenses/manual` |
+| `POST /receipt/voice` multipart `audio` | → Whisper + `/expenses/manual` pipeline |
+
+**200 OK /receipt/manual:** `{receipt_id, store, amount, category, date, status}`  
+**200 OK /receipt/voice:** `{receipt_id, store, items[], total, category, confidence}`
 
 ---
 

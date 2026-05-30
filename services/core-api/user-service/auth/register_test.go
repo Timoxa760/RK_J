@@ -32,19 +32,35 @@ func TestRegister_Success(t *testing.T) {
 	}
 }
 
-func TestRegister_Conflict(t *testing.T) {
+func TestRegister_RepeatOKNonDemo(t *testing.T) {
 	mu.Lock()
 	users["+79995555555"] = User{Phone: "+79995555555", Code: demoSMSCode}
 	mu.Unlock()
 
-	h := NewRegisterHandler(true)
+	h := NewRegisterHandler(false)
 	body := `{"phone":"+79995555555"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
-	if w.Code != http.StatusConflict {
-		t.Errorf("expected 409, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Errorf("expected 200 on repeat register, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestRegister_DemoRepeatOK(t *testing.T) {
+	mu.Lock()
+	users["+79996666666"] = User{Phone: "+79996666666", Code: demoSMSCode}
+	mu.Unlock()
+
+	h := NewRegisterHandler(true)
+	body := `{"phone":"+79996666666"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 on demo re-register, got %d", w.Code)
 	}
 }
 

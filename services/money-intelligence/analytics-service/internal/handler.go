@@ -27,6 +27,7 @@ func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/analytics/insights", h.insights)
 	r.Get("/api/v1/analytics/forecast", h.forecast)
 	r.Post("/api/v1/analytics/simulate", h.simulate)
+	r.Get("/api/v1/ai/diagnosis", h.diagnosis)
 }
 
 type insightItem struct {

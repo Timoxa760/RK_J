@@ -40,6 +40,23 @@ func TestSimulate_ReduceDelivery(t *testing.T) {
 	}
 }
 
+func TestDiagnosis_Contract(t *testing.T) {
+	h := New(true)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/ai/diagnosis", nil)
+	w := httptest.NewRecorder()
+	h.diagnosis(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d", w.Code)
+	}
+	var resp diagnosisResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.Score <= 0 || len(resp.Indicators) == 0 || resp.MainAction.Title == "" {
+		t.Fatalf("unexpected: %+v", resp)
+	}
+}
+
 func TestSimulate_InvalidScenario(t *testing.T) {
 	h := New(true)
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/scenarios/simulate", strings.NewReader(`{"scenario":"x"}`))

@@ -12,13 +12,16 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	root "backend_project/internal"
+	root 	"backend_project/internal"
+	"backend_project/internal/expensestore"
 	"backend_project/internal/onlysq"
+	"backend_project/internal/postgres"
 	"backend_project/services/money-intelligence/ai-processor/internal"
 	"backend_project/services/money-intelligence/ai-processor/internal/categorizer"
 	"backend_project/services/money-intelligence/ai-processor/internal/clickhouse"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
 	"backend_project/services/money-intelligence/ai-processor/internal/manual"
+	"backend_project/services/money-intelligence/ai-processor/internal/receipt"
 	svckafka "backend_project/services/money-intelligence/ai-processor/internal/kafka"
 	"backend_project/services/money-intelligence/ai-processor/internal/voice"
 	"backend_project/services/money-intelligence/ai-processor/internal/whisper"
@@ -60,9 +63,10 @@ func main() {
 		var err error
 		pgPool, err = pgxpool.New(ctx, databaseURL)
 		if err != nil {
-			log.Fatalf("pgxpool: %v", err)
+			log.Printf("pgxpool: %v (expenses will use file store)", err)
+		} else {
+			defer pgPool.Close()
 		}
-		defer pgPool.Close()
 	}
 
 	var consumer *svckafka.Consumer
@@ -97,23 +101,45 @@ func main() {
 	}
 
 	r := root.NewRouter()
+	fileStore, err := expensestore.NewFileStore(expensestore.DefaultPath())
+	if err != nil {
+		log.Fatalf("expense file store: %v", err)
+	}
+
 	var proc *manual.Processor
 	if demoMode {
 		var demoHandler *manual.DemoHandler
 		demoHandler, proc = manual.NewDemoHandler(expenseParser)
 		r.Post("/api/v1/expenses/manual", demoHandler.Create)
 	} else {
-		var manualRepo *manual.Repo
-		if chWriter != nil {
-			manualRepo = manual.NewRepo(pgPool, chWriter.Conn())
-		} else {
-			manualRepo = manual.NewRepo(pgPool, nil)
+		var pgStorage manual.Storage
+		if pgPool != nil {
+			if postgres.Ping(ctx, pgPool) {
+				if err := postgres.EnsureManualExpenses(ctx, pgPool); err != nil {
+					log.Printf("postgres schema: %v (expenses will use file store)", err)
+				} else {
+					var manualRepo *manual.Repo
+					if chWriter != nil {
+						manualRepo = manual.NewRepo(pgPool, chWriter.Conn())
+					} else {
+						manualRepo = manual.NewRepo(pgPool, nil)
+					}
+					pgStorage = manual.NewRepoStorage(manualRepo)
+				}
+			} else {
+				log.Printf("postgres unavailable (expenses will use file store)")
+			}
 		}
+		store := manual.NewFallbackStorage(pgStorage, fileStore)
 		var handler *manual.Handler
-		handler, proc = manual.NewHandler(manualRepo, expenseParser)
+		handler, proc = manual.NewHandlerWithStorage(store, expenseParser)
 		r.Post("/api/v1/expenses/manual", handler.Create)
 	}
 	r.Post("/api/v1/expenses/voice", voice.NewHandler(whisperClient, proc).Create)
+
+	receiptHandler := receipt.NewHandler(whisperClient, proc)
+	r.Post("/api/v1/receipt/manual", receiptHandler.ManualCreate)
+	r.Post("/api/v1/receipt/voice", receiptHandler.VoiceCreate)
 
 	srv := &http.Server{
 		Addr:         ":" + port,

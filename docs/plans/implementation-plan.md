@@ -1,44 +1,41 @@
-# Implementation Plan — Whisper + OnlySQ для «Поток»
+# Implementation Plan — полный локальный стек
 
 ## Цель и контекст
 
-Подключить источник данных для голосового ассистента: Whisper (STT на сервере hunamuna123 в Docker) и OnlySQ (LLM для парсинга трат и совета). Единая точка входа — `ai-processor` через gateway `:8000`.
+Обеспечить end-to-end поток данных для «Поток»: фронт + бэкенд + PostgreSQL + Kafka + ClickHouse, без обязательного Whisper/OnlySQ. AI подключается отдельно.
 
 ## Объём работ
 
-**Входит:** API Contract, OnlySQ client, LLM-парсер с fallback на regex, `POST /expenses/voice`, docker-compose env, DEPLOY.md.
+**Входит:** infra scripts, миграции, 15 сервисов локально, E2E verify, demo handlers для optional API.
 
-**Не входит (следующие итерации):** OnlySQ categorizer для чеков, live dashboard из PG, credits scan LLM.
+**Не входит:** live bank sync, PG-backed credits/insights, production deploy.
 
 ## Архитектурное решение
 
-```
-Фронт → api-gateway → ai-processor
-                          ├→ whisper (Docker, внутр. сеть)
-                          ├→ OnlySQ API (HTTPS)
-                          └→ postgres (prod) / in-memory (demo)
-```
-
-Парсинг: OnlySQ → regex fallback. Сохранение: все `expenses[]` из ответа LLM.
+- **Infra:** Docker Compose (postgres, kafka, clickhouse, redis).
+- **App:** Go-бинарники на хосте (быстрая итерация), gateway :8000.
+- **Данные manual expenses:** ai-processor → PostgreSQL `manual_expenses` → receipt-service dashboard.
+- **Чеки Kafka:** scraper → `receipt.raw` → receipt-service → `receipt.parsed` → ai-processor → ClickHouse (при наличии брокера).
 
 ## Стек
 
-- Go 1.25, `net/http` для OnlySQ/Whisper (OpenAI-совместимые API)
-- Docker Compose: существующие сервисы + `whisper` (openai-whisper-asr-webservice)
-- OnlySQ: `https://api.onlysq.ru/v1`, модель `gpt-4o-mini` по умолчанию
-
-## Контракты
-
-См. `docs/api/API_Contract.md` — секция 9 (manual + voice).
+| Компонент | Версия / образ | Назначение |
+|-----------|----------------|------------|
+| PostgreSQL | 18.0 | manual_expenses, receipts |
+| Kafka | cp-kafka 4.0.2 | receipt pipeline |
+| ClickHouse | 25.12 | аналитика чеков |
+| Go services | 15 бинарников | API |
 
 ## Риски
 
-- Latency Whisper+LLM: увеличен `WriteTimeout` ai-processor до 120s
-- Без `ONLYSQ_API_KEY` — regex fallback, без `advice` от LLM
-- Whisper-образ требует CPU/RAM на домашнем сервере
+- Docker Desktop обязателен на Windows.
+- Credits/insights пока demo JSON — dashboard categories из PG.
+
+## Альтернативы
+
+- Полный `docker compose up` всех сервисов — медленнее сборка; выбран hybrid (infra в Docker, app на хосте).
 
 ## Связи
 
-- **Зависит от:** OnlySQ API, Whisper container, api-gateway
-- **Используется:** Nuxt front (Vercel)
-- **Связанные документы:** [API_Contract.md](../api/API_Contract.md), [DEPLOY.md](../backend/DEPLOY.md)
+- **Зависит от:** `docker-compose.yml`, `db/migrations/`.
+- **Связанные документы:** [local-full-stack.md](../guides/local-full-stack.md), [STATUS.md](../backend/STATUS.md).

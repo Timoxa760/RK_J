@@ -24,3 +24,8 @@ bin/
 
 # Environment
 .env
+data/expenses.json
+data/expenses.json.tmp
+
+# Runtime logs (local dev)
+logs/

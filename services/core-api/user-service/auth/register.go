@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync"
+
+	iroot "backend_project/internal/auth"
 )
 
 // User — учётная запись в in-memory хранилище (демо / MVP).
@@ -53,17 +55,25 @@ func (h *RegisterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-	if _, exists := users[req.Phone]; exists {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusConflict)
-		json.NewEncoder(w).Encode(map[string]string{"error": "user already exists"})
+	phone := iroot.NormalizePhone(req.Phone)
+	if phone == "" {
+		http.Error(w, `{"error":"phone required"}`, http.StatusBadRequest)
 		return
 	}
 
-	users[req.Phone] = User{
-		Phone: req.Phone,
+	mu.Lock()
+	defer mu.Unlock()
+	if _, exists := users[phone]; exists {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(RegisterResponse{
+			Message:   "SMS sent",
+			ExpiresIn: 300,
+		})
+		return
+	}
+
+	users[phone] = User{
+		Phone: phone,
 		Code:  demoSMSCode,
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	root "backend_project/internal"
+	"backend_project/internal/expensestore"
 	"backend_project/services/receipt-engine/receipt-service/internal/dashboard"
 	svckafka "backend_project/services/receipt-engine/receipt-service/internal/kafka"
 	svc "backend_project/services/receipt-engine/receipt-service/internal"
@@ -28,7 +29,8 @@ func main() {
 	brokers := strings.Split(getEnv("KAFKA_BROKERS", "localhost:9092"), ",")
 	databaseURL := getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/moneymind?sslmode=disable")
 
-	pool, err := pgxpool.New(context.Background(), databaseURL)
+	bg := context.Background()
+	pool, err := connectPostgres(bg, databaseURL, 30)
 	if err != nil {
 		log.Fatalf("pgxpool: %v", err)
 	}
@@ -71,7 +73,7 @@ func main() {
 	})
 	defer consumer.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(bg)
 	defer cancel()
 
 	go func() {
@@ -81,7 +83,13 @@ func main() {
 	}()
 
 	demoMode := getEnv("DEMO_MODE", "true") == "true"
-	dash := dashboard.New(demoMode)
+	dash := dashboard.New(demoMode, getEnv("JWT_SECRET", ""))
+	dash.SetPostgres(pool)
+	if fileStore, err := expensestore.NewFileStore(expensestore.DefaultPath()); err != nil {
+		log.Printf("expense file store: %v (dashboard will skip file fallback)", err)
+	} else {
+		dash.SetExpenseFile(fileStore)
+	}
 	if !demoMode {
 		chHost := getEnv("CLICKHOUSE_HOST", "clickhouse")
 		chUser := getEnv("CLICKHOUSE_USER", "clickhouse_user")
@@ -114,4 +122,25 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// connectPostgres подключается к PostgreSQL с повторными попытками при старте стека.
+func connectPostgres(ctx context.Context, url string, attempts int) (*pgxpool.Pool, error) {
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		pool, err := pgxpool.New(ctx, url)
+		if err != nil {
+			lastErr = err
+			time.Sleep(time.Second)
+			continue
+		}
+		if err := pool.Ping(ctx); err != nil {
+			pool.Close()
+			lastErr = err
+			time.Sleep(time.Second)
+			continue
+		}
+		return pool, nil
+	}
+	return nil, lastErr
 }

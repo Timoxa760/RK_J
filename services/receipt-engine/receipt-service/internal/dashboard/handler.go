@@ -4,20 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"backend_project/internal/auth"
+	"backend_project/internal/expensestore"
 )
 
 type Handler struct {
-	chConn   driver.Conn
-	demoMode bool
+	chConn      driver.Conn
+	pgPool      *pgxpool.Pool
+	expenseFile *expensestore.FileStore
+	demoMode    bool
+	jwtSecret   string
 }
 
-func New(demoMode bool) *Handler {
-	return &Handler{demoMode: demoMode}
+func New(demoMode bool, jwtSecret string) *Handler {
+	if jwtSecret == "" {
+		jwtSecret = auth.JWTSecret()
+	}
+	return &Handler{demoMode: demoMode, jwtSecret: jwtSecret}
 }
 
 func (h *Handler) ConnectClickHouse(ctx context.Context, host, user, password, database string) error {
@@ -58,6 +69,7 @@ func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/dashboard/stores", h.stores)
 	r.Get("/api/v1/dashboard/compare", h.compare)
 	r.Get("/api/v1/dashboard/timemachine", h.timemachine)
+	r.Get("/api/v1/receipts", h.listReceipts)
 }
 
 // --- Sankey ---
@@ -79,7 +91,39 @@ type sankeyResponse struct {
 }
 
 func (h *Handler) sankey(w http.ResponseWriter, r *http.Request) {
-	resp := sankeyResponse{
+	if resp := h.buildSankeyResponse(r); resp != nil {
+		writeJSON(w, *resp)
+		return
+	}
+	if h.demoMode {
+		writeJSON(w, demoSankey())
+		return
+	}
+	writeJSON(w, sankeyResponse{Nodes: []sankeyNode{}, Links: []sankeyLink{}})
+}
+
+func (h *Handler) buildSankeyResponse(r *http.Request) *sankeyResponse {
+	userID, err := auth.UserIDFromRequest(r, h.jwtSecret)
+	if err != nil {
+		return nil
+	}
+	if h.pgPool != nil {
+		if cats := h.queryCategoriesPG(r.Context(), userID); cats != nil && len(cats.Categories) > 0 {
+			resp := buildSankeyFromCategories(cats.Categories)
+			return &resp
+		}
+	}
+	if h.chConn != nil {
+		if cats := h.queryCategoriesCH(r.Context(), userID); cats != nil && len(cats.Categories) > 0 {
+			resp := buildSankeyFromCategories(cats.Categories)
+			return &resp
+		}
+	}
+	return nil
+}
+
+func demoSankey() sankeyResponse {
+	return sankeyResponse{
 		Nodes: []sankeyNode{
 			{Name: "Зарплата", Value: 180000},
 			{Name: "Накопления", Value: 35000},
@@ -106,7 +150,6 @@ func (h *Handler) sankey(w http.ResponseWriter, r *http.Request) {
 			{Source: "Зарплата", Target: "Прочее", Value: 8000},
 		},
 	}
-	writeJSON(w, resp)
 }
 
 // --- Categories ---
@@ -135,11 +178,22 @@ type categoriesResponse struct {
 }
 
 func (h *Handler) categories(w http.ResponseWriter, r *http.Request) {
-	if h.chConn != nil {
-		if resp := h.queryCategories(r.Context()); resp != nil {
+	userID, err := auth.UserIDFromRequest(r, h.jwtSecret)
+	if h.pgPool != nil && err == nil {
+		if resp := h.queryCategoriesPG(r.Context(), userID); resp != nil && len(resp.Categories) > 0 {
 			writeJSON(w, resp)
 			return
 		}
+	}
+	if h.chConn != nil && err == nil {
+		if resp := h.queryCategoriesCH(r.Context(), userID); resp != nil && len(resp.Categories) > 0 {
+			writeJSON(w, resp)
+			return
+		}
+	}
+	if !h.demoMode {
+		writeJSON(w, categoriesResponse{Categories: []catCategory{}})
+		return
 	}
 
 	resp := categoriesResponse{
@@ -282,14 +336,14 @@ func (h *Handler) categories(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, resp)
 }
 
-func (h *Handler) queryCategories(ctx context.Context) *categoriesResponse {
+func (h *Handler) queryCategoriesCH(ctx context.Context, userID string) *categoriesResponse {
 	rows, err := h.chConn.Query(ctx, `
 		SELECT category, sum(total) as total
 		FROM spending_by_category
-		WHERE month = toStartOfMonth(now())
+		WHERE user_id = $1 AND month = toStartOfMonth(now())
 		GROUP BY category
 		ORDER BY total DESC
-	`)
+	`, userID)
 	if err != nil {
 		return nil
 	}
@@ -319,10 +373,10 @@ func (h *Handler) queryCategories(ctx context.Context) *categoriesResponse {
 		subRows, err := h.chConn.Query(ctx, `
 			SELECT item_name, price, quantity
 			FROM receipt_items
-			WHERE category = $1 AND purchased_at >= toStartOfMonth(now())
+			WHERE user_id = $1 AND category = $2 AND purchased_at >= toStartOfMonth(now())
 			ORDER BY purchased_at DESC
 			LIMIT 10
-		`, c.Name)
+		`, userID, c.Name)
 		if err != nil {
 			continue
 		}
@@ -354,12 +408,13 @@ func (h *Handler) queryCategories(ctx context.Context) *categoriesResponse {
 	return &categoriesResponse{Categories: cats}
 }
 
-func (h *Handler) queryStores(ctx context.Context) *storesResponse {
+func (h *Handler) queryStoresCH(ctx context.Context, userID string) *storesResponse {
 	rows, err := h.chConn.Query(ctx, `
 		SELECT store, purchases, avg_check, total, impulse_ratio
 		FROM store_aggregates
+		WHERE user_id = $1
 		ORDER BY purchases DESC
-	`)
+	`, userID)
 	if err != nil {
 		return nil
 	}
@@ -395,13 +450,23 @@ type storesResponse struct {
 }
 
 func (h *Handler) stores(w http.ResponseWriter, r *http.Request) {
-	if h.chConn != nil {
-		if resp := h.queryStores(r.Context()); resp != nil {
+	userID, err := auth.UserIDFromRequest(r, h.jwtSecret)
+	if h.pgPool != nil && err == nil {
+		if resp := h.queryStoresPG(r.Context(), userID); resp != nil && len(resp.Stores) > 0 {
 			writeJSON(w, resp)
 			return
 		}
 	}
-
+	if h.chConn != nil && err == nil {
+		if resp := h.queryStoresCH(r.Context(), userID); resp != nil && len(resp.Stores) > 0 {
+			writeJSON(w, resp)
+			return
+		}
+	}
+	if !h.demoMode {
+		writeJSON(w, storesResponse{Stores: []storeItem{}})
+		return
+	}
 	resp := storesResponse{
 		Stores: []storeItem{
 			{Name: "Пятёрочка", AvgCheck: 650, Purchases: 14, Total: 9100, ImpulseRatio: 0.25},
@@ -443,6 +508,20 @@ type compareResponse struct {
 }
 
 func (h *Handler) compare(w http.ResponseWriter, r *http.Request) {
+	monthCount := parseMonthCount(r)
+	if h.pgPool != nil {
+		if userID, err := auth.UserIDFromRequest(r, h.jwtSecret); err == nil {
+			if resp := h.queryComparePG(r.Context(), userID, monthCount); resp != nil {
+				writeJSON(w, resp)
+				return
+			}
+		}
+	}
+	if !h.demoMode {
+		writeJSON(w, compareResponse{Months: []compareMonth{}})
+		return
+	}
+
 	resp := compareResponse{
 		Months: []compareMonth{
 			{
@@ -495,6 +574,23 @@ type timemachineResponse struct {
 }
 
 func (h *Handler) timemachine(w http.ResponseWriter, r *http.Request) {
+	if h.pgPool != nil {
+		if userID, err := auth.UserIDFromRequest(r, h.jwtSecret); err == nil {
+			if resp := h.queryTimemachinePG(r.Context(), userID); resp != nil {
+				writeJSON(w, resp)
+				return
+			}
+		}
+	}
+	if !h.demoMode {
+		writeJSON(w, timemachineResponse{
+			Months:           []string{},
+			RealSavings:      []float64{},
+			OptimizedSavings: []float64{},
+		})
+		return
+	}
+
 	months := make([]string, 60)
 	realSavings := make([]float64, 60)
 	optSavings := make([]float64, 60)
@@ -532,6 +628,19 @@ func (h *Handler) timemachine(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeJSON(w http.ResponseWriter, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(v)
+}
+
+func parseMonthCount(r *http.Request) int {
+	const defaultMonths = 2
+	v := r.URL.Query().Get("months")
+	if v == "" {
+		return defaultMonths
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 || n > 12 {
+		return defaultMonths
+	}
+	return n
 }

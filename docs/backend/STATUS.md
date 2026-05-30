@@ -134,15 +134,12 @@
 
 | Эндпоинт | Статус |
 |----------|--------|
-| `GET /banks/accounts` | Нет bank-service |
-| `GET /banks/transactions` | Нет bank-service |
-| `POST /challenges` | Нет social-service |
-| `GET /challenges/{id}/leaderboard` | Нет social-service |
 | `PATCH /users/me/profile` | Roadmap (onboarding) |
 | `POST /users/me/onboarding/complete` | Roadmap |
-| category / budget CRUD | Заглушки сервисов |
-| notification / gamification | Заглушки |
 | Live x5club / magnit sync | Код есть, E2E smoke нет |
+| PG-backed credits / insights | Demo JSON, не из `manual_expenses` |
+
+С 2026-05-30 optional API (`/banks/*`, `/categories`, `/budgets`, `/challenges`) отвечают demo JSON при запущенных сервисах (см. `start_services.ps1`).
 
 ---
 
@@ -150,10 +147,11 @@
 
 ### P0 — для демо с живыми данными
 
-1. Поднять **docker compose** (PG + Kafka + Redis) и прогнать smoke повторно.
-2. **MCO sync** — стабильный ответ при наличии Kafka (или graceful demo без 500).
-3. Связать **receipt-service** с PG для dashboard не в DEMO_MODE.
-4. Синхронизация с **front**: credits DTI (% vs доля), timemachine, `useAuth().token`.
+1. **Полный локальный стек:** `powershell -File scripts\start_stack.ps1` — см. [local-full-stack.md](../guides/local-full-stack.md).
+2. Проверка потока: `powershell -File scripts\verify_e2e.ps1` (register → expense → dashboard PG).
+3. **MCO sync** — стабильный ответ при наличии Kafka (или graceful demo без 500).
+4. Связать **receipt-service** с PG для dashboard не в DEMO_MODE — реализовано для `manual_expenses`.
+5. Синхронизация с **front**: credits DTI (% vs доля), timemachine, `useAuth().token`.
 
 ### P1 — контракт important
 

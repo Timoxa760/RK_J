@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"backend_project/internal"
+	root "backend_project/internal"
+	category "backend_project/services/finance-core/category-service/internal"
 )
 
 func main() {
 	port := "8004"
 	serviceName := "category-service"
 
-	r := internal.NewRouter()
+	r := root.NewRouter()
+	category.New().Register(r)
 
 	fmt.Printf("Service %s started on port %s...\n", serviceName, port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {

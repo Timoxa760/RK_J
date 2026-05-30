@@ -14,7 +14,11 @@ type Handler struct {
 
 // NewHandler создаёт HTTP-обработчик manual expenses и Processor для voice.
 func NewHandler(repo *Repo, parser *expense.Parser) (*Handler, *Processor) {
-	store := newRepoStorage(repo)
+	return NewHandlerWithStorage(newRepoStorage(repo), parser)
+}
+
+// NewHandlerWithStorage создаёт обработчик с произвольным Storage (PG, file, fallback).
+func NewHandlerWithStorage(store Storage, parser *expense.Parser) (*Handler, *Processor) {
 	proc := NewProcessor(parser, store)
 	return &Handler{proc: proc}, proc
 }

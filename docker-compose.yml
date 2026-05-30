@@ -88,8 +88,10 @@ services:
   whisper:
     image: onerahmet/openai-whisper-asr-webservice:latest
     container_name: backend_whisper
+    profiles:
+      - ai
     ports:
-      - "9000:9000"
+      - "9001:9000"
     environment:
       - ASR_MODEL=base
       - ASR_ENGINE=openai_whisper
@@ -280,8 +282,6 @@ services:
         condition: service_started
       kafka:
         condition: service_started
-      whisper:
-        condition: service_started
     networks:
       - moneymind_network
     environment:
@@ -389,6 +389,40 @@ services:
     environment:
       - CLICKHOUSE_URL=http://clickhouse:8123
     restart: unless-stopped
+
+  migrate-pg:
+    image: migrate/migrate
+    container_name: backend_migrate_pg
+    volumes:
+      - ./db/migrations/postgres:/migrations
+    networks:
+      - moneymind_network
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable"
+      - "up"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  migrate-ch:
+    image: clickhouse/clickhouse-server:25.12
+    container_name: backend_migrate_ch
+    volumes:
+      - ./db/migrations/clickhouse:/migrations
+    networks:
+      - moneymind_network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - clickhouse-client --host clickhouse --user clickhouse_user --password clickhouse_password --multiquery < /migrations/001_receipt_items.sql
+    depends_on:
+      clickhouse:
+        condition: service_started
+    profiles:
+      - tools
 
 volumes:
   postgres_data:

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,13 +18,6 @@ type route struct {
 	prefix  string
 	target  string
 	noAuth  bool
-}
-
-func svcURL(envKey, dockerDefault string) string {
-	if u := os.Getenv(envKey); u != "" {
-		return u
-	}
-	return dockerDefault
 }
 
 var routes = []route{
@@ -41,10 +35,12 @@ var routes = []route{
 	{prefix: "/api/v1/budgets/",    target: svcURL("BUDGET_SERVICE_URL", "http://budget-service:8005")},
 	{prefix: "/api/v1/goals/",      target: svcURL("GOAL_SERVICE_URL", "http://goal-service:8006")},
 	{prefix: "/api/v1/expenses/",   target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
+	{prefix: "/api/v1/receipt/",    target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/insights/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/scenarios/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/forecast/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/analytics/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
+	{prefix: "/api/v1/ai/",         target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/challenges/", target: svcURL("SOCIAL_SERVICE_URL", "http://social-service:8102")},
 	{prefix: "/api/v1/digest/",     target: svcURL("REPORTING_SERVICE_URL", "http://reporting-service:8010")},
 }
@@ -54,13 +50,13 @@ func main() {
 	serviceName := "api-gateway"
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "change-me-to-a-random-secret"
+		jwtSecret = "test-secret"
 	}
 
 	r := chi.NewRouter()
 
 	r.Use(recoverer)
-	r.Use(corsMiddleware)
+	r.Use(cors.Handler(corsOptions()))
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -74,6 +70,7 @@ func main() {
 			log.Fatalf("invalid target %s: %v", rt.target, err)
 		}
 		proxy := httputil.NewSingleHostReverseProxy(targetURL)
+		proxy.ModifyResponse = stripUpstreamCORS
 		registerProxy(r, rt, proxy, jwtSecret)
 	}
 
@@ -128,15 +125,3 @@ func recoverer(next http.Handler) http.Handler {
 	})
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
