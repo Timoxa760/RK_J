@@ -10,6 +10,7 @@ import {
   receiptFromVoice
 } from '~/utils/receiptListStorage'
 import { toReceiptIsoDate } from '~/utils/receiptDate'
+import { useAuthStore } from '~/store/authStore'
 import { formatApiError } from '~/utils/apiError'
 
 export type ReceiptSubmitResult = ReceiptManualResponse | ReceiptVoiceResponse
@@ -119,12 +120,7 @@ export function useReceiptSubmit() {
     const trimmed = text.trim()
     if (!trimmed) {
       submitting.value = false
-      throw new Error('Скажите, что купили, например: «колбаса 300 рублей».')
-    }
-
-    if (!/\d/.test(trimmed)) {
-      submitting.value = false
-      throw new Error('Не удалось найти сумму. Добавьте цену, например: «колбаса 300 рублей».')
+      throw new Error('Пустая фраза')
     }
 
     const userId = authStore.user?.phone || authStore.user?.id
