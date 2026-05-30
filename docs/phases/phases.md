@@ -11,7 +11,7 @@
 | **3** | Receipt pipeline (Kafka) + dashboard API | Блокер | ✅ |
 | **4** | Profile + onboarding (skip-flags, goal в profile) | Ключевая | ✅ |
 | **5** | Credits PDF-only + rates benchmark | Ключевая | ✅ |
-| **6** | **Финансовый ИИ-советник** | Ключевая | 🟡 |
+| **6** | **Финансовый ИИ-советник** | Ключевая | ✅ |
 | **7** | Dashboard UX: mega-plan, narrative, advisor UI | WOW | 🟡 |
 | **8** | Demo polish + ипотечный сценарий | Финал | ⏳ |
 
@@ -115,7 +115,24 @@ flowchart LR
 - [x] Skip-флаги в snapshot и промптах
 - [x] `POST /onboarding/parse` (OnlySQ + local fallback)
 - [ ] PG-backed snapshot sources (Phase 1.5; file-store OK для demo)
-- [ ] E2E smoke: plan + chat после полного onboarding
+- [x] E2E smoke: plan + chat после полного onboarding
+
+---
+
+## Фаза 7 — Dashboard UX (mega-plan, narrative, advisor)
+
+**Цель:** dashboard и советник читают `/ai/plan`, `/ai/diagnosis`, `/ai/chat`, `/insights` — без клиентских моков в advisor-потоке.
+
+| Область | Статус |
+|---------|--------|
+| `useAiPlan` → `GET /ai/plan` | ✅ |
+| `useDiagnosis` / sidebar → `GET /ai/diagnosis` | ✅ |
+| `useInsights` → `GET /insights` | ✅ |
+| `useAdvisorChat` → `POST /ai/chat` (local fallback при ошибке) | ✅ |
+| Dashboard: один источник diagnosis (из plan), без дублирующих fetch | ✅ |
+| Charts/timemachine в demo — `apiFetchWithDemo` (отдельно от advisor) | 🟡 |
+
+**Осталось:** polish narrative, scenario UX, demo tour — см. фазу 8.
 
 ---
 
