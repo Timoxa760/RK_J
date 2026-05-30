@@ -13,10 +13,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	root 	"backend_project/internal"
+	"backend_project/internal/creditstore"
 	"backend_project/internal/expensestore"
 	"backend_project/internal/onlysq"
 	"backend_project/internal/postgres"
+	"backend_project/internal/profile"
 	"backend_project/services/money-intelligence/ai-processor/internal"
+	"backend_project/services/money-intelligence/ai-processor/internal/advisor"
 	"backend_project/services/money-intelligence/ai-processor/internal/categorizer"
 	"backend_project/services/money-intelligence/ai-processor/internal/clickhouse"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
@@ -145,8 +148,18 @@ func main() {
 	voiceHandler := voice.NewHandler(whisperClient, proc)
 	r.Post("/api/v1/voice/transcribe", voiceHandler.Transcribe)
 
-	onboardingHandler := onboarding.NewHandler()
+	onboardingHandler := onboarding.NewHandler(llmClient)
 	r.Post("/api/v1/onboarding/parse", onboardingHandler.Parse)
+
+	profileStore, err := profile.NewFileStore(getEnv("PROFILE_DATA_DIR", ""))
+	if err != nil {
+		log.Fatalf("profile store: %v", err)
+	}
+	creditStore, err := creditstore.NewFileStore(getEnv("CREDIT_DATA_DIR", ""))
+	if err != nil {
+		log.Fatalf("credit store: %v", err)
+	}
+	advisor.NewHandler(profileStore, creditStore, llmClient).Register(r)
 
 	srv := &http.Server{
 		Addr:         ":" + port,

@@ -6,26 +6,31 @@ import (
 	"os"
 
 	root "backend_project/internal"
+	"backend_project/internal/creditstore"
+	"backend_project/internal/onlysq"
+	"backend_project/internal/profile"
 	cred "backend_project/services/finance-core/credit-service/internal"
 )
 
 func main() {
 	port := "8009"
 	serviceName := "credit-service"
-	demoMode := getenv("DEMO_MODE", "true") == "true"
+
+	creditStore, err := creditstore.NewFileStore(os.Getenv("CREDIT_DATA_DIR"))
+	if err != nil {
+		panic(err)
+	}
+	profileStore, err := profile.NewFileStore(os.Getenv("PROFILE_DATA_DIR"))
+	if err != nil {
+		panic(err)
+	}
+	llm := onlysq.NewClient(os.Getenv("ONLYSQ_BASE_URL"), os.Getenv("ONLYSQ_API_KEY"), os.Getenv("ONLYSQ_MODEL"))
 
 	r := root.NewRouter()
-	cred.New(demoMode).Register(r)
+	cred.NewHandler(creditStore, profileStore, llm).Register(r)
 
-	fmt.Printf("Service %s started on port %s (demo=%v)...\n", serviceName, port, demoMode)
+	fmt.Printf("Service %s started on port %s...\n", serviceName, port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		panic(err)
 	}
-}
-
-func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }

@@ -22,6 +22,7 @@ type route struct {
 
 var routes = []route{
 	{prefix: "/api/v1/auth/",       target: svcURL("USER_SERVICE_URL", "http://user-service:8001"), noAuth: true},
+	{prefix: "/api/v1/users/",      target: svcURL("USER_SERVICE_URL", "http://user-service:8001")},
 	{prefix: "/api/v1/providers/",  target: svcURL("USER_SERVICE_URL", "http://user-service:8001")},
 	{prefix: "/api/v1/dashboard/",  target: svcURL("RECEIPT_SERVICE_URL", "http://receipt-service:8002")},
 	{prefix: "/api/v1/receipts/",   target: svcURL("RECEIPT_SERVICE_URL", "http://receipt-service:8002")},
@@ -31,19 +32,17 @@ var routes = []route{
 	{prefix: "/api/v1/email/",      target: svcURL("SCRAPER_SERVICE_URL", "http://scraper-service:8003")},
 	{prefix: "/api/v1/credits/",    target: svcURL("CREDIT_SERVICE_URL", "http://credit-service:8009")},
 	{prefix: "/api/v1/banks/",      target: svcURL("BANK_SERVICE_URL", "http://bank-service:8011")},
-	{prefix: "/api/v1/categories/", target: svcURL("CATEGORY_SERVICE_URL", "http://category-service:8004")},
 	{prefix: "/api/v1/budgets/",    target: svcURL("BUDGET_SERVICE_URL", "http://budget-service:8005")},
-	{prefix: "/api/v1/goals/",      target: svcURL("GOAL_SERVICE_URL", "http://goal-service:8006")},
+	{prefix: "/api/v1/categories/", target: svcURL("CATEGORY_SERVICE_URL", "http://category-service:8004")},
 	{prefix: "/api/v1/expenses/",   target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/receipt/",    target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/voice/",      target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/onboarding/", target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
+	{prefix: "/api/v1/ai/",         target: svcURL("AI_PROCESSOR_URL", "http://ai-processor:8100")},
 	{prefix: "/api/v1/insights/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/scenarios/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/forecast/",   target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
 	{prefix: "/api/v1/analytics/",  target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
-	{prefix: "/api/v1/ai/",         target: svcURL("ANALYTICS_SERVICE_URL", "http://analytics-service:8101")},
-	{prefix: "/api/v1/challenges/", target: svcURL("SOCIAL_SERVICE_URL", "http://social-service:8102")},
 	{prefix: "/api/v1/digest/",     target: svcURL("REPORTING_SERVICE_URL", "http://reporting-service:8010")},
 }
 

@@ -1,72 +1,157 @@
 package internal
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
-	"time"
+	"os"
+	"strconv"
+	"strings"
+
+	iroot "backend_project/internal/auth"
+	"backend_project/internal/creditstore"
+	"backend_project/internal/onlysq"
+	"backend_project/internal/profile"
+	"backend_project/internal/rates"
 
 	"github.com/go-chi/chi/v5"
 )
 
-// Handler — HTTP API кредитного дашборда (демо-данные по API_Contract).
+const creditScanPrompt = `Из текста кредитного договора извлеки условия. Ответ — только JSON:
+{"amount": 0, "rate": 0, "term_months": 0, "monthly_payment": 0, "bank": ""}
+amount и monthly_payment в рублях, rate — годовая ставка в процентах.`
+
+// Handler — credits из PDF scan only.
 type Handler struct {
-	demoMode bool
+	credits  *creditstore.FileStore
+	profiles *profile.FileStore
+	rates    *rates.Client
+	llm      *onlysq.Client
 }
 
-// New создаёт обработчик credit-service.
-func New(demoMode bool) *Handler {
-	return &Handler{demoMode: demoMode}
+func NewHandler(credits *creditstore.FileStore, profiles *profile.FileStore, llm *onlysq.Client) *Handler {
+	return &Handler{
+		credits:  credits,
+		profiles: profiles,
+		rates:    rates.NewClient(),
+		llm:      llm,
+	}
 }
 
-// Register монтирует маршруты /api/v1/credits/*.
 func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/credits/dashboard", h.dashboard)
 	r.Post("/api/v1/credits/scan", h.scan)
+	r.Delete("/api/v1/credits/{id}", h.delete)
 }
 
-type creditItem struct {
-	ID             string  `json:"id"`
-	Bank           string  `json:"bank"`
-	Amount         float64 `json:"amount"`
-	Rate           float64 `json:"rate"`
-	TermMonths     int     `json:"term_months"`
-	Remaining      float64 `json:"remaining"`
-	MonthlyPayment float64 `json:"monthly_payment"`
-	NextPayment    string  `json:"next_payment"`
+func (h *Handler) userID(r *http.Request) (string, error) {
+	return iroot.UserIDFromRequest(r, "")
 }
 
-type dashboardResponse struct {
-	DTI               float64      `json:"dti"`
-	StressTestMonths  float64      `json:"stress_test_months"`
-	Savings           float64      `json:"savings"`
-	TotalDebt         float64      `json:"total_debt"`
-	MonthlyPayments   float64      `json:"monthly_payments"`
-	MonthlyIncome     float64      `json:"monthly_income"`
-	Credits           []creditItem `json:"credits"`
+func (h *Handler) monthlyIncome(uid string) float64 {
+	if h.profiles == nil {
+		return 0
+	}
+	p, err := h.profiles.Get(uid)
+	if err != nil || p.SkippedIncome {
+		return 0
+	}
+	return p.ActiveIncome + p.PassiveIncome
 }
 
 func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
-	resp := dashboardResponse{
-		DTI:              0.28,
-		StressTestMonths: 4.2,
-		Savings:          340000,
-		TotalDebt:        1200000,
-		MonthlyPayments:  42000,
-		MonthlyIncome:    180000,
-		Credits: []creditItem{
-			{
-				ID:             "demo-credit-1",
-				Bank:           "Т-Банк",
-				Amount:         1200000,
-				Rate:           14.5,
-				TermMonths:     36,
-				Remaining:      980000,
-				MonthlyPayment: 42000,
-				NextPayment:    time.Date(2026, 6, 15, 0, 0, 0, 0, time.UTC).Format("2006-01-02"),
-			},
-		},
+	uid, err := h.userID(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
 	}
-	writeJSON(w, resp)
+	dash := h.credits.Dashboard(uid, h.monthlyIncome(uid))
+	writeJSON(w, http.StatusOK, dash)
+}
+
+func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
+	uid, err := h.userID(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid multipart"})
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "file required"})
+		return
+	}
+	defer file.Close()
+	if header != nil && !strings.HasSuffix(strings.ToLower(header.Filename), ".pdf") {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "pdf required"})
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(file, 4<<20))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "read file"})
+		return
+	}
+	hash := sha256.Sum256(body)
+	hashStr := hex.EncodeToString(hash[:])
+
+	parsed, confidence, err := h.parseContract(r.Context(), string(body))
+	if err != nil {
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+		return
+	}
+	bench, _ := h.rates.Fetch(r.Context(), "consumer", parsed.Amount, parsed.TermMonths)
+	vs := creditstore.CompareRate(parsed.Rate, bench.BenchmarkRate)
+
+	credit, err := h.credits.Add(uid, creditstore.Credit{
+		Bank:           parsed.Bank,
+		Amount:         parsed.Amount,
+		Rate:           parsed.Rate,
+		TermMonths:     parsed.TermMonths,
+		Remaining:      parsed.Amount,
+		MonthlyPayment: parsed.MonthlyPayment,
+		BenchmarkRate:  bench.BenchmarkRate,
+		RateVsMarket:   vs,
+		NextPayment:    creditstore.FormatNextPayment(),
+		SourceFileHash: hashStr,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"parsed": map[string]any{
+			"amount":          parsed.Amount,
+			"rate":            parsed.Rate,
+			"term_months":     parsed.TermMonths,
+			"monthly_payment": parsed.MonthlyPayment,
+			"bank":            parsed.Bank,
+		},
+		"benchmark_rate":  bench.BenchmarkRate,
+		"rate_vs_market":  vs,
+		"confidence":      confidence,
+		"credit_id":       credit.ID,
+	})
+}
+
+func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
+	uid, err := h.userID(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if err := h.credits.Delete(uid, id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }
 
 type scanParsed struct {
@@ -77,40 +162,69 @@ type scanParsed struct {
 	Bank           string  `json:"bank"`
 }
 
-type scanResponse struct {
-	Parsed     scanParsed `json:"parsed"`
-	Confidence float64    `json:"confidence"`
+func (h *Handler) parseContract(ctx context.Context, text string) (scanParsed, float64, error) {
+	confidence := 0.75
+	if h.llm != nil && h.llm.Enabled() && len(strings.TrimSpace(text)) > 20 {
+		raw, err := h.llm.Complete(ctx, creditScanPrompt, text)
+		if err == nil {
+			var p scanParsed
+			if json.Unmarshal([]byte(extractJSON(raw)), &p) == nil {
+				if err := creditstore.ValidateScan(p.Amount, p.Rate, p.TermMonths); err == nil {
+					return p, 0.87, nil
+				}
+			}
+		}
+	}
+	// MVP fallback when PDF text extraction not wired — demo parse from env
+	p := scanParsed{
+		Amount:         envFloat("CREDIT_SCAN_DEMO_AMOUNT", 1200000),
+		Rate:           envFloat("CREDIT_SCAN_DEMO_RATE", 14.5),
+		TermMonths:     envInt("CREDIT_SCAN_DEMO_TERM", 36),
+		MonthlyPayment: envFloat("CREDIT_SCAN_DEMO_PAYMENT", 42000),
+		Bank:           envStr("CREDIT_SCAN_DEMO_BANK", "Т-Банк"),
+	}
+	if err := creditstore.ValidateScan(p.Amount, p.Rate, p.TermMonths); err != nil {
+		return scanParsed{}, 0, err
+	}
+	return p, confidence, nil
 }
 
-func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
-		return
+func extractJSON(s string) string {
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start >= 0 && end > start {
+		return s[start : end+1]
 	}
-	if err := r.ParseMultipartForm(8 << 20); err != nil {
-		http.Error(w, `{"error":"invalid multipart"}`, http.StatusBadRequest)
-		return
-	}
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, `{"error":"file required"}`, http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-	_ = header
-	writeJSON(w, scanResponse{
-		Parsed: scanParsed{
-			Amount:         1200000,
-			Rate:           14.5,
-			TermMonths:     36,
-			MonthlyPayment: 42000,
-			Bank:           "Т-Банк",
-		},
-		Confidence: 0.87,
-	})
+	return s
 }
 
-func writeJSON(w http.ResponseWriter, v interface{}) {
+func envFloat(key string, def float64) float64 {
+	if v := os.Getenv(key); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return def
+}
+
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return def
+}
+
+func envStr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
 }
