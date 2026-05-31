@@ -182,6 +182,9 @@ export function useReceiptSubmit() {
       })
 
       const results = voiceResultsFromResponse(trimmed, expense)
+      if (!results.length) {
+        throw new Error('Не удалось разобрать покупку')
+      }
       for (const result of results) {
         appendStoredReceipt(receiptFromVoice(result))
       }

@@ -1,6 +1,13 @@
 import type { ReceiptListItem, ReceiptsListResponse } from '~/types/api'
 import { readStoredReceipts, removeStoredReceipt } from '~/utils/receiptListStorage'
 
+function mergeReceiptLists(remote: ReceiptListItem[], local: ReceiptListItem[]): ReceiptListItem[] {
+  const seen = new Set(remote.map((item) => item.id))
+  const pending = local.filter((item) => item.id && !seen.has(item.id))
+  if (!pending.length) return remote
+  return [...pending, ...remote]
+}
+
 export function useReceiptList() {
   const { apiFetch } = useApi()
 
@@ -16,7 +23,8 @@ export function useReceiptList() {
 
     try {
       const remote = await apiFetch<ReceiptsListResponse>('/receipts')
-      receipts.value = remote.receipts ?? []
+      const fromApi = remote.receipts ?? []
+      receipts.value = mergeReceiptLists(fromApi, readStoredReceipts())
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Не удалось загрузить расходы'
       receipts.value = readStoredReceipts()

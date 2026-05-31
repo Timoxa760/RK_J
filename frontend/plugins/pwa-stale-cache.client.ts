@@ -2,7 +2,7 @@
 export default defineNuxtPlugin(async () => {
   if (!('serviceWorker' in navigator)) return
 
-  const marker = 'potok-sw-cleared-v2'
+  const marker = 'potok-sw-cleared-v3'
   if (localStorage.getItem(marker)) return
 
   try {

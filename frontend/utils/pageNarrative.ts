@@ -156,57 +156,34 @@ export function buildAnalyticsPageNarrative(input: {
 }
 
 export function buildCreditsPageNarrative(
-  credits: CreditsDashboardResponse | null,
-  hasCredits = false
+  credits: CreditsDashboardResponse | null
 ): PageNarrativeBlock {
   if (!credits) {
     return {
-      headline: CREDITS.paymentsTitle,
-      paragraphs: ['Считаем долги и запас…'],
+      headline: 'Кредиты по договору',
+      paragraphs: ['Загружаем…'],
       badgeLabel: NAV.credits
     }
   }
 
-  if (!hasCredits) {
+  const count = credits.credits?.length ?? 0
+  if (count === 0) {
     return {
-      headline: 'Кредиты по договору',
+      headline: 'Кредиты и займы',
       paragraphs: [
-        'Загрузите PDF кредитного договора — Поток извлечёт ставку и платёж и посчитает долговую нагрузку.',
-        'Без скана список кредитов и DTI остаются пустыми.'
+        'Загрузите PDF договора — кредит, займ или кредит наличными. Извлечём ставку, платёж и срок.',
+        'Нужны «Индивидуальные условия», не общие условия банка или МФО.'
       ],
       badgeLabel: NAV.credits
     }
   }
 
-  const dti = credits.dti
-  let healthTone: HealthTone = 'good'
-  let healthEmoji: '🟢' | '🟡' | '🔴' = '🟢'
-  if (dti >= 50) {
-    healthTone = 'risk'
-    healthEmoji = '🔴'
-  } else if (dti >= 35) {
-    healthTone = 'warn'
-    healthEmoji = '🟡'
-  }
-
-  const paragraphs = [
-    CREDITS.incomeShare(dti) +
-      (credits.stress_test_months != null
-        ? ` ${CREDITS.stressReserveMonths(credits.stress_test_months)}`
-        : ''),
-    'Ниже — ипотека: примерный платёж, «сейчас или подождать» и сравнение банков.'
-  ]
-
   return {
-    headline: CREDITS.anotherLoan,
-    paragraphs,
-    healthEmoji,
-    healthTone,
-    badgeLabel: CREDITS.trafficLight,
-    weeklyAction:
-      dti >= 35
-        ? 'Перед новым кредитом — посмотрите ипотечный разбор и комфортный платёж.'
-        : undefined
+    headline: 'Кредиты по договору',
+    paragraphs: [
+      `В учёте ${count} ${count === 1 ? 'кредит' : count < 5 ? 'кредита' : 'кредитов'}. Добавить ещё — кнопкой ниже.`
+    ],
+    badgeLabel: NAV.credits
   }
 }
 

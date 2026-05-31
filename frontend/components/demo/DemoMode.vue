@@ -8,10 +8,7 @@ const ACTS = [
   { path: '/dashboard', label: 'Добавить трату', selector: '[data-demo="add-expense"]' },
   { path: '/receipts', label: 'Лента чеков', selector: '[data-demo="receipts"]' },
   ...(isAppFeatureEnabled('creditsNav')
-    ? [
-        { path: '/credits', label: 'Ипотека', selector: '[data-demo="mortgage-form"]' } as const,
-        { path: '/credits', label: 'Сравнение банков', selector: '[data-demo="bank-compare"]' } as const
-      ]
+    ? [{ path: '/credits', label: 'Скан PDF', selector: '[data-demo="credit-pdf-upload"]' } as const]
     : [])
 ] as const
 

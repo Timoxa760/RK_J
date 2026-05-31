@@ -64,6 +64,9 @@ async function confirmDelete(receipt: ReceiptListItem) {
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <p class="font-medium">{{ r.store }}</p>
+                  <Badge v-if="r.source === 'fns'" variant="outline" class="text-[10px]">
+                    {{ PURCHASES.fnsBadge }}
+                  </Badge>
                   <Badge v-if="r.impulse_count" variant="secondary" class="text-[10px]">
                     {{ PURCHASES.impulseBadge }}
                   </Badge>

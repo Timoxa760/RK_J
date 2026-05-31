@@ -155,21 +155,19 @@ export function normalizeInsight(item: InsightItem, index = 0): InsightItem {
 
 export function normalizeCredits(raw: CreditsDashboardResponse): CreditsDashboardResponse {
   const dti = raw.dti <= 1 ? Math.round(raw.dti * 100) : Math.round(raw.dti)
-  const stress =
+  const stressDti =
     raw.stress_test_dti != null
       ? raw.stress_test_dti <= 1
         ? Math.round(raw.stress_test_dti * 100)
         : Math.round(raw.stress_test_dti)
-      : raw.stress_test_months != null
-        ? Math.min(100, Math.round(raw.stress_test_months * 10))
-        : 0
+      : undefined
 
   return {
     ...raw,
     dti,
-    stress_test_dti: stress,
+    stress_test_dti: stressDti,
     stress_test_months: raw.stress_test_months,
-    credits: raw.credits.map((c) => ({
+    credits: (raw.credits ?? []).map((c) => ({
       id: c.id,
       name: c.name ?? c.bank ?? 'Кредит',
       bank: c.bank ?? c.name,

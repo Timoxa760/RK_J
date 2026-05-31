@@ -5,7 +5,7 @@ import { buildCategoriesSummary } from '~/utils/chartSummaries'
 import { resolveSavingsTimemachine } from '~/utils/dashboardProjections'
 
 const { categories, timemachine, loading, error, loadAll, retry } = useDashboard()
-const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
+const { dashboard: credits, enrichedDashboard, loading: creditsLoading, fetchDashboard } = useCredits()
 const { profile, loadProfile, fetchProfileFromApi } = useFinancialProfile()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
 const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan, hasCache, invalidatePlan } = useAiPlan()
@@ -25,7 +25,7 @@ const summary = computed(() =>
   buildDashboardSummary({
     profile: profile.value,
     timemachine: projectedTimemachine.value,
-    credits: credits.value,
+    credits: enrichedDashboard.value ?? credits.value,
     topInsight: topInsight.value,
     categories: categories.value
   })
@@ -128,7 +128,7 @@ watch(addedVersion, () => {
       :timemachine="projectedTimemachine"
       :categories-summary="categoriesSummary"
       :charts-loading="chartsLoading"
-      :credits="credits"
+      :credits="enrichedDashboard ?? credits"
       :credits-loading="creditsLoading"
       :show-credits="showCredits"
       :dti-tone="summary.dtiTone"
