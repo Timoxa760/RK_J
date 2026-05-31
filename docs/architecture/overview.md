@@ -12,7 +12,7 @@ API: `api-gateway:8000` → микросервисы.
 | Слой | Технология | Ветка |
 |------|------------|-------|
 | **Backend** | Go **1.25** (chi, pgx, segmentio/kafka-go, go-jwt, oauth2) | `back` |
-| **AI / enrichment** | Go `ai-processor` + **Google Gemini** (категоризация, голос/ручной, advisor) | `back` |
+| **AI / enrichment** | Go `ai-processor` + **LLM** (Google Gemini direct или **Antigravity Tools** → Claude/GPT) | `back` |
 | **Analytics** | Go `analytics-service` (insights, forecast, scenarios) | `back` |
 | **Frontend** | **Nuxt 4.3** (Vue 3, Pinia, Tailwind, ECharts, PWA) | `front` |
 | **Scraping / ingest** | scraper-service: **FNS**, MCO, email/IMAP (X5/Magnit — legacy, не MVP) | `back` |
@@ -65,7 +65,18 @@ API: `api-gateway:8000` → микросервисы.
      │              Kafka receipt.*             │
      ▼                   ▼                      ▼
  PostgreSQL         ClickHouse            analytics-service
+                           │
+                    Antigravity :8045 (dev LLM)
 ```
+
+## LLM-слой
+
+| Документ | Содержание |
+|----------|------------|
+| [llm-integration.md](./llm-integration.md) | Gemini direct vs Antigravity OpenAI route |
+| [advisor-system.md](./advisor-system.md) | Snapshot, chat, SSE, actions, PG history |
+
+Код: `backend/internal/llm/`, `backend/internal/advisor/`, smoke: `scripts/smoke_auth_chat.sh`.
 
 ## Маппинг продукта → сервисы
 
@@ -73,7 +84,7 @@ API: `api-gateway:8000` → микросервисы.
 |---------|---------|
 | Онбординг, цель в профиле | user-service (`/users/me/profile`) |
 | Кредиты (PDF-only) | credit-service + internal/rates |
-| Советник, план | ai-processor (`/ai/plan`, `/ai/chat`) |
+| Советник, план, чат (SSE) | ai-processor (`/ai/plan`, `/ai/chat`, `/ai/chat/stream`) |
 | Голос / ручной ввод | ai-processor |
 | ФНС / чеки | scraper-service, receipt-service |
 | Финансовое здоровье | credit-service, receipt-service (dashboard) |
@@ -84,4 +95,4 @@ API: `api-gateway:8000` → микросервисы.
 
 - **Зависит от**: ветка `back` (источник правды по инфра)
 - **Используется**: [../product/](../product/), [../features/](../features/), [../api/API_Contract.md](../api/API_Contract.md), [../../NAVI.md](../../NAVI.md)
-- **Связанные документы**: [stack-audit.md](./stack-audit.md), [../deployment/docker-compose.md](../deployment/docker-compose.md)
+- **Связанные документы**: [stack-audit.md](./stack-audit.md), [llm-integration.md](./llm-integration.md), [advisor-system.md](./advisor-system.md), [../deployment/docker-compose.md](../deployment/docker-compose.md)

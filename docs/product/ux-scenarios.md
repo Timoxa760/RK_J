@@ -10,7 +10,7 @@
 - главный риск;
 - **главное действие недели** (одно).
 
-**Экраны `front`:** `/onboarding` (первый вход) → `/dashboard` (Советник: чат, план, метрики).  
+**Экраны `front`:** `/onboarding` → `/dashboard` (narrative, план, метрики). Чат — `/advisor`.  
 **Бэкенд:** `credit-service`, `analytics-service`, `ai-processor` (`/ai/diagnosis`, `/ai/chat`), `receipt-service` (dashboard).
 
 ---
@@ -51,8 +51,8 @@
 
 > Сократите расходы на доставку на 10% — цель станет ближе на 2 месяца.
 
-**Экран `front`:** `/dashboard` (чат + блок «Ваш план»), `/digest`.  
-**Бэкенд:** `analytics-service` (`/api/v1/insights/`), `ai-processor` (`/ai/chat`), `reporting-service` (дайджест).
+**Экран `front`:** `/dashboard` (PageNarrative, план), `/advisor` (чат).  
+**Бэкенд:** `analytics-service` (`/api/v1/insights/`), `ai-processor` (`/ai/chat`).
 
 ---
 
@@ -69,9 +69,10 @@
 
 | Блок | Содержание |
 |------|------------|
-| Советник (чат) | ответы на вопросы, быстрые подсказки |
+| Narrative | совет недели, mindfulness score, доход/траты (`PageNarrative`) |
+| Советник | `/advisor` — streaming, actions, история |
 | Ваш план | цель, срок, 3 шага |
-| Текущая картина | доходы, расходы, остаток |
+| Симулятор «Что если» | embedded на dashboard |
 | Прогноз цели | срок при текущем поведении |
 | Финансовая устойчивость | runway в месяцах |
 | Поведенческий инсайт | мягкий вывод + микро-действие |

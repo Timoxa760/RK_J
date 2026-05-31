@@ -9,6 +9,48 @@
 
 ---
 
+## [2.1.0] — 2026-05-31
+
+### Кратко
+
+Документированы **Antigravity Tools + LLM dual-mode**, полная архитектура **финансового советника** (SSE, actions, PG history), изменения dashboard/front (удаление `/digest`, narrative, mindfulness). Синхронизация с ветками `back` и `front`.
+
+### Added
+
+- **`docs/architecture/llm-integration.md`** — Google direct vs Antigravity OpenAI route, env, troubleshooting.
+- **`docs/architecture/advisor-system.md`** — snapshot, chat pipeline, SSE, actions, frontend map.
+- **`docs/deployment/antigravity-setup.md`** — пошаговая настройка прокси :8045 для dev.
+
+### Changed
+
+- **`docs/architecture/overview.md`** — LLM-слой, Antigravity в схеме, SSE endpoints.
+- **`docs/product/advisor.md`** — `/advisor`, streaming, history, actions, Antigravity.
+- **`docs/product/ux-scenarios.md`** — без `/digest`, narrative на dashboard.
+- **`docs/deployment/environment.md`** — `GEMINI_MODEL=claude-sonnet-4-6`, `/v1` base URL.
+- **`docs/deployment/front-quickstart.md`** — маршруты `/advisor`, удалён `/digest`.
+- **`docs/features/digest.md`** — пометка deprecated, контент на dashboard.
+- **`docs/phases/phases.md`** — фаза 9 (LLM + UX polish).
+- **`NAVI.md`**, **`docs/guides/git-and-branches.md`** — новые ссылки и worktree layout.
+
+### Backend (`back`) — задокументировано
+
+| Изменение | Файлы |
+|-----------|-------|
+| LLM dual-mode client | `internal/llm/client.go`, `types.go` |
+| Antigravity OpenAI route | `GEMINI_BASE_URL=/v1`, model `claude-sonnet-4-6` в compose |
+| Smoke stream fix | `scripts/smoke_auth_chat.sh` |
+
+### Frontend (`front`) — задокументировано
+
+| Изменение | Файлы |
+|-----------|-------|
+| Удалён `/digest` | `pages/digest.vue`, nav, mocks |
+| Narrative + mindfulness | `PageNarrative.vue`, `DashboardMindfulnessScore.vue` |
+| Sidebar advisor убран | `AppSidebarAdvisor.vue` удалён |
+| Симулятор «Что если» | `ScenarioSimulator.vue`, dashboard layout |
+
+---
+
 ## [2.0.0] — 2026-05-30
 
 ### Кратко
@@ -158,5 +200,6 @@
 
 ---
 
+[2.1.0]: https://github.com/Timoxa760/RK_J/compare/90930e9...docs
 [2.0.0]: https://github.com/Timoxa760/RK_J/compare/b0a74ac...docs
 [1.0.0]: https://github.com/Timoxa760/RK_J/commit/b0a74ac

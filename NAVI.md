@@ -19,7 +19,8 @@
 | API эндпоинты | [docs/api/API_Contract.md](./docs/api/API_Contract.md) |
 | OpenAPI YAML | [docs/contracts/openapi.yaml](./docs/contracts/openapi.yaml) |
 | Порты сервисов | [docs/architecture/overview.md](./docs/architecture/overview.md) |
-| Статус хакатона | [docs/phases/phases.md](./docs/phases/phases.md) |
+| Настроить LLM (Antigravity) | [docs/deployment/antigravity-setup.md](./docs/deployment/antigravity-setup.md) |
+| Архитектура советника | [docs/architecture/advisor-system.md](./docs/architecture/advisor-system.md) |
 
 ---
 
@@ -60,6 +61,8 @@ git checkout front   # фронтенд
 | Файл | Что внутри |
 |------|------------|
 | [architecture/overview.md](./docs/architecture/overview.md) | Стек, 15 сервисов, порты |
+| [architecture/llm-integration.md](./docs/architecture/llm-integration.md) | Gemini + Antigravity, env |
+| [architecture/advisor-system.md](./docs/architecture/advisor-system.md) | Snapshot, chat, SSE, actions |
 | [architecture/stack-audit.md](./docs/architecture/stack-audit.md) | Context7, расхождения docs ↔ код |
 | [architecture/kafka-events.md](./docs/architecture/kafka-events.md) | Kafka топики, pipeline |
 | [architecture/defense.md](./docs/architecture/defense.md) | Защита архитектуры для pitch |
@@ -73,6 +76,7 @@ git checkout front   # фронтенд
 | [deployment/back-quickstart.md](./docs/deployment/back-quickstart.md) | Make, migrate, тесты |
 | [deployment/front-quickstart.md](./docs/deployment/front-quickstart.md) | Nuxt, маршруты, структура |
 | [deployment/environment.md](./docs/deployment/environment.md) | `.env` back + front |
+| [deployment/antigravity-setup.md](./docs/deployment/antigravity-setup.md) | Antigravity Tools :8045 |
 | [deployment/demo.md](./docs/deployment/demo.md) | DEMO_MODE, seed, **demo_flow.sh** |
 | [deployment/scripts/](./docs/deployment/scripts/) | health_check, demo_flow |
 | [deployment/docker-compose.md](./docs/deployment/docker-compose.md) | Infra из `back` |

@@ -30,13 +30,15 @@ docker compose up --build
 | `/` | Welcome |
 | `/login` | Вход |
 | `/onboarding` | ⏳ wizard (спека в [onboarding.md](../product/onboarding.md)) |
-| `/dashboard` | Главный экран |
+| `/dashboard` | Главный экран: narrative, план, метрики, симулятор «Что если» |
+| `/advisor` | Полноэкранный чат советника |
 | `/receipts` | Расходы |
 | `/credits` | Кредитный светофор |
 | `/analytics` | Прогноз |
-| `/digest` | Дайджест |
 | `/social` | Гипотеза |
 | `/profile` | Профиль |
+
+> `/digest` удалён — см. [digest.md](../features/digest.md).
 
 ## Структура `frontend/`
 

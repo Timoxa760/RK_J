@@ -14,6 +14,7 @@
 | **6** | **Финансовый ИИ-советник** | Ключевая | ✅ |
 | **7** | Dashboard UX: mega-plan, narrative, advisor UI | WOW | ✅ |
 | **8** | Demo polish + ипотечный сценарий | Финал | ✅ |
+| **9** | LLM (Antigravity) + advisor polish + dashboard narrative | Финал | ✅ |
 
 **Out of scope (не фазы):** X5 Club, Magnit, LK ритейлеров, social/challenges — см. [scope.md](../product/scope.md). Код X5/Magnit в `scraper-service` — legacy, не продуктовый ingest.
 
@@ -146,6 +147,22 @@ flowchart LR
 | `POST /receipt/fns/scan` | ✅ |
 
 **Не в MVP:** social, auction — [гипотезы](../features/social.md).
+
+---
+
+## Фаза 9 — LLM (Antigravity) + dashboard polish (2026-05-31)
+
+| Задача | Статус |
+|--------|--------|
+| LLM client: Google direct + Antigravity `/v1/chat/completions` | ✅ |
+| Docker: `host.docker.internal:8045`, model `claude-sonnet-4-6` | ✅ |
+| Smoke `smoke_auth_chat.sh` → `source: gemini` | ✅ |
+| Удалён `/digest`, narrative на dashboard | ✅ |
+| `PageNarrative`: совет недели + mindfulness + доход/траты | ✅ |
+| Sidebar embedded advisor убран → `/advisor` | ✅ |
+| Симулятор «Что если» на dashboard | ✅ |
+
+Документация: [llm-integration.md](../architecture/llm-integration.md), [antigravity-setup.md](../deployment/antigravity-setup.md).
 
 ---
 
