@@ -17,7 +17,7 @@
 |---------|--------|------|
 | `/auth/` | user-service | 8001 |
 | `/dashboard/`, `/receipts/` | receipt-service | 8002 |
-| `/receipt/manual`, `/receipt/voice`, `/receipt/fns/` | scraper-service | 8003 |
+| `/receipt/manual`, `/receipt/voice` | scraper-service | 8003 |
 | `/ai/` | ai-processor | 8100 |
 | `/credits/` | credit-service | 8009 |
 | `/users/me/` | user-service | 8001 |
@@ -37,7 +37,6 @@
 | 🟡 important | POST | `/auth/password/forgot` | Запрос кода сброса пароля | Core API |
 | 🟡 important | POST | `/auth/password/reset` | Сброс пароля по коду | Core API |
 | 🔴 critical | POST | `/receipt/manual` | Ручной ввод расхода | Receipt Engine |
-| 🔴 critical | POST | `/receipt/fns/scan` | Чек по QR ФНС | Receipt Engine |
 | 🟢 optional | POST | `/receipt/voice` | Голосовой ввод расхода | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/sankey` | Санки-диаграмма | Receipt Engine |
 | 🔴 critical | GET | `/dashboard/categories` | Круговая с детализацией | Receipt Engine |
@@ -297,34 +296,6 @@ Body: multipart/form-data — поле audio (mp3/wav)
 }
 ```
 400 — аудио не распознано | 401
-
-### POST /api/v1/receipt/fns/scan — 🔴 critical
-Отсканировать QR-код чека ФНС.
-
-Body:
-```json
-{
-  "fn": "9285000100351475",
-  "fd": "1234567890",
-  "fp": "1234567890"
-}
-```
-200 OK:
-```json
-{
-  "receipt_id": "uuid",
-  "store": "Пятёрочка",
-  "inn": "7725007364",
-  "date": "2026-05-30T14:32:00Z",
-  "total": 1032.50,
-  "items": [
-    {"name": "Молоко", "price": 89.90, "quantity": 1},
-    {"name": "Хлеб", "price": 45.50, "quantity": 2}
-  ],
-  "category": "Продукты"
-}
-```
-400 — неверные fn/fd/fp | 401 | 404 — чек не найден в ФНС
 
 ---
 
@@ -671,47 +642,14 @@ PDF договора → OnlySQ → сохранение в PG → rates-aggrega
 
 ---
 
-## 10. FNS & Ingest API (Scraper Service)
-
-Опциональный автослой. ФНС не обязательна для MVP.
-
-### POST /api/v1/fns/ticket — 🔴 critical
-
-Проверка чека по QR / ticket data.
-
-**Body:**
-```json
-{
-  "qr": "t=20260530T1200&s=5000.00&fn=...&i=...&fp=...&n=1"
-}
-```
-
-**200 OK:** нормализованный чек → Kafka `receipt.raw` → `receipt-service`.
-
-**400** | **502** — ФНС недоступна
-
-### POST /api/v1/fns/qr
-
-Fallback по QR-строке (аналог ticket).
-
-### POST /api/v1/fns/mco/auth
-
-Начало OAuth-потока MCO (мобильный кабинет налогоплательщика).
-
-### POST /api/v1/fns/mco/auth/verify
-
-Подтверждение кода MCO.
-
----
-
-## 11. Goals API — REMOVED
+## 10. Goals API — REMOVED
 
 > Цель хранится в **profile** (`goal_kind`, `goal_title`, `goal_amount`, `skipped_goal`).  
 > `goal-service` и `/goals/*` **не используются** в MVP.
 
 ---
 
-## 12. Profile & Onboarding
+## 11. Profile & Onboarding
 
 ### GET /api/v1/users/me/profile — 🟡 important
 
@@ -878,7 +816,7 @@ interface Challenge {
   created_by: string; created_at: string
 }
 
-type ProviderType = 'x5club' | 'magnit' | 'lenta' | 'vkusvill' | 'ozon' | 'wb' | 'fns' | 'email'
+type ProviderType = 'x5club' | 'magnit' | 'lenta' | 'vkusvill' | 'ozon' | 'wb' | 'email'
 
 type InsightType = 'subscription' | 'duplicate' | 'overprice'
 type Severity = 'info' | 'warning' | 'critical'

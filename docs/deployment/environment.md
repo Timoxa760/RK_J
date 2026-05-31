@@ -17,12 +17,14 @@
 | `OTP_TTL` | `300` | Срок жизни кода (сек) |
 | `OTP_LENGTH` | `6` | Длина OTP |
 | `OTP_RATE_LIMIT` | `5` | Max resend за 15 мин на номер |
-| `GEMINI_API_KEY` | — | Advisor, parse, credit PDF |
+| `GEMINI_API_KEY` | — | Ключ Google AI Studio **или** API Key из Antigravity Tools → API Proxy |
+| `GEMINI_PROVIDER` | `antigravity` | `antigravity` (локальный прокси :8045) \| `google` (прямой API) |
+| `GEMINI_MODEL` | `gpt-oss-120b-medium` | Модель в Antigravity (`gpt-oss-120b-medium`, `claude-sonnet-4-6`, …). Native Gemini может быть заблокирован по региону аккаунта |
+| `GEMINI_BASE_URL` | `http://127.0.0.1:8045/v1` | OpenAI-маршрут Antigravity; в Docker: `http://host.docker.internal:8045/v1` |
 | `PROFILE_DATA_DIR` | `/app/data/profiles` | File mirror для advisor (Docker volume) |
 | `CREDIT_DATA_DIR` | `/app/data/credits` | Credit scans для advisor |
 | `CLICKHOUSE_*` | см. compose | OLAP dashboard |
 | `ENCRYPTION_KEY` | 32 bytes | AES для creds провайдеров |
-| `RUCAPTCHA_KEY` | — | FNS MCO (не demo) |
 
 ### Настройка SMS.ru
 

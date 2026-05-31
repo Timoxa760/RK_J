@@ -15,7 +15,7 @@
 1. [Обзор](./docs/product/overview.md) — что это, аудитория, инсайт, решение
 2. [UX-сценарии](./docs/product/ux-scenarios.md) — 5 основных сценариев
 3. [Онбординг](./docs/product/onboarding.md) — `/onboarding`, ~1 минута
-4. [Способы ввода](./docs/product/input-methods.md) — голос, чек, ФНС
+4. [Способы ввода](./docs/product/input-methods.md) — голос, ручной ввод
 5. [Финансовая модель](./docs/product/financial-model.md) — единая модель и цикл
 6. [Финансовое здоровье](./docs/product/financial-health.md) — метрики и подача
 7. [Философия UX](./docs/product/philosophy.md) — тон, формулировки

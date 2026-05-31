@@ -8,7 +8,7 @@
 |---------|----------|
 | Онбординг | 4 блока (доход, подушка, цель, расходы), skippable → **profile** |
 | Финансовый профиль | `GET/PATCH /users/me/profile`, skip-флаги, цель в профиле |
-| Расходы | Голос, ручной ввод, чеки, ФНС |
+| Расходы | Голос, ручной ввод |
 | Кредиты | **Только** PDF-скан договора → `POST /credits/scan` → dashboard |
 | Ставки | **rates-aggregator** — этalon vs ставка из скана |
 | Советник | `/ai/plan`, `/ai/diagnosis`, `/ai/chat` |
@@ -23,7 +23,7 @@
 | `GET /ai/goal/{id}/forecast` | **Removed** — прогноз в `/ai/plan` |
 | Demo/stub credits dashboard | **Removed** — данные только из сканов |
 | bank-service sync для кредитов | **Not in MVP** |
-| X5 Club / Magnit LK как ingest | **Not in MVP** — только ФНС для автослоя чеков |
+| X5 Club / Magnit LK как ingest | **Not in MVP** |
 
 ## Dual-branch
 

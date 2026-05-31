@@ -20,7 +20,7 @@
 ## Pipeline
 
 ```
-scraper / FNS / mock
+scraper / mock / email (legacy)
         │
         ▼
   receipt.raw ──► receipt-service
@@ -41,7 +41,7 @@ scraper / FNS / mock
 {
   "id": "uuid",
   "user_id": "string",
-  "provider": "fns|x5club|mock|email",
+  "provider": "x5club|mock|email",
   "store_name": "Пятёрочка",
   "total_amount": 1520.50,
   "purchased_at": "2026-05-30T12:00:00Z",

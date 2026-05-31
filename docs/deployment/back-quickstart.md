@@ -40,7 +40,7 @@ go run scripts/seed_data.go
 |------|------------|
 | 0 | Infra, миграции, Dockerfile |
 | 1 | Auth + gateway |
-| 2 | Ingest: ФНС (QR, MCO, ticket), голос/ручной, email |
+| 2 | Ingest: голос/ручной, email (legacy) |
 | 3 | Scraper + Kafka + receipt-service + dashboard API |
 | 4–5 | Profile, credits PDF, rates |
 | 6 | ai-processor advisor (`/ai/plan`, `/ai/chat`) |

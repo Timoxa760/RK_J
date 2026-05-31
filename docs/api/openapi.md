@@ -19,9 +19,8 @@
 | POST | `/expenses/manual` | Голос / ручной |
 | GET | `/dashboard/sankey` | Главный экран |
 | GET | `/credits/dashboard` | Кредитный светофор |
-| POST | `/scenarios/simulate` | Ипотека / «что если» |
-| POST | `/goals` | Цель |
-| POST | `/fns/ticket` | ФНС (опционально) |
+| GET | `/ai/plan` | Финансовый план |
+| POST | `/ai/chat` | Чат советника |
 
 Полная таблица с приоритетами и JSON — в [API_Contract.md](./API_Contract.md).  
 TypeScript (front): [typescript-types.md](./typescript-types.md).

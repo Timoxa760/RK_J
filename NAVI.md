@@ -49,7 +49,7 @@ git checkout front   # фронтенд
 | [product/overview.md](./docs/product/overview.md) | ЦА, проблема, инсайт, метрики |
 | [product/ux-scenarios.md](./docs/product/ux-scenarios.md) | 5 сценариев, главный экран, цикл |
 | [product/onboarding.md](./docs/product/onboarding.md) | Онбординг, маршрут `/onboarding` |
-| [product/input-methods.md](./docs/product/input-methods.md) | Голос, чек, ФНС, кнопка «Добавить» |
+| [product/input-methods.md](./docs/product/input-methods.md) | Голос, ручной ввод, кнопка «Добавить» |
 | [product/financial-model.md](./docs/product/financial-model.md) | Единая модель, микро-действия |
 | [product/financial-health.md](./docs/product/financial-health.md) | Здоровье, runway, подача |
 | [product/philosophy.md](./docs/product/philosophy.md) | Тон, без давления |
@@ -107,7 +107,7 @@ git checkout front   # фронтенд
 | [features/time-machine.md](./docs/features/time-machine.md) | «Если не менять» | dashboard/timemachine |
 | [features/detective.md](./docs/features/detective.md) | Инсайты-причины | analytics insights |
 | [features/digest.md](./docs/features/digest.md) | Действие недели | reporting-service |
-| [features/fotochecking.md](./docs/features/fotochecking.md) | Скан чека | ai-processor, FNS |
+| [features/fotochecking.md](./docs/features/fotochecking.md) | _(удалено)_ | — |
 | [features/social.md](./docs/features/social.md) | **Гипотеза**, низкий приоритет | social-service |
 | [features/auction.md](./docs/features/auction.md) | **Гипотеза**, не в demo | — |
 
@@ -156,7 +156,6 @@ git checkout front   # фронтенд
 |---------|----------|
 | Голос/ручной | `POST /api/v1/expenses/manual` |
 | Dashboard | `GET /api/v1/dashboard/*` |
-| ФНС | `POST /api/v1/fns/*` |
 | Цель / профиль | `GET/PATCH /api/v1/users/me/profile` |
 | Кредиты (PDF) | `POST /api/v1/credits/scan`, `GET /api/v1/credits/dashboard` |
 | Советник | `GET /api/v1/ai/plan`, `POST /api/v1/ai/chat` |

@@ -53,7 +53,7 @@ UNIQUE `(user_id, provider_name)`.
 |---------|-----|----------|
 | id | VARCHAR(64) PK | ID чека |
 | user_id | VARCHAR(64) | |
-| provider | VARCHAR(50) | fns, x5club, … |
+| provider | VARCHAR(50) | x5club, mock, email, … |
 | store_name | VARCHAR(255) | |
 | total_amount | NUMERIC(10,2) | |
 | purchased_at | TIMESTAMPTZ | |
