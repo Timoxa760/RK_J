@@ -33,7 +33,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-4xl space-y-6">
+  <div class="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6">
     <SharedPageNarrative :narrative="pageNarrative" />
 
     <Alert v-if="showSurveyPrompt || profileIncomplete">

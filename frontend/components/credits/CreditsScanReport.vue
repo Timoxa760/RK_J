@@ -143,7 +143,7 @@ async function addToFixedExpenses() {
             class="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-background px-3 py-2 text-sm"
           >
             <Check class="size-4 text-primary" />
-            <span>{{ fixedTitle }} уже в обязательных расходах</span>
+            <span>{{ fixedTitle }} уже в платежах каждый месяц</span>
           </div>
         </div>
         <p v-if="fixedError" class="mt-2 text-sm text-destructive">{{ fixedError }}</p>

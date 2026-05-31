@@ -1,28 +1,39 @@
 import type { AiDiagnosisIndicator, AiDiagnosisResponse, InsightItem } from '~/types/api'
+import { humanizeIndicatorName } from '~/utils/plainLanguage'
 import { ADVISOR, CREDITS, formatRub } from '~/constants/productCopy'
 import type { DashboardSummary } from '~/utils/dashboardSummary'
 
 const INDICATOR_PAIN: Record<string, string> = {
+  'покупки на эмоциях':
+    'Покупки на эмоциях выше нормы — деньги уходят быстрее, чем кажется.',
+  'сколько откладываете':
+    'Откладываете меньше, чем хотелось бы — до цели дольше.',
+  'платежи по кредитам':
+    'На кредиты уходит много — новые траты могут быть тяжелее.',
+  'запас на чёрный день':
+    'Запас тонкий — если доход пропадёт, денег надолго не хватит.',
+  'насколько стабилен доход': 'Доход скачет — запас важнее обычного.',
+  // legacy names from API / mocks
   'импульсивные траты':
-    'Импульсивные траты выше нормы — съедают запас быстрее, чем кажется.',
+    'Покупки на эмоциях выше нормы — деньги уходят быстрее, чем кажется.',
   'накопления от дохода':
-    'Накопления от дохода ниже нормы — цель может сдвинуться.',
+    'Откладываете меньше, чем хотелось бы — до цели дольше.',
   'долговая нагрузка':
-    'Долговая нагрузка высокая — новые траты могут быть тяжелее.',
+    'На кредиты уходит много — новые траты могут быть тяжелее.',
   'подушка безопасности':
-    'Подушка безопасности ниже нормы — запас на чёрный день тонкий.',
-  'стабильность доходов': 'Доход нестабилен — запас важнее обычного.'
+    'Запас тонкий — если доход пропадёт, денег надолго не хватит.',
+  'стабильность доходов': 'Доход скачет — запас важнее обычного.'
 }
 
 function indicatorPainLine(indicator: AiDiagnosisIndicator): string {
-  const key = indicator.name.toLowerCase()
+  const key = humanizeIndicatorName(indicator.name).toLowerCase()
   for (const [pattern, message] of Object.entries(INDICATOR_PAIN)) {
     if (key.includes(pattern)) return message
   }
   if (indicator.status === 'critical') {
-    return `${indicator.name} — выше нормы, стоит скорректировать траты.`
+    return `${humanizeIndicatorName(indicator.name)} — выше нормы, стоит скорректировать траты.`
   }
-  return `${indicator.name} — ниже нормы, цель может сдвинуться.`
+  return `${humanizeIndicatorName(indicator.name)} — ниже нормы, до цели может быть дольше.`
 }
 
 export function adviceFromDiagnosis(title: string): string {

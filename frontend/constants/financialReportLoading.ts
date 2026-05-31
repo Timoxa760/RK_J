@@ -10,7 +10,7 @@ export const FINANCIAL_REPORT_LOADING_STAGES: FinancialReportLoadingStage[] = [
   {
     id: 'profile',
     label: 'Читаем профиль',
-    hint: 'Доход, цель и подушка',
+    hint: 'Доход, цель и запас',
     durationMs: 2200
   },
   {

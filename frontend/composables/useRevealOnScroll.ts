@@ -4,8 +4,8 @@ export function useRevealOnScroll(options?: {
   delay?: number
 }) {
   const root = ref<HTMLElement | null>(null)
-  const visible = ref(false)
-  const animate = ref(false)
+  const visible = ref(Boolean(options?.immediate))
+  const animate = ref(Boolean(options?.immediate))
   let observer: IntersectionObserver | null = null
   let delayTimer: ReturnType<typeof setTimeout> | null = null
 

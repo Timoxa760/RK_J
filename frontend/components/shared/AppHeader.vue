@@ -10,6 +10,7 @@ defineProps<{
 
 const authStore = useAuthStore()
 const route = useRoute()
+const shellReady = useShellReady()
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: NAV.dashboard, subtitle: NAV.dashboardSubtitle },
@@ -21,53 +22,37 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 
 const meta = computed(() => pageTitles[route.path] ?? { title: 'Поток', subtitle: '' })
 const profileActive = computed(() => route.path === '/profile')
-
-async function openProfile() {
-  if (route.path === '/profile') return
-  await navigateTo('/profile')
-}
+const displaySubtitle = computed(() => meta.value.subtitle)
 </script>
 
 <template>
   <header
     class="mm-app-shell-header z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-3 backdrop-blur-sm sm:h-16 sm:gap-3 sm:px-6 mm-safe-top md:border-b-0"
   >
-    <div class="flex min-w-0 shrink-0 items-center gap-2 md:gap-0">
-      <NuxtLink
-        to="/"
-        class="mm-app-header-brand shrink-0 md:hidden"
-        aria-label="Поток — на лендинг"
-      >
-        <SharedHeroFlowWord variant="brand" />
-      </NuxtLink>
-    </div>
-    <div class="pointer-events-none min-w-0 flex-1">
-      <p
-        v-if="subtitle || meta.subtitle"
-        class="hidden truncate text-xs text-muted-foreground sm:block"
-      >
-        {{ subtitle || meta.subtitle }}
-      </p>
-      <h1 class="truncate text-base font-semibold sm:text-lg">
+    <div class="mm-app-header-title-block">
+      <h1 class="truncate text-base font-semibold leading-tight sm:text-lg">
         {{ title || meta.title }}
       </h1>
+      <p
+        v-if="subtitle || displaySubtitle"
+        class="mm-app-header-subtitle hidden sm:block"
+      >
+        {{ subtitle || displaySubtitle }}
+      </p>
     </div>
 
     <div class="relative z-10 flex shrink-0 items-center gap-1.5 sm:gap-2">
       <slot name="actions" />
-      <Button
-        v-if="authStore.isAuthenticated"
-        type="button"
-        variant="outline"
-        size="icon"
-        class="mm-app-header-profile-btn size-9 shrink-0 rounded-full md:hidden"
-        :class="profileActive ? 'mm-app-header-profile-btn--active' : ''"
-        :aria-label="NAV.profile"
+      <NuxtLink
+        v-if="shellReady && authStore.isAuthenticated"
+        to="/profile"
+        class="mm-app-header-profile-link md:hidden"
+        :class="{ 'mm-app-header-profile-link--active': profileActive }"
         :aria-current="profileActive ? 'page' : undefined"
-        @click="openProfile"
       >
-        <User class="size-4" stroke-width="2" />
-      </Button>
+        <User class="size-[1.125rem] shrink-0" stroke-width="2" />
+        <span>{{ NAV.profile }}</span>
+      </NuxtLink>
     </div>
   </header>
 </template>

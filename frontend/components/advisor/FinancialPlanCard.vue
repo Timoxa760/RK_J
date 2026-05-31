@@ -11,7 +11,7 @@ import type {
 import type { DashboardSummary, HealthTone } from '~/utils/dashboardSummary'
 import type { FinancialPlan } from '~/utils/financialPlan'
 import type { PageNarrativeBlock } from '~/utils/pageNarrative'
-import { ADVISOR, GOALS, HEALTH } from '~/constants/productCopy'
+import { ADVISOR, GOALS } from '~/constants/productCopy'
 import { buildDiagnosisIntro } from '~/utils/dashboardCopy'
 
 const props = withDefaults(
@@ -248,33 +248,39 @@ const showOverview = computed(
 
           <section class="mm-financial-plan-mega__section">
             <div class="mm-financial-plan-mega__section-head">
-              <h3 class="mm-financial-plan-mega__heading">
-                {{ ADVISOR.planTabOpportunity }}
-                <span v-if="opportunityBadge" class="ml-2 text-base font-bold text-emerald-700 sm:text-lg">
-                  {{ opportunityBadge }}
-                </span>
-              </h3>
+              <h3 class="mm-financial-plan-mega__heading">{{ ADVISOR.planTabOpportunity }}</h3>
               <p class="mm-financial-plan-mega__hint">{{ ADVISOR.planTabOpportunityHint }}</p>
             </div>
-            <div v-if="summary" class="mm-financial-plan-mega__section-body mm-financial-plan-mega__opportunity">
-              <p v-if="summary.goalOpportunityThousands" class="mm-financial-plan-mega__opportunity-value">
-                {{ GOALS.opportunityAmount(summary.goalOpportunityThousands) }}
-              </p>
-              <p class="mm-financial-plan-mega__opportunity-text">{{ summary.goalForecast }}</p>
-              <p
-                v-if="summary.goalHint !== summary.goalForecast"
-                class="mm-financial-plan-mega__opportunity-muted"
-              >
-                {{ summary.goalHint }}
-              </p>
-              <p v-if="summary.runwayMonths != null" class="mm-financial-plan-mega__opportunity-muted">
-                {{ HEALTH.reserveMonths(summary.runwayMonths) }}
-              </p>
-              <AdvisorAskButton
-                v-if="summary.goalOpportunityThousands"
-                :prompt="`Что даёт ${GOALS.opportunityAmount(summary.goalOpportunityThousands)} и как приблизить цель?`"
-                :label="ADVISOR.askAboutAction"
-              />
+            <div v-if="summary" class="mm-financial-plan-mega__section-body">
+              <div class="mm-financial-plan-mega__opportunity-panel">
+                <div class="mm-financial-plan-mega__opportunity-hero">
+                  <span class="mm-financial-plan-mega__opportunity-label">
+                    {{ GOALS.opportunityLabel }}
+                  </span>
+                  <p
+                    v-if="summary.goalOpportunityThousands"
+                    class="mm-financial-plan-mega__opportunity-value"
+                  >
+                    {{ GOALS.opportunityAmount(summary.goalOpportunityThousands) }}
+                  </p>
+                  <p class="mm-financial-plan-mega__opportunity-lead">{{ summary.opportunityLead }}</p>
+                </div>
+
+                <p
+                  v-if="summary.opportunityDetail"
+                  class="mm-financial-plan-mega__opportunity-details"
+                >
+                  {{ summary.opportunityDetail }}
+                </p>
+
+                <div class="mm-financial-plan-mega__opportunity-action">
+                  <AdvisorAskButton
+                    v-if="summary.goalOpportunityThousands"
+                    :prompt="`Что даёт ${GOALS.opportunityAmount(summary.goalOpportunityThousands)} и как приблизить цель?`"
+                    :label="ADVISOR.askAboutAction"
+                  />
+                </div>
+              </div>
             </div>
           </section>
 
@@ -422,29 +428,34 @@ const showOverview = computed(
           </TabsContent>
 
           <TabsContent value="opportunity" class="mt-4 space-y-3">
-            <p class="text-sm text-muted-foreground">{{ ADVISOR.planTabOpportunityHint }}</p>
-            <div v-if="summary" class="mm-tier-3 space-y-3 rounded-xl bg-muted/30 p-4">
+            <div v-if="summary" class="mm-financial-plan-mega__opportunity-panel">
+              <div class="mm-financial-plan-mega__opportunity-hero">
+                <span class="mm-financial-plan-mega__opportunity-label">
+                  {{ GOALS.opportunityLabel }}
+                </span>
+                <p
+                  v-if="summary.goalOpportunityThousands"
+                  class="mm-financial-plan-mega__opportunity-value"
+                >
+                  {{ GOALS.opportunityAmount(summary.goalOpportunityThousands) }}
+                </p>
+                <p class="mm-financial-plan-mega__opportunity-lead">{{ summary.opportunityLead }}</p>
+              </div>
+
               <p
-                v-if="summary.goalOpportunityThousands"
-                class="text-2xl font-bold text-emerald-700"
+                v-if="summary.opportunityDetail"
+                class="mm-financial-plan-mega__opportunity-details"
               >
-                {{ GOALS.opportunityAmount(summary.goalOpportunityThousands) }}
+                {{ summary.opportunityDetail }}
               </p>
-              <p class="text-base leading-relaxed">{{ summary.goalForecast }}</p>
-              <p
-                v-if="summary.goalHint !== summary.goalForecast"
-                class="text-sm leading-relaxed text-muted-foreground"
-              >
-                {{ summary.goalHint }}
-              </p>
-              <p v-if="summary.runwayMonths != null" class="text-sm text-muted-foreground">
-                {{ HEALTH.reserveMonths(summary.runwayMonths) }}
-              </p>
-              <AdvisorAskButton
-                v-if="summary.goalOpportunityThousands"
-                :prompt="`Что даёт ${GOALS.opportunityAmount(summary.goalOpportunityThousands)} и как приблизить цель?`"
-                :label="ADVISOR.askAboutAction"
-              />
+
+              <div class="mm-financial-plan-mega__opportunity-action">
+                <AdvisorAskButton
+                  v-if="summary.goalOpportunityThousands"
+                  :prompt="`Что даёт ${GOALS.opportunityAmount(summary.goalOpportunityThousands)} и как приблизить цель?`"
+                  :label="ADVISOR.askAboutAction"
+                />
+              </div>
             </div>
           </TabsContent>
 

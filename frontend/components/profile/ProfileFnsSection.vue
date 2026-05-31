@@ -155,7 +155,7 @@ async function resendCode() {
     :open="connectOpen"
     @update:open="(value) => (value ? (connectOpen = true) : closeConnectDialog())"
   >
-    <DialogContent class="min-w-0 overflow-x-hidden sm:max-w-sm">
+    <DialogContent class="max-h-[90dvh] min-w-0 overflow-y-auto overflow-x-hidden sm:max-w-sm">
       <DialogHeader>
         <DialogTitle>{{ FNS.connect }}</DialogTitle>
         <DialogDescription>

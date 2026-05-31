@@ -30,7 +30,7 @@ watch(showDemoTour, (enabled) => {
       <AppSidebar />
       <div class="mm-app-shell-content">
         <SharedAppHeader />
-        <div class="mm-app-shell-main flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
+        <div class="mm-app-shell-main">
           <slot />
         </div>
         <SharedMobileTabBar />
@@ -40,6 +40,8 @@ watch(showDemoTour, (enabled) => {
       <DashboardAddExpenseSheet v-model:open="addExpenseOpen" @added="notifyAdded" />
     </ClientOnly>
     <DemoMode v-if="config.public.demoMode" ref="demoModeRef" />
-    <Sonner />
+    <ClientOnly>
+      <Sonner />
+    </ClientOnly>
   </div>
 </template>

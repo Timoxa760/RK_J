@@ -9,6 +9,8 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "screencast": "bash scripts/open-screencast.sh",
+    "screencast:ui": "bash -c 'open \"http://localhost:${NUXT_PORT:-3000}/screencast.html?path=/dashboard&scale=2\" || xdg-open \"http://localhost:3000/screencast.html?path=/dashboard&scale=2\"'",
     "test:advisor-markdown": "node --experimental-strip-types --test utils/advisorMarkdown.test.mjs",
     "shadcn": "shadcn-vue",
     "shadcn:patch": "node scripts/patch-shadcn-vue-ignore.mjs"

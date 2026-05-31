@@ -13,6 +13,7 @@ import { isAppFeatureEnabled } from '~/constants/featureFlags'
 
 const authStore = useAuthStore()
 const route = useRoute()
+const shellReady = useShellReady()
 const { show: showAddExpense } = useAddExpenseSheet()
 
 async function onNavClick(to: string) {
@@ -78,7 +79,7 @@ const mainNav = computed(() =>
     </nav>
 
     <footer
-      v-if="authStore.user"
+      v-if="shellReady && authStore.user"
       class="shrink-0 border-t border-sidebar-border px-3 py-2"
     >
       <p class="truncate text-xs text-muted-foreground">

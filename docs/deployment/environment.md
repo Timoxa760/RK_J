@@ -45,6 +45,15 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 | `NUXT_PUBLIC_API_BASE` | `http://localhost:8000` | api-gateway |
 | `NUXT_PUBLIC_DEMO_MODE` | `false` | `true` = mock JWT без бэка |
 
+## Production
+
+| Файл | Назначение |
+|------|------------|
+| [backend/.env.production.example](../backend/.env.production.example) | VPS: JWT, DB, CORS, Antigravity |
+| [frontend/.env.production.example](../frontend/.env.production.example) | Vercel: `NUXT_PUBLIC_API_BASE` |
+
+См. [vps-deploy.md](./vps-deploy.md), [vercel-deploy.md](./vercel-deploy.md).
+
 ## Связи
 
 - [back-quickstart.md](./back-quickstart.md)

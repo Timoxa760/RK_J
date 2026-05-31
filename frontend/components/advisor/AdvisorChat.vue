@@ -79,7 +79,10 @@ function showDayDivider(index: number): string | null {
     class="flex flex-col overflow-hidden"
     :class="fullPage ? 'h-full min-h-0 border-0 bg-transparent shadow-none' : 'h-full'"
   >
-    <CardHeader class="shrink-0 gap-1.5 p-4 pb-2 sm:p-5 sm:pb-3">
+    <CardHeader
+      v-if="!fullPage"
+      class="shrink-0 gap-1.5 p-4 pb-2 sm:p-5 sm:pb-3"
+    >
       <div class="flex items-start justify-between gap-2">
         <div>
           <CardTitle class="text-lg font-semibold">
@@ -212,7 +215,11 @@ function showDayDivider(index: number): string | null {
         </Button>
       </div>
 
-      <form class="flex gap-2 px-3 sm:px-4" @submit.prevent="submit">
+      <form
+        class="flex shrink-0 gap-2 border-t bg-background/95 px-3 py-2 sm:px-4"
+        :class="fullPage ? 'mm-safe-bottom' : ''"
+        @submit.prevent="submit"
+      >
         <Input
           v-model="draft"
           :placeholder="ADVISOR.chatPlaceholder"

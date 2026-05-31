@@ -107,6 +107,7 @@ export default defineNuxtConfig({
     '/advisor': { ssr: false }
   },
   nitro: {
+    preset: process.env.VERCEL ? 'vercel' : undefined,
     devProxy: {
       '/api': {
         target: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000',

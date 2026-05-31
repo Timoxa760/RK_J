@@ -39,7 +39,7 @@ function submit() {
           />
           <p v-if="monthlyIncome" class="text-xs text-muted-foreground">
             Доход {{ monthlyIncome.toLocaleString('ru-RU') }} ₽/мес
-            <span v-if="savings"> · подушка {{ savings.toLocaleString('ru-RU') }} ₽</span>
+            <span v-if="savings"> · запас {{ savings.toLocaleString('ru-RU') }} ₽</span>
           </p>
         </div>
         <Button type="submit" class="w-full shrink-0 sm:w-auto" :disabled="loading">

@@ -145,11 +145,11 @@ export function buildCreditScanReport(
   if (opts?.fixedExpensesTotal != null) {
     const nextFixed = (opts.fixedExpensesTotal ?? 0) + payment.amount
     insights.push(
-      `Если внести платёж в обязательные расходы, в прогнозе будет ~${formatRub(nextFixed)}/мес фиксированных трат.`
+      `Если добавить платёж в «каждый месяц», в прогнозе будет ~${formatRub(nextFixed)}/мес регулярных трат.`
     )
   } else {
     insights.push(
-      'Добавьте платёж в обязательные расходы — так главная и советник учтут кредит в прогнозе.'
+      'Добавьте платёж в «каждый месяц» — так главная и советник учтут кредит в прогнозе.'
     )
   }
 

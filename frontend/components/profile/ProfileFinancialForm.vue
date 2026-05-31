@@ -94,7 +94,7 @@ async function submit() {
     <CardContent>
       <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
         <div class="space-y-2">
-          <Label for="active-income">Активный доход, ₽/мес</Label>
+          <Label for="active-income">Зарплата и работа, ₽/мес</Label>
           <Input
             id="active-income"
             v-model.number="draft.active_income"
@@ -104,7 +104,7 @@ async function submit() {
           />
         </div>
         <div class="space-y-2">
-          <Label for="passive-income">Пассивный доход, ₽/мес</Label>
+          <Label for="passive-income">Другое поступление, ₽/мес</Label>
           <Input
             id="passive-income"
             v-model.number="draft.passive_income"
@@ -114,7 +114,7 @@ async function submit() {
           />
         </div>
         <div class="space-y-2 sm:col-span-2">
-          <Label for="emergency-fund">Подушка безопасности, ₽</Label>
+          <Label for="emergency-fund">Накопления на чёрный день, ₽</Label>
           <Input
             id="emergency-fund"
             v-model.number="draft.emergency_fund"
@@ -125,8 +125,8 @@ async function submit() {
         </div>
 
         <div class="space-y-2 sm:col-span-2">
-          <Label for="goal-title">Финансовая цель</Label>
-          <Input id="goal-title" v-model="draft.goal_title" type="text" placeholder="Отпуск, подушка…" />
+          <Label for="goal-title">На что копите</Label>
+          <Input id="goal-title" v-model="draft.goal_title" type="text" placeholder="Отпуск, ремонт…" />
         </div>
         <div class="space-y-2">
           <Label for="goal-amount">Сумма цели, ₽</Label>
@@ -183,7 +183,7 @@ async function submit() {
           </Button>
 
           <p v-if="draftFixedTotal" class="text-sm text-muted-foreground">
-            Обязательные расходы: {{ draftFixedTotal.toLocaleString('ru-RU') }} ₽/мес
+            Платежи каждый месяц: {{ draftFixedTotal.toLocaleString('ru-RU') }} ₽/мес
           </p>
         </div>
 

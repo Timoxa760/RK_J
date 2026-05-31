@@ -76,6 +76,8 @@ git checkout front   # фронтенд
 | [deployment/demo.md](./docs/deployment/demo.md) | DEMO_MODE, seed, **demo_flow.sh** |
 | [deployment/scripts/](./docs/deployment/scripts/) | health_check, demo_flow |
 | [deployment/docker-compose.md](./docs/deployment/docker-compose.md) | Infra из `back` |
+| [deployment/vps-deploy.md](./docs/deployment/vps-deploy.md) | Prod VPS: Docker, Caddy, Antigravity |
+| [deployment/vercel-deploy.md](./docs/deployment/vercel-deploy.md) | Prod Vercel: домен, env |
 
 ### Продукт (доп.)
 

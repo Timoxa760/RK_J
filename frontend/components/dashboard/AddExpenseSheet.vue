@@ -17,7 +17,7 @@ function closeSheet() {
 <template>
   <Dialog v-model:open="open">
     <DialogContent
-      class="mm-purchase-sheet max-h-[min(90dvh,720px)] w-[calc(100%-2rem)] max-w-md gap-0 overflow-y-auto rounded-2xl p-0 sm:max-w-lg"
+      class="mm-purchase-sheet max-h-[min(90dvh,720px)] w-[calc(100%-1rem)] max-w-md gap-0 overflow-y-auto rounded-2xl p-0 mm-safe-bottom sm:max-w-lg sm:w-[calc(100%-2rem)]"
     >
       <DialogHeader class="space-y-2 px-5 pb-0 pt-5 text-left">
         <DialogTitle class="text-xl font-semibold tracking-tight">

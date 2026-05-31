@@ -69,9 +69,9 @@ const scenarioBarLabel = computed(() => {
 const contextLine = computed(() => {
   if (!preview.value.hasData) return ''
   if (preview.value.incomeKnown) {
-    return `Подушка за ${preview.value.months} мес.: ${formatRub(preview.value.baselineEnd)} → ${formatRub(preview.value.optimizedEnd)} при текущем свободном потоке ${preview.value.freeCashflow > 0 ? '+' : ''}${formatRub(preview.value.freeCashflow)}/мес.`
+  return `Запас за ${preview.value.months} мес.: ${formatRub(preview.value.baselineEnd)} → ${formatRub(preview.value.optimizedEnd)}. После трат остаётся ${preview.value.freeCashflow > 0 ? '+' : ''}${formatRub(preview.value.freeCashflow)}/мес.`
   }
-  return 'Укажите доход в профиле — добавим прогноз роста подушки.'
+  return 'Укажите доход в профиле — добавим прогноз роста запаса.'
 })
 
 function categoryHint(option: (typeof categoryOptions.value)[number]): string {

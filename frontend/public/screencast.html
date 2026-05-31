@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Поток — запись скринкаста</title>
+    <style>
+      :root {
+        --frame-w: 444px;
+        --frame-h: 921px;
+        --screen-top: 21px;
+        --screen-right: 21px;
+        --screen-bottom: 26px;
+        --screen-left: 21px;
+        --screen-radius: 44px;
+        --scale: 2;
+        --bg: #0b0f14;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: #e8edf2;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 24px;
+      }
+
+      body.clean {
+        padding: 0;
+        gap: 0;
+      }
+
+      .panel {
+        width: min(720px, 100%);
+        padding: 16px 18px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        line-height: 1.5;
+        font-size: 14px;
+      }
+
+      .panel h1 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .panel p {
+        margin: 0 0 10px;
+        color: rgba(232, 237, 242, 0.78);
+      }
+
+      .panel ol {
+        margin: 0 0 12px;
+        padding-left: 20px;
+      }
+
+      .panel li + li {
+        margin-top: 6px;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      button,
+      a.btn {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: inherit;
+        border-radius: 999px;
+        padding: 8px 14px;
+        font: inherit;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      button:hover,
+      a.btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      button.primary {
+        background: #2f6fed;
+        border-color: transparent;
+      }
+
+      .stage {
+        position: relative;
+        width: calc(var(--frame-w) * var(--scale));
+        height: calc(var(--frame-h) * var(--scale));
+        flex: 0 0 auto;
+      }
+
+      .device {
+        position: absolute;
+        inset: 0;
+        transform-origin: top left;
+        transform: scale(var(--scale));
+        width: var(--frame-w);
+        height: var(--frame-h);
+      }
+
+      .screen {
+        position: absolute;
+        top: var(--screen-top);
+        right: var(--screen-right);
+        bottom: var(--screen-bottom);
+        left: var(--screen-left);
+        overflow: hidden;
+        border-radius: var(--screen-radius);
+        background: #000;
+      }
+
+      .screen iframe {
+        width: 402px;
+        height: 874px;
+        border: 0;
+        display: block;
+        background: #fff;
+      }
+
+      .frame {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: rgba(232, 237, 242, 0.55);
+      }
+
+      kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(0, 0, 0, 0.25);
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="panel" id="panel">
+      <h1>Скринкаст без Xcode</h1>
+      <p>
+        Приложение внутри рамки iPhone с Dynamic Island. Запись — обычным захватом окна в
+        QuickTime или OBS, без симулятора.
+      </p>
+      <ol>
+        <li>Запустите <code>npm run dev</code> и один раз войдите в приложение (если ещё не вошли).</li>
+        <li>Нажмите «Окно для записи» — откроется чистое окно только с телефоном.</li>
+        <li>
+          QuickTime → «Файл» → «Новая запись экрана» → выберите это окно. Или OBS → «Захват окна».
+        </li>
+        <li>Кликайте внутри экрана телефона — это живое приложение.</li>
+      </ol>
+      <p class="hint">
+        Альтернатива: запись экрана на реальном iPhone (Control Center) и AirDrop на Mac — тоже с
+        вырезом под остров.
+      </p>
+      <div class="row" id="paths"></div>
+      <div class="row">
+        <button type="button" class="primary" id="open-record">Окно для записи</button>
+        <button type="button" id="reload">Обновить экран</button>
+        <a class="btn" id="open-login" href="/login" target="_blank" rel="noopener">Войти в приложение</a>
+      </div>
+      <p class="hint" style="margin-top: 12px">
+        Горячие клавиши: <kbd>R</kbd> — обновить, <kbd>C</kbd> — чистый режим, <kbd>1</kbd>–<kbd>5</kbd> —
+        сценарии.
+      </p>
+    </section>
+
+    <div class="stage" id="stage">
+      <div class="device">
+        <div class="screen">
+          <iframe id="app" title="Поток" allow="microphone *; clipboard-write"></iframe>
+        </div>
+        <img
+          class="frame"
+          src="/images/landing/iphone-16-pro-frame.png"
+          alt=""
+          width="444"
+          height="921"
+          draggable="false"
+        />
+      </div>
+    </div>
+
+    <script>
+      const PRESETS = [
+        { label: 'Онбординг', path: '/onboarding' },
+        { label: 'План', path: '/dashboard' },
+        { label: 'Тур по UI', path: '/dashboard?tour=1' },
+        { label: 'Советник', path: '/advisor' },
+        { label: 'Кредиты', path: '/credits' }
+      ]
+
+      const params = new URLSearchParams(location.search)
+      const clean = params.get('clean') === '1'
+      const scale = Math.max(1, Math.min(3, Number(params.get('scale') || '2') || 2))
+      const path = params.get('path') || '/dashboard'
+
+      document.documentElement.style.setProperty('--scale', String(scale))
+      if (params.get('bg')) {
+        document.documentElement.style.setProperty('--bg', params.get('bg'))
+      }
+
+      const iframe = document.getElementById('app')
+      const panel = document.getElementById('panel')
+      const pathsRow = document.getElementById('paths')
+
+      function appUrl(nextPath) {
+        const url = new URL(nextPath, location.origin)
+        return url.pathname + url.search
+      }
+
+      function load(nextPath) {
+        iframe.src = appUrl(nextPath)
+        const next = new URL(location.href)
+        next.searchParams.set('path', nextPath)
+        history.replaceState(null, '', next)
+      }
+
+      PRESETS.forEach((preset, index) => {
+        const btn = document.createElement('button')
+        btn.type = 'button'
+        btn.textContent = preset.label
+        btn.addEventListener('click', () => load(preset.path))
+        pathsRow.appendChild(btn)
+      })
+
+      document.getElementById('reload').addEventListener('click', () => {
+        iframe.contentWindow?.location.reload()
+      })
+
+      document.getElementById('open-record').addEventListener('click', () => {
+        const url = new URL(location.href)
+        url.searchParams.set('clean', '1')
+        url.searchParams.set('scale', String(scale))
+        window.open(url.toString(), '_blank', 'noopener')
+      })
+
+      window.addEventListener('keydown', (event) => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+          return
+        }
+        if (event.key === 'r' || event.key === 'R') {
+          iframe.contentWindow?.location.reload()
+        }
+        if (event.key === 'c' || event.key === 'C') {
+          const url = new URL(location.href)
+          url.searchParams.set('clean', '1')
+          location.href = url.toString()
+        }
+        const num = Number(event.key)
+        if (num >= 1 && num <= PRESETS.length) {
+          load(PRESETS[num - 1].path)
+        }
+      })
+
+      if (clean) {
+        document.body.classList.add('clean')
+        panel.hidden = true
+      }
+
+      load(path)
+    </script>
+  </body>
+</html>

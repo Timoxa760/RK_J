@@ -71,7 +71,7 @@ export const mockMortgageBreakdown: MortgageBreakdownResponse = {
   safe_mortgage_amount: 9_000_000,
   comfortable_payment: 52_000,
   load_risk:
-    'После платежа подушка сократится до ~3,2 мес. — ситуация станет более хрупкой, но управляемой.',
+    'После платежа запас сократится до ~3,2 мес. — денег надолго не хватит, но ситуация ещё управляемая.',
   scenario_now:
     'Платёж ~52 000 ₽ в месяц — до цели «Отпуск» пойдёте примерно на 5 месяцев дольше.',
   scenario_wait:

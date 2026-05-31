@@ -4,8 +4,13 @@ import { FLOW_PULSES } from '~/constants/backgroundFlow'
 </script>
 
 <template>
-  <div class="mm-flow" aria-hidden="true">
-    <FlowSvgLayer tracks accent />
-    <FlowSvgLayer :pulses="FLOW_PULSES" />
-  </div>
+  <ClientOnly>
+    <div class="mm-flow" aria-hidden="true">
+      <FlowSvgLayer tracks accent />
+      <FlowSvgLayer :pulses="FLOW_PULSES" />
+    </div>
+    <template #fallback>
+      <div class="mm-flow mm-flow--fallback" aria-hidden="true" />
+    </template>
+  </ClientOnly>
 </template>

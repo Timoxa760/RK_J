@@ -17,7 +17,7 @@ const emit = defineEmits<{
 <template>
   <button
     type="button"
-    class="mm-onb-mode-card flex h-full min-h-[17.5rem] w-full flex-col text-left"
+    class="mm-onb-mode-card flex h-full w-full flex-col text-left sm:min-h-[17.5rem]"
     :class="{ 'mm-onb-mode-card--recommended': recommended }"
     @click="emit('select')"
   >

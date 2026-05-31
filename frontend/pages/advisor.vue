@@ -66,7 +66,7 @@ async function onWeeklyHintClick() {
       :typing="typing"
       :error="chatError"
       :context="advisorContext"
-      class="min-h-[calc(100dvh-11rem)] md:min-h-[calc(100dvh-8rem)]"
+      class="min-h-0 flex-1"
       @send="sendMessage"
       @reset="resetChat"
       @action="runAction"

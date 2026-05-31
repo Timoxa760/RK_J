@@ -25,6 +25,9 @@ export interface DashboardSummary {
   mainRisk: string | null
   goalForecast: string
   goalOpportunityThousands: number | null
+  /** Короткий текст для блока «Возможность» — без повтора суммы */
+  opportunityLead: string
+  opportunityDetail: string | null
   habitInsight: string | null
   goalHint: string
   weeklyAction: string
@@ -134,7 +137,7 @@ function buildMainRisk(input: {
     return 'Тратите больше, чем получаете — запас будет уменьшаться.'
   }
   if (input.runwayMonths != null && input.runwayMonths < 3) {
-    return `Запаса хватит примерно на ${input.runwayMonths} мес. — лучше иметь подушку побольше.`
+    return `Запаса хватит примерно на ${input.runwayMonths} мес. — лучше иметь запас побольше.`
   }
   if (input.dti != null && input.dti >= 50) {
     return CREDITS.highPaymentsRisk
@@ -191,6 +194,49 @@ function buildProfileGoalHint(profile: FinancialProfile | null | undefined): str
   }
 
   return `Цель «${title}» — ${formatRub(amount)}.`
+}
+
+function buildOpportunityLead(
+  opportunityThousands: number | null,
+  horizon: number,
+  profile: FinancialProfile | null | undefined,
+  goalForecast: string
+): string {
+  if (opportunityThousands != null && horizon > 0) {
+    const goalTitle = profile?.goal_title?.trim()
+    if (goalTitle && profile && !profile.skipped_goal && (profile.goal_amount ?? 0) >= 1000) {
+      return `Если чуть экономнее — за ${horizon} мес. быстрее дойдёте до «${goalTitle}».`
+    }
+    return `За ${horizon} мес. можно отложить больше, если немного сократить траты.`
+  }
+
+  if (opportunityThousands != null) {
+    return 'Небольшая экономия ускорит накопления.'
+  }
+
+  return goalForecast
+}
+
+function buildOpportunityDetail(
+  opportunityThousands: number | null,
+  profile: FinancialProfile | null | undefined,
+  freeCashflow: number
+): string | null {
+  if (opportunityThousands != null) {
+    if (freeCashflow > 0) {
+      return `После трат остаётся около ${formatRub(freeCashflow)}/мес.`
+    }
+    if (freeCashflow < 0) {
+      return 'Тратите больше, чем получаете — сначала выровняйте баланс.'
+    }
+  }
+
+  if (!profile || profile.skipped_goal || (profile.goal_amount ?? 0) < 1000) {
+    return null
+  }
+
+  const title = profile.goal_title?.trim() || 'Цель'
+  return `Цель «${title}» — ${formatRub(profile.goal_amount ?? 0)}.`
 }
 
 function goalOpportunityThousands(
@@ -251,6 +297,18 @@ export function buildDashboardSummary(input: {
       ? GOALS.savingsPain(opportunityThousands, horizon)
       : goalForecast
 
+  const opportunityLead = buildOpportunityLead(
+    opportunityThousands,
+    horizon,
+    input.profile,
+    goalForecast
+  )
+  const opportunityDetail = buildOpportunityDetail(
+    opportunityThousands,
+    input.profile,
+    freeCashflow
+  )
+
   const weeklyAction = input.topInsight?.title ?? ACTIONS.addPurchaseHint
 
   const mainRisk = buildMainRisk({
@@ -275,6 +333,8 @@ export function buildDashboardSummary(input: {
     mainRisk,
     goalForecast,
     goalOpportunityThousands: opportunityThousands,
+    opportunityLead,
+    opportunityDetail,
     habitInsight: insightText,
     goalHint,
     weeklyAction,

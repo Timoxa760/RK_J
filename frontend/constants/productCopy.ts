@@ -42,7 +42,7 @@ export const HEALTH = {
 
 export const CREDITS = {
   paymentsTitle: 'Платежи по кредитам',
-  paymentsHint: 'Сколько процентов дохода уходит на погашение. До 35% — обычно комфортно',
+  paymentsHint: 'Сколько процентов зарплаты уходит на погашение. До 35% — обычно нормально',
   incomeShare: (pct: number) => `На кредиты уходит ${pct}% дохода`,
   stressIncomeDrop: (pct: number) =>
     `Если доход упадёт на 20%, на погашение уйдёт около ${pct}%`,
@@ -60,13 +60,13 @@ export const CREDITS = {
   scanRateAtOrBelow: 'Ставка на уровне или ниже рынка',
   scanRateUnknown: 'Сравнение со рынком недоступно',
   scanReportTitle: 'Разбор договора',
-  scanAddFixed: 'Внести в обязательные расходы',
-  scanFixedDone: 'Платёж учтён в обязательных расходах',
+  scanAddFixed: 'Добавить в платежи каждый месяц',
+  scanFixedDone: 'Платёж уже учтён в ежемесячных тратах',
   dtiNeedIncome: 'Платёж по договору есть — укажите доход, чтобы показать долю в процентах.',
   dtiIncomeCta: 'Указать доход в профиле',
   monthlyPaymentsLine: (amount: number) =>
     `Суммарный платёж по договорам: ${amount.toLocaleString('ru-RU')} ₽/мес`,
-  cushionNeedData: 'Укажите подушку в профиле — покажем, на сколько месяцев хватит запаса.',
+  cushionNeedData: 'Укажите накопления в профиле — покажем, на сколько месяцев хватит запаса.',
   deleteCredit: 'Удалить из списка'
 } as const
 
@@ -130,7 +130,7 @@ export const ADVISOR = {
   weeklyAdviceHintShort: 'Первый шаг — в вашем плане ниже',
   planStepPrimaryLabel: 'Главное на неделю',
   planTabOpportunityHint: 'Сколько можете получить, если чуть изменить траты',
-  planTabDiagnosisHint: 'Показатели, из которых складывается оценка',
+  planTabDiagnosisHint: 'Коротко — что с деньгами сейчас',
   planTabMoneyHint: 'Куда уходят деньги и как растут накопления',
   planTabCreditsHint: 'Доля дохода на погашение кредитов',
   planTabExploreHint: 'Почему совет именно такой и что будет, если изменить траты',
@@ -163,12 +163,12 @@ export const SOCIAL = {
 
 export const PROFILE = {
   headline: 'Ваши цифры',
-  formTitle: 'Финансовая модель',
-  formHint: 'Доход, запас и цель — основа прогноза на главной и в советнике',
+  formTitle: 'Ваши цифры',
+  formHint: 'Зарплата, накопления и цель — от этого строится план на главной',
   emptyModel: 'Пока мало данных — пройдите короткий опрос',
-  fixedExpensesTitle: 'Обязательные расходы',
+  fixedExpensesTitle: 'Платежи каждый месяц',
   fixedExpensesHint:
-    'Аренда, кредиты, связь — учитываются в прогнозе. Можно добавить, если пропустили на опросе.',
+    'Аренда, кредит, связь — что платите регулярно. Можно добавить, если пропустили на опросе.',
   addFixedExpense: 'Добавить платёж'
 } as const
 

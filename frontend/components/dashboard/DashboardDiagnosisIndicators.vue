@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { AiDiagnosisIndicator, AiDiagnosisIndicatorStatus } from '~/types/api'
 import { ADVISOR } from '~/constants/productCopy'
+import {
+  formatIndicatorValue,
+  humanizeIndicatorName,
+  humanizeIndicatorNorm
+} from '~/utils/plainLanguage'
 
 defineProps<{
   indicators: AiDiagnosisIndicator[]
@@ -9,7 +14,7 @@ defineProps<{
 
 const statusLabel: Record<AiDiagnosisIndicatorStatus, string> = {
   good: 'Хорошо',
-  warning: 'Стоит улучшить',
+  warning: 'Можно лучше',
   critical: ADVISOR.diagnosisStatusUrgent
 }
 
@@ -20,16 +25,6 @@ const statusVariant: Record<
   good: 'default',
   warning: 'secondary',
   critical: 'destructive'
-}
-
-function formatValue(name: string, value: number): string {
-  if (name.toLowerCase().includes('подушка')) {
-    return `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })} мес.`
-  }
-  if (name.toLowerCase().includes('нагрузка') || name.toLowerCase().includes('доход')) {
-    return `${value}%`
-  }
-  return value.toLocaleString('ru-RU')
 }
 
 function cardClass(status: AiDiagnosisIndicatorStatus): string {
@@ -53,14 +48,18 @@ function cardClass(status: AiDiagnosisIndicatorStatus): string {
       >
         <CardHeader class="space-y-1 p-3 pb-1">
           <div class="flex items-start justify-between gap-2">
-            <CardDescription class="text-xs leading-snug">{{ item.name }}</CardDescription>
+            <CardDescription class="text-xs leading-snug">
+              {{ humanizeIndicatorName(item.name) }}
+            </CardDescription>
             <Badge :variant="statusVariant[item.status]" class="shrink-0 text-[10px]">
               {{ statusLabel[item.status] }}
             </Badge>
           </div>
           <CardTitle class="text-base tabular-nums">
-            {{ formatValue(item.name, item.value) }}
-            <span class="text-xs font-normal text-muted-foreground">норма {{ item.norm }}</span>
+            {{ formatIndicatorValue(item.name, item.value) }}
+            <span class="text-xs font-normal text-muted-foreground">
+              {{ humanizeIndicatorNorm(item.norm, item.name) }}
+            </span>
           </CardTitle>
         </CardHeader>
       </Card>

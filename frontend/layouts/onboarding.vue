@@ -9,7 +9,7 @@
     />
 
     <main
-      class="relative z-10 flex min-h-[100dvh] w-full items-start justify-center px-4 py-5 sm:px-6 sm:py-6 md:px-8 lg:py-8"
+      class="mm-onboarding-layout-main relative z-10 flex min-h-[100dvh] w-full items-start justify-center px-4 py-5 sm:px-6 sm:py-6 md:px-8 lg:py-8"
     >
       <NuxtPage />
     </main>

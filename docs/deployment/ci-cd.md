@@ -14,9 +14,15 @@ Workflow: `backend/.github/workflows/back.yml`
 
 - Trigger: push/PR в `back`
 - Jobs: `go test ./...`
-- **Без autodeploy и без docker compose** — только проверки и push в git
+- **Без autodeploy** — только проверки и push в git
 
-Ручной деплой: [backend/docs/backend/DEPLOY.md](../../backend/docs/backend/DEPLOY.md).
+Ручной деплой на VPS: [vps-deploy.md](./vps-deploy.md) (`scripts/deploy_server.sh`, `deploy/bootstrap_vps.sh`).
+
+Опционально: `backend/.github/workflows/deploy-vps.yml` (manual) — secrets `VPS_SSH_PRIVATE_KEY`, `VPS_HOST`, `VPS_USER`.
+
+## Production front (Vercel)
+
+См. [vercel-deploy.md](./vercel-deploy.md) — домен `potok.junior.raitokyokai.tech`, env `NUXT_PUBLIC_API_BASE`.
 
 ## Docs
 

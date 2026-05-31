@@ -21,7 +21,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <article class="mm-onboarding-card w-full p-5 sm:p-6 lg:p-7">
+  <article class="mm-onboarding-card">
     <header class="space-y-1.5 lg:space-y-2">
       <h2 class="text-xl font-semibold tracking-tight text-[color:var(--mm-text)] sm:text-2xl">
         {{ title }}
@@ -31,7 +31,7 @@ const emit = defineEmits<{
       </p>
     </header>
 
-    <div class="mt-5 space-y-5 lg:mt-4 lg:space-y-4">
+    <div class="mt-4 space-y-4 sm:mt-5 sm:space-y-5 lg:mt-4 lg:space-y-4">
       <slot />
 
       <p
@@ -42,7 +42,7 @@ const emit = defineEmits<{
       </p>
 
       <div
-        class="flex gap-2 border-t border-border/60 pt-5"
+        class="mm-onboarding-step-footer mm-safe-bottom flex gap-2 border-t border-border/60 pt-4"
         :class="
           stretchActions
             ? 'flex-col'
@@ -53,7 +53,7 @@ const emit = defineEmits<{
           v-if="showBack"
           type="button"
           variant="ghost"
-          class="w-full sm:w-auto"
+          class="min-h-11 w-full sm:w-auto"
           @click="emit('back')"
         >
           Назад
@@ -68,7 +68,7 @@ const emit = defineEmits<{
             v-if="secondaryAction"
             type="button"
             variant="outline"
-            class="w-full"
+            class="min-h-11 w-full"
             :class="stretchActions ? '' : 'sm:w-auto'"
             @click="emit('secondary')"
           >
@@ -77,7 +77,7 @@ const emit = defineEmits<{
           <Button
             v-if="!hideNext"
             type="button"
-            class="w-full"
+            class="min-h-11 w-full"
             :class="stretchActions ? '' : 'sm:w-auto'"
             :disabled="nextDisabled || loading"
             @click="emit('next')"

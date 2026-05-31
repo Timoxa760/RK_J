@@ -31,11 +31,10 @@ async function confirmDelete(receipt: ReceiptListItem) {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-4xl space-y-6">
-    <header>
-      <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Расходы</h1>
-      <p class="mt-1 text-sm text-muted-foreground">Добавляйте покупки — они учтутся в вашей картине.</p>
-    </header>
+  <div class="mx-auto w-full max-w-4xl space-y-4 sm:space-y-6">
+    <p class="text-sm text-muted-foreground md:hidden">
+      Добавляйте покупки — они учтутся в вашей картине.
+    </p>
 
     <Card v-if="receipts.length" class="overflow-hidden" data-demo="receipts">
       <CardHeader class="pb-2">
