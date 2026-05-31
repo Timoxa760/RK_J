@@ -1,5 +1,6 @@
 import type { AuthUser, LoginResponse } from '~/types/api'
 import { useAuthStore } from '~/store/authStore'
+import { useAiPlanStore } from '~/store/aiPlanStore'
 
 export function useAuth() {
   const { apiFetch } = useApi()
@@ -43,6 +44,7 @@ export function useAuth() {
 
   function logout() {
     authStore.logout()
+    useAiPlanStore().clearCache()
   }
 
   return {

@@ -1,14 +1,9 @@
 import type { AdvisorChatAction, AiChatHistoryResponse, AiChatResponse, AdvisorReplyBlock } from '~/types/api'
 import { useAuthStore } from '~/store/authStore'
 import { currentUserStorageKey } from '~/utils/userStorage'
-import {
-  buildAdvisorGreeting,
-  buildAdvisorReply,
-  historyToTurns,
-  toApiHistory,
-  type AdvisorContext
-} from '~/utils/advisorChat'
+import { historyToTurns, toApiHistory, type AdvisorContext } from '~/utils/advisorChat'
 import { streamAdvisorChat } from '~/utils/advisorStream'
+import { formatApiError } from '~/utils/apiError'
 
 const CHAT_PREFIX = 'potok:advisor-chat'
 
@@ -45,7 +40,15 @@ function newId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export function useAdvisorChat(getContext: () => AdvisorContext) {
+function withoutLocalAssistant(turns: ChatTurn[]): ChatTurn[] {
+  return turns.filter((turn) => !(turn.role === 'assistant' && turn.source === 'local'))
+}
+
+function hasAssistantPayload(res: AiChatResponse): boolean {
+  return Boolean(res.reply?.trim() || res.blocks?.length || res.title?.trim())
+}
+
+export function useAdvisorChat(_getContext: () => AdvisorContext) {
   const { apiFetch, apiV1Base } = useApi()
   const authStore = useAuthStore()
 
@@ -58,25 +61,11 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
     writeStoredChat(messages.value)
   }
 
-  function seedGreeting() {
-    if (messages.value.length) return
-    messages.value = [
-      {
-        id: newId(),
-        role: 'assistant',
-        content: buildAdvisorGreeting(getContext()),
-        createdAt: Date.now(),
-        source: 'local'
-      }
-    ]
-    persist()
-  }
-
   async function loadServerHistory() {
     try {
       const res = await apiFetch<AiChatHistoryResponse>('/ai/chat/history?limit=50')
       if (res.messages?.length) {
-        messages.value = historyToTurns(res.messages)
+        messages.value = withoutLocalAssistant(historyToTurns(res.messages))
         persist()
         historyLoaded.value = true
         return true
@@ -84,7 +73,7 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
     } catch {
       /* fallback to local */
     }
-    const local = readStoredChat()
+    const local = withoutLocalAssistant(readStoredChat())
     if (local.length) {
       messages.value = local
     }
@@ -94,15 +83,9 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
 
   async function initChat(opts?: { reload?: boolean }) {
     if (historyLoaded.value && !opts?.reload) {
-      if (!messages.value.length) seedGreeting()
       return
     }
-    const fromServer = await loadServerHistory()
-    if (!fromServer && !messages.value.length) {
-      seedGreeting()
-    } else if (!messages.value.length) {
-      seedGreeting()
-    }
+    await loadServerHistory()
   }
 
   async function resetChat() {
@@ -112,13 +95,12 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
       /* local reset still works */
     }
     messages.value = []
-    historyLoaded.value = false
-    seedGreeting()
+    historyLoaded.value = true
+    error.value = null
     persist()
   }
 
   async function requestReply(trimmed: string, assistantId: string) {
-    const ctx = getContext()
     const history = toApiHistory(messages.value)
 
     const applyResponse = (
@@ -139,6 +121,12 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
       persist()
     }
 
+    const failReply = (message: string) => {
+      messages.value = messages.value.filter((m) => m.id !== assistantId)
+      error.value = message
+      persist()
+    }
+
     messages.value.push({
       id: assistantId,
       role: 'assistant',
@@ -151,24 +139,19 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
 
     if (import.meta.client && token) {
       try {
-        let streamed = ''
         const res = await streamAdvisorChat(
           `${apiV1Base.value}/ai/chat/stream`,
           token,
           { message: trimmed, history },
-          (delta) => {
-            streamed += delta
-            const idx = messages.value.findIndex((m) => m.id === assistantId)
-            if (idx >= 0) {
-              messages.value[idx] = {
-                ...messages.value[idx]!,
-                content: streamed,
-                streaming: true
-              }
-            }
+          () => {
+            // JSON-стрим не показываем — только индикатор набора до event done
           }
         )
-        applyResponse(res.reply, {
+        if (!hasAssistantPayload(res)) {
+          failReply('Советник не вернул ответ. Попробуйте переформулировать вопрос.')
+          return
+        }
+        applyResponse(res.reply?.trim() || res.title || 'Ответ готов', {
           title: res.title,
           blocks: res.blocks,
           actions: res.actions,
@@ -177,7 +160,7 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
         })
         return
       } catch {
-        /* fallback below */
+        /* fallback to POST below */
       }
     }
 
@@ -186,15 +169,19 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
         method: 'POST',
         body: { message: trimmed, history }
       })
-      applyResponse(res.reply?.trim() || buildAdvisorReply(trimmed, ctx), {
+      if (!hasAssistantPayload(res)) {
+        failReply('Советник не вернул ответ. Попробуйте переформулировать вопрос.')
+        return
+      }
+      applyResponse(res.reply?.trim() || res.title || 'Ответ готов', {
         title: res.title,
         blocks: res.blocks,
         actions: res.actions,
         source: res.source ?? 'gemini',
         id: res.id
       })
-    } catch {
-      applyResponse(buildAdvisorReply(trimmed, ctx), { source: 'local' })
+    } catch (e) {
+      failReply(formatApiError(e, 'Не удалось получить ответ'))
     }
   }
 

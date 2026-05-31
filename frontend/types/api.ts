@@ -307,6 +307,13 @@ export interface ManualExpenseRequest {
   source?: 'manual' | 'voice'
 }
 
+export interface ManualExpenseItem {
+  id?: string
+  amount: number
+  category: string
+  description?: string
+}
+
 export interface ManualExpenseResponse {
   success: boolean
   id: string
@@ -314,6 +321,9 @@ export interface ManualExpenseResponse {
   category: string
   description?: string
   parsed: boolean
+  parsed_by?: string
+  advice?: string
+  expenses?: ManualExpenseItem[]
 }
 
 export interface ReceiptManualRequest {

@@ -1,4 +1,5 @@
 import { useAuthStore } from '~/store/authStore'
+import { useAiPlanStore } from '~/store/aiPlanStore'
 
 type FetchOptions = Parameters<typeof $fetch>[1]
 
@@ -35,9 +36,10 @@ export function useApi() {
       const status = (error as { statusCode?: number })?.statusCode
       if (import.meta.client && status === 401) {
         const route = useRoute()
-        // На онбординге не выбрасываем на login — покажем toast вызывающему коду.
-        if (route.path !== '/onboarding') {
+        // На онбординге и login не редиректим — ошибку покажет форма.
+        if (route.path !== '/onboarding' && route.path !== '/login') {
           authStore.logout()
+          useAiPlanStore().clearCache()
           await navigateTo('/login')
         }
       }

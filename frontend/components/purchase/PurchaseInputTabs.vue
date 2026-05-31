@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, PenLine } from 'lucide-vue-next'
+import { Check, Mic, PenLine } from 'lucide-vue-next'
 import type { ReceiptManualResponse, ReceiptVoiceResponse } from '~/types/api'
 
 withDefaults(
@@ -106,11 +106,12 @@ function confirmSuccess() {
         <button
           type="button"
           role="tab"
-          class="mm-onb-tabs__btn"
+          class="mm-onb-tabs__btn inline-flex items-center justify-center gap-1.5"
           :class="{ 'mm-onb-tabs__btn--active': inputTab === 'voice' }"
           :aria-selected="inputTab === 'voice'"
           @click="selectTab('voice')"
         >
+          <Mic class="size-3.5" aria-hidden="true" />
           Голос
         </button>
         <button

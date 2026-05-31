@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { SidebarProps } from "."
 import { cn } from '~/lib/utils'
-import { Sheet, SheetContent } from '~/components/ui/sheet'
-import { SIDEBAR_WIDTH_MOBILE, useSidebar } from "./utils"
+import { useSidebar } from "./utils"
 
 defineOptions({
   inheritAttrs: false,
@@ -14,7 +13,7 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   collapsible: "offcanvas",
 })
 
-const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+const { isMobile, state } = useSidebar()
 </script>
 
 <template>
@@ -26,24 +25,9 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     <slot />
   </div>
 
-  <Sheet v-else-if="isMobile" :open="openMobile" v-bind="$attrs" @update:open="setOpenMobile">
-    <SheetContent
-      data-sidebar="sidebar"
-      data-mobile="true"
-      :side="side"
-      class="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-      :style="{
-        '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-      }"
-    >
-      <div class="flex h-full w-full flex-col">
-        <slot />
-      </div>
-    </SheetContent>
-  </Sheet>
-
   <div
-    v-else class="group peer hidden md:block"
+    v-else-if="!isMobile"
+    class="group peer hidden md:block"
     :data-state="state"
     :data-collapsible="state === 'collapsed' ? collapsible : ''"
     :data-variant="variant"

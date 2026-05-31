@@ -55,36 +55,39 @@ async function confirmDelete(receipt: ReceiptListItem) {
           <li
             v-for="r in receipts"
             :key="r.id"
-            class="flex cursor-pointer flex-col gap-2 px-4 py-4 text-sm transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-            @click="selectReceipt(r)"
+            class="flex flex-col gap-3 px-4 py-4 text-sm sm:px-6"
           >
-            <div class="min-w-0 flex-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="font-medium">{{ r.store }}</p>
-                <Badge v-if="r.impulse_count" variant="secondary" class="text-[10px]">
-                  {{ PURCHASES.impulseBadge }}
-                </Badge>
+            <div
+              class="flex cursor-pointer flex-col gap-2 transition-colors hover:opacity-90 sm:flex-row sm:items-center sm:justify-between"
+              @click="selectReceipt(r)"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <p class="font-medium">{{ r.store }}</p>
+                  <Badge v-if="r.impulse_count" variant="secondary" class="text-[10px]">
+                    {{ PURCHASES.impulseBadge }}
+                  </Badge>
+                </div>
+                <p class="mt-0.5 text-xs text-muted-foreground">
+                  {{ r.date }}
+                  <span v-if="r.category"> · {{ r.category }}</span>
+                </p>
+                <p v-if="impactFor(r)" class="mt-1 text-xs text-primary">{{ impactFor(r) }}</p>
               </div>
-              <p class="mt-0.5 text-xs text-muted-foreground">
-                {{ r.date }}
-                <span v-if="r.category"> · {{ r.category }}</span>
+              <p class="text-base font-semibold sm:shrink-0">
+                {{ r.amount.toLocaleString('ru-RU') }} ₽
               </p>
-              <p v-if="impactFor(r)" class="mt-1 text-xs text-primary">{{ impactFor(r) }}</p>
             </div>
-            <div class="flex shrink-0 items-center gap-2 self-end sm:self-center">
-              <p class="text-base font-semibold">{{ r.amount.toLocaleString('ru-RU') }} ₽</p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                class="size-9 text-muted-foreground hover:text-destructive"
-                :disabled="deleting"
-                :aria-label="PURCHASES.deleteReceipt"
-                @click.stop="confirmDelete(r)"
-              >
-                <Trash2 class="size-4" />
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              class="w-full gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              :disabled="deleting"
+              @click="confirmDelete(r)"
+            >
+              <Trash2 class="size-4" />
+              {{ PURCHASES.deleteReceipt }}
+            </Button>
           </li>
         </ul>
       </CardContent>
@@ -132,11 +135,11 @@ async function confirmDelete(receipt: ReceiptListItem) {
             </span>
           </li>
         </ul>
-        <DialogFooter class="gap-2 sm:justify-between">
+        <DialogFooter class="flex-col gap-2 sm:flex-col">
           <Button
             type="button"
             variant="destructive"
-            class="gap-2"
+            class="w-full gap-2"
             :disabled="deleting"
             @click="confirmDelete(selected)"
           >

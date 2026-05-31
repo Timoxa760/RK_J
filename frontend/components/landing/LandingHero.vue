@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight } from 'lucide-vue-next'
-import { heroContent } from '~/constants/landingContent'
+import { heroContent, AUTH_REGISTER_PATH } from '~/constants/landingContent'
 </script>
 
 <template>
@@ -30,15 +30,23 @@ import { heroContent } from '~/constants/landingContent'
         </div>
 
         <div class="mt-8">
-          <NuxtLink to="/login" class="mm-btn-primary mm-landing-cta mm-landing-cta--pulse group min-h-12 w-full sm:w-auto">
-            Войти в Поток
+          <NuxtLink :to="AUTH_REGISTER_PATH" class="mm-btn-primary mm-landing-cta mm-landing-cta--pulse group min-h-12 w-full sm:w-auto">
+            Начать бесплатно
             <ArrowRight class="h-4 w-4 transition group-hover:translate-x-0.5" stroke-width="2" />
           </NuxtLink>
         </div>
       </div>
 
         <div class="mm-landing-hero__demo mx-auto w-full max-w-xl min-w-0 lg:mx-0 lg:max-w-none">
-          <LandingVoiceDemo />
+          <ClientOnly>
+            <LandingVoiceDemo />
+            <template #fallback>
+              <div
+                class="mm-landing-demo mm-landing-glass mm-landing-card min-h-[26.5rem] w-full animate-pulse rounded-2xl bg-white/50"
+                aria-hidden="true"
+              />
+            </template>
+          </ClientOnly>
         </div>
       </div>
     </section>

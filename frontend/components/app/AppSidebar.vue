@@ -9,16 +9,13 @@ import {
 } from 'lucide-vue-next'
 import { ADVISOR } from '~/constants/productCopy'
 import { useAuthStore } from '~/store/authStore'
-import { useSidebar } from '~/components/ui/sidebar/utils'
 import { isAppFeatureEnabled } from '~/constants/featureFlags'
 
 const authStore = useAuthStore()
 const route = useRoute()
-const { setOpenMobile, isMobile } = useSidebar()
 const { show: showAddExpense } = useAddExpenseSheet()
 
 async function onNavClick(to: string) {
-  if (isMobile.value) setOpenMobile(false)
   if (route.path !== to) {
     await navigateTo(to)
   }

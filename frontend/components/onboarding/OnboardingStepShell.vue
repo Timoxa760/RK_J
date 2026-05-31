@@ -9,6 +9,8 @@ defineProps<{
   loading?: boolean
   secondaryAction?: { label: string } | null
   skipHint?: string
+  /** Кнопки действий на всю ширину карточки (экран приветствия). */
+  stretchActions?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -39,7 +41,14 @@ const emit = defineEmits<{
         {{ skipHint }}
       </p>
 
-      <div class="flex flex-col-reverse gap-2 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        class="flex gap-2 border-t border-border/60 pt-5"
+        :class="
+          stretchActions
+            ? 'flex-col'
+            : 'flex-col-reverse sm:flex-row sm:items-center sm:justify-between'
+        "
+      >
         <Button
           v-if="showBack"
           type="button"
@@ -49,14 +58,18 @@ const emit = defineEmits<{
         >
           Назад
         </Button>
-        <div v-else class="hidden sm:block" />
+        <div v-else-if="!stretchActions" class="hidden sm:block" />
 
-        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div
+          class="flex w-full flex-col gap-2"
+          :class="stretchActions ? '' : 'sm:w-auto sm:flex-row'"
+        >
           <Button
             v-if="secondaryAction"
             type="button"
             variant="outline"
-            class="w-full sm:w-auto"
+            class="w-full"
+            :class="stretchActions ? '' : 'sm:w-auto'"
             @click="emit('secondary')"
           >
             {{ secondaryAction.label }}
@@ -64,7 +77,8 @@ const emit = defineEmits<{
           <Button
             v-if="!hideNext"
             type="button"
-            class="w-full sm:w-auto"
+            class="w-full"
+            :class="stretchActions ? '' : 'sm:w-auto'"
             :disabled="nextDisabled || loading"
             @click="emit('next')"
           >

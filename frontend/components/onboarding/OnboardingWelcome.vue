@@ -18,6 +18,7 @@ const highlights = [
     title="Поток покажет, как ваши деньги работают на цели"
     description="Несколько простых шагов — и вы увидите свою картину и следующий шаг."
     hide-back
+    stretch-actions
     next-label="Начать"
     @next="emit('start')"
   >

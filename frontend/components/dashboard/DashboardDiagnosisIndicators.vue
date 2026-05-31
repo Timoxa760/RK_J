@@ -40,11 +40,11 @@ function cardClass(status: AiDiagnosisIndicatorStatus): string {
 
 <template>
   <section aria-label="Показатели картины">
-    <div v-if="loading" class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-if="loading" class="mm-diagnosis-indicators-grid">
       <Skeleton v-for="i in 5" :key="i" class="h-16 w-full" />
     </div>
 
-    <div v-else class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <div v-else class="mm-diagnosis-indicators-grid">
       <Card
         v-for="item in indicators"
         :key="item.name"

@@ -94,9 +94,9 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
     @next="emit('next')"
     @secondary="emit('skip')"
   >
-    <div v-if="step === 1" class="mm-onb-form-panel grid gap-4 md:grid-cols-2">
-      <div class="space-y-2">
-        <Label for="onb-active">Основной доход, ₽/мес</Label>
+    <div v-if="step === 1" class="mm-onb-form-panel grid gap-4 md:grid-cols-2 md:items-end">
+      <div class="mm-onb-field">
+        <Label for="onb-active" class="mm-onb-field-label">Основной доход, ₽/мес</Label>
         <Input
           id="onb-active"
           :model-value="draft.active_income"
@@ -107,8 +107,8 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
           @update:model-value="emit('patch', { active_income: Number($event) })"
         />
       </div>
-      <div class="space-y-2">
-        <Label for="onb-passive">Дополнительный доход, ₽/мес</Label>
+      <div class="mm-onb-field">
+        <Label for="onb-passive" class="mm-onb-field-label">Дополнительный доход, ₽/мес</Label>
         <Input
           id="onb-passive"
           :model-value="draft.passive_income"
@@ -138,38 +138,36 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
       </div>
       <div class="mm-onb-form-panel border-dashed">
         <p class="text-xs font-medium text-[color:var(--mm-text-muted)]">Разбивка (необязательно)</p>
-        <div class="mt-3 space-y-3">
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="space-y-2">
-              <Label for="onb-cash">Наличные</Label>
-              <Input
-                id="onb-cash"
-                :model-value="draft.emergency_breakdown.cash"
-                type="number"
-                min="0"
-                @update:model-value="emit('patchBreakdown', { cash: Number($event) })"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="onb-deposit">Вклад</Label>
-              <Input
-                id="onb-deposit"
-                :model-value="draft.emergency_breakdown.deposit"
-                type="number"
-                min="0"
-                @update:model-value="emit('patchBreakdown', { deposit: Number($event) })"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="onb-invest">Инвестиции</Label>
-              <Input
-                id="onb-invest"
-                :model-value="draft.emergency_breakdown.investments"
-                type="number"
-                min="0"
-                @update:model-value="emit('patchBreakdown', { investments: Number($event) })"
-              />
-            </div>
+        <div class="mt-3 grid gap-3 sm:grid-cols-3 sm:items-end">
+          <div class="mm-onb-field">
+            <Label for="onb-cash" class="mm-onb-field-label">Наличные</Label>
+            <Input
+              id="onb-cash"
+              :model-value="draft.emergency_breakdown.cash"
+              type="number"
+              min="0"
+              @update:model-value="emit('patchBreakdown', { cash: Number($event) })"
+            />
+          </div>
+          <div class="mm-onb-field">
+            <Label for="onb-deposit" class="mm-onb-field-label">Вклад</Label>
+            <Input
+              id="onb-deposit"
+              :model-value="draft.emergency_breakdown.deposit"
+              type="number"
+              min="0"
+              @update:model-value="emit('patchBreakdown', { deposit: Number($event) })"
+            />
+          </div>
+          <div class="mm-onb-field">
+            <Label for="onb-invest" class="mm-onb-field-label">Инвестиции</Label>
+            <Input
+              id="onb-invest"
+              :model-value="draft.emergency_breakdown.investments"
+              type="number"
+              min="0"
+              @update:model-value="emit('patchBreakdown', { investments: Number($event) })"
+            />
           </div>
         </div>
       </div>
@@ -213,12 +211,12 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
       </div>
     </div>
 
-    <div v-else-if="step === 4" class="mm-onb-form-panel space-y-4">
+    <div v-else-if="step === 4" class="mm-onb-form-panel">
       <ul v-if="draft.fixed_expenses.length" class="space-y-3">
         <li
           v-for="(item, index) in draft.fixed_expenses"
           :key="index"
-          class="grid gap-2 sm:grid-cols-[1fr_120px_auto]"
+          class="grid items-center gap-2 sm:grid-cols-[1fr_120px_auto]"
         >
           <Input
             :model-value="item.title"

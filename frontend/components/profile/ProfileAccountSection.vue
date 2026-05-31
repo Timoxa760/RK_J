@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAuthStore } from '~/store/authStore'
+import { useAuth } from '~/composables/useAuth'
 
 defineProps<{
   showSurveyPrompt?: boolean
@@ -9,10 +9,10 @@ const emit = defineEmits<{
   retakeSurvey: []
 }>()
 
-const authStore = useAuthStore()
+const { logout: signOut } = useAuth()
 
 function logout() {
-  authStore.logout()
+  signOut()
   navigateTo('/login')
 }
 </script>

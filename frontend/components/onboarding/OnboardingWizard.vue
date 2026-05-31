@@ -27,8 +27,6 @@ const {
   completeOnboarding
 } = useOnboarding()
 
-const { diagnosis, loading: diagnosisLoading, loadDiagnosis } = useOnboardingDiagnosis()
-
 const expenseAdded = ref(false)
 const voiceProgress = ref<{ current: number; total: number } | null>(null)
 
@@ -40,7 +38,6 @@ watch(step, async (s) => {
   if (s !== 7) return
   try {
     await syncDraftProfileToApi()
-    await loadDiagnosis()
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось сохранить профиль'
   }
@@ -145,8 +142,6 @@ function onVoiceProgress(current: number, total: number) {
           v-else-if="step === 7"
           :draft="draft"
           :summary="summary"
-          :diagnosis="diagnosis"
-          :diagnosis-loading="diagnosisLoading"
           @back="prevStep"
           @next="nextStep"
         />

@@ -2,13 +2,25 @@
 import { allowDigitKeydown, digitsOnly, onDigitPaste } from '~/utils/numericInput'
 import { clearAnonymousOnboardingKeys, isOnboardingComplete } from '~/composables/useOnboarding'
 import { useAuthStore } from '~/store/authStore'
+import { formatApiError } from '~/utils/apiError'
+
+definePageMeta({ ssr: false })
 
 type Mode = 'login' | 'register' | 'forgot' | 'reset'
 
+const route = useRoute()
 const { register, login, requestPasswordReset, resetPassword } = useAuth()
 const authStore = useAuthStore()
 
-const mode = ref<Mode>('login')
+function resolveAuthMode(query: typeof route.query): Mode {
+  const raw = query.mode
+  const value = Array.isArray(raw) ? raw[0] : raw
+  if (value === 'register') return 'register'
+  if (value === 'login') return 'login'
+  return 'login'
+}
+
+const mode = ref<Mode>(resolveAuthMode(route.query))
 const phoneDigits = ref('')
 const password = ref('')
 const passwordConfirm = ref('')
@@ -77,6 +89,14 @@ function switchMode(next: Mode) {
   resetCode.value = ''
 }
 
+watch(
+  () => route.query.mode,
+  () => {
+    const next = resolveAuthMode(route.query)
+    if (next !== mode.value) switchMode(next)
+  }
+)
+
 async function afterAuthSuccess() {
   clearAnonymousOnboardingKeys()
   useFinancialProfile().loadProfile()
@@ -99,7 +119,10 @@ async function submitLogin() {
     await login(normalizePhone(phone.value), password.value)
     await afterAuthSuccess()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Неверный телефон или пароль'
+    error.value = formatApiError(
+      e,
+      'Неверный телефон или пароль. Если аккаунта нет — зарегистрируйтесь.'
+    )
   } finally {
     loading.value = false
   }
@@ -121,7 +144,7 @@ async function submitRegister() {
     await login(normalizePhone(phone.value), password.value)
     await afterAuthSuccess()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось зарегистрироваться'
+    error.value = formatApiError(e, 'Не удалось зарегистрироваться')
   } finally {
     loading.value = false
   }
@@ -140,7 +163,7 @@ async function submitForgot() {
     info.value = 'Если аккаунт существует, запрос принят. Введите код восстановления.'
     mode.value = 'reset'
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Не удалось отправить код'
+    error.value = formatApiError(e, 'Не удалось отправить код')
   } finally {
     loading.value = false
   }
@@ -166,7 +189,7 @@ async function submitReset() {
     await login(normalizePhone(phone.value), password.value)
     await afterAuthSuccess()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Неверный код или ошибка сброса'
+    error.value = formatApiError(e, 'Неверный код или ошибка сброса')
   } finally {
     loading.value = false
   }

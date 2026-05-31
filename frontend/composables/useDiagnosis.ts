@@ -1,4 +1,5 @@
 import type { AiDiagnosisResponse } from '~/types/api'
+import { useAiPlanStore } from '~/store/aiPlanStore'
 
 export function useDiagnosis() {
   const { apiFetch } = useApi()
@@ -7,7 +8,14 @@ export function useDiagnosis() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchDiagnosis() {
+  async function fetchDiagnosis(options?: { force?: boolean }) {
+    const planStore = useAiPlanStore()
+    planStore.hydrateFromStorage()
+    if (!options?.force && planStore.diagnosisFromPlan) {
+      diagnosis.value = planStore.diagnosisFromPlan
+      return
+    }
+
     loading.value = true
     error.value = null
 

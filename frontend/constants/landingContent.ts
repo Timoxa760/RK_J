@@ -4,6 +4,9 @@ export const LANDING_ANCHORS = [
   { id: 'value', label: 'Ценность' }
 ] as const
 
+export const AUTH_LOGIN_PATH = '/login'
+export const AUTH_REGISTER_PATH = '/login?mode=register'
+
 export const heroContent = {
   eyebrow: 'Поток денег под контролем',
   subtitle:

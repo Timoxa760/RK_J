@@ -7,6 +7,10 @@ export function useAiPlan() {
   const store = useAiPlanStore()
   const { plan, diagnosisFromPlan, loading, error } = storeToRefs(store)
 
+  if (import.meta.client) {
+    store.hydrateFromStorage()
+  }
+
   async function fetchPlan(
     input: {
       summary: DashboardSummary

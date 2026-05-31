@@ -8,8 +8,6 @@ import type {
   TimeMachineResponse
 } from '~/types/api'
 import { buildUserCategoryOptions } from '~/constants/expenseCategories'
-import { buildGoalForecast } from '~/utils/dashboardSummary'
-import { buildGoalProgressText } from '~/utils/pageNarrative'
 import { formatRub } from '~/constants/productCopy'
 import { parseAdvisorStoredContent } from '~/utils/advisorStructured'
 
@@ -30,20 +28,53 @@ const DEFAULT_QUICK_PROMPTS = [
 
 export function buildDynamicQuickPrompts(ctx: AdvisorContext): string[] {
   const prompts: string[] = []
-  const categoryOptions = buildUserCategoryOptions(ctx.categories)
-  if (categoryOptions[0]) {
-    prompts.push(`Как сократить «${categoryOptions[0].name}»?`)
+  const seen = new Set<string>()
+
+  const add = (text: string) => {
+    const line = text.trim()
+    if (!line || seen.has(line)) return
+    seen.add(line)
+    prompts.push(line)
   }
+
+  const action = ctx.diagnosis?.main_action
+  if (action?.title) {
+    add(`Что делать с «${action.title}»?`)
+  }
+
+  const weakIndicator = ctx.diagnosis?.indicators?.find(
+    (row) => row.status === 'critical' || row.status === 'warning'
+  )
+  if (weakIndicator) {
+    add(`Как улучшить «${weakIndicator.name}»?`)
+  }
+
+  if (ctx.topInsight?.title) {
+    add(`Почему «${ctx.topInsight.title}»?`)
+  }
+
   if (ctx.primaryGoal?.title) {
-    prompts.push(`Когда дойду до цели «${ctx.primaryGoal.title}»?`)
-  } else {
-    prompts.push('Когда дойду до цели?')
+    const remaining = Math.max(0, ctx.primaryGoal.target_amount - ctx.primaryGoal.current_amount)
+    if (remaining > 0) {
+      add(`Когда накоплю на «${ctx.primaryGoal.title}»?`)
+    } else {
+      add(`Как приблизить «${ctx.primaryGoal.title}»?`)
+    }
   }
-  if (ctx.diagnosis?.main_action?.title) {
-    prompts.push(`Расскажи про «${ctx.diagnosis.main_action.title}»`)
-  } else {
-    prompts.push(DEFAULT_QUICK_PROMPTS[0]!)
+
+  const topCategory = buildUserCategoryOptions(ctx.categories)[0]
+  if (topCategory && topCategory.amount > 0) {
+    add(`Как урезать «${topCategory.name}»?`)
   }
+
+  if (ctx.goalForecast && ctx.primaryGoal) {
+    add('Составь план до цели')
+  }
+
+  add('Где больше всего уходит денег?')
+  add('С чего начать улучшать картину?')
+  add(DEFAULT_QUICK_PROMPTS[2]!)
+
   return prompts.slice(0, 3)
 }
 
@@ -85,81 +116,6 @@ export function decodeAskQuery(value: string | string[] | null | undefined): str
   } catch {
     return value.trim() || null
   }
-}
-
-function normalize(text: string) {
-  return text.trim().toLowerCase()
-}
-
-export function buildAdvisorGreeting(ctx: AdvisorContext): string {
-  if (ctx.primaryGoal?.title) {
-    const pct = goalProgressPercent(ctx.primaryGoal)
-    return `Привет! Цель «${ctx.primaryGoal.title}» — ${pct}%. Спросите про план или где урезать траты.`
-  }
-  const top = buildUserCategoryOptions(ctx.categories)[0]
-  if (top) {
-    return `Привет! Больше всего уходит на «${top.name}» (${formatRub(top.amount)}/мес). Спросите, как сократить.`
-  }
-  return 'Привет! Запишите покупку или спросите «составь план» — подскажу следующий шаг.'
-}
-
-export function buildAdvisorReply(message: string, ctx: AdvisorContext): string {
-  const q = normalize(message)
-
-  if (/план|состав|шаг|что делать/.test(q)) {
-    const steps: string[] = ['Вот короткий план на ближайшее время:']
-    if (ctx.diagnosis) {
-      steps.push(`1. ${ctx.diagnosis.main_action.title} — ${ctx.diagnosis.main_action.description}`)
-    }
-    if (ctx.topInsight) {
-      steps.push(
-        `2. ${ctx.topInsight.title}${ctx.topInsight.body ? `: ${ctx.topInsight.body}` : ''}`
-      )
-    }
-    steps.push('3. Записывайте покупки голосом — так картина и советы обновляются быстрее.')
-    return steps.join('\n')
-  }
-
-  if (/урез|сократ|эконом|меньше трат|куда резать/.test(q)) {
-    const top = buildUserCategoryOptions(ctx.categories)[0]
-    if (top) {
-      return `Больше всего уходит на «${top.name}» — ${formatRub(top.amount)} за месяц. Попробуйте сократить на 10–15%.`
-    }
-    if (ctx.diagnosis) {
-      const saving =
-        ctx.diagnosis.main_action.potential_savings > 0
-          ? ` Это около ${formatRub(ctx.diagnosis.main_action.potential_savings)} в месяц.`
-          : ''
-      return `${ctx.diagnosis.main_action.title}: ${ctx.diagnosis.main_action.description}${saving}`
-    }
-    return 'Добавьте несколько покупок — подскажу, где чаще всего «утекают» деньги.'
-  }
-
-  if (/быстрее|приблиз|достич|осталось/.test(q)) {
-    const goalLine = buildGoalProgressText(ctx.primaryGoal)
-    const forecast = ctx.goalForecast || buildGoalForecast(ctx.timemachine)
-    return `${goalLine} ${forecast} Могу подсказать, что урезать в первую очередь — спросите «где урезать».`
-  }
-
-  if (/когда|срок|цел|дойду|накоп/.test(q)) {
-    const goalLine = buildGoalProgressText(ctx.primaryGoal)
-    const forecast = ctx.goalForecast || buildGoalForecast(ctx.timemachine)
-    return `${goalLine} ${forecast}`
-  }
-
-  if (/привет|здрав|добр/.test(q)) {
-    return buildAdvisorGreeting(ctx)
-  }
-
-  if (ctx.diagnosis) {
-    return `Главное сейчас — ${ctx.diagnosis.main_action.title.toLowerCase()}. ${ctx.diagnosis.main_action.description} Можете спросить «составь план» или «где урезать».`
-  }
-
-  if (ctx.topInsight) {
-    return `${ctx.topInsight.title}. ${ctx.topInsight.body ?? ctx.topInsight.description ?? 'Добавьте расходы — советы станут точнее.'}`
-  }
-
-  return 'Запишите покупку или спросите «составь план», «где урезать» или «когда дойду до цели».'
 }
 
 export function historyToTurns(

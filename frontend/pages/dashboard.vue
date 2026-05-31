@@ -100,22 +100,11 @@ async function refreshData(options?: { soft?: boolean; forcePlan?: boolean }) {
   if (options?.soft) chartsRefreshing.value = false
 }
 
-async function refreshAll(options?: { forcePlan?: boolean }) {
-  await refreshData({ forcePlan: options?.forcePlan ?? !hasCache.value })
-  initialLoadDone.value = true
-}
-
 onMounted(async () => {
   loadProfile()
   await fetchProfileFromApi()
-
-  if (hasCache.value) {
-    initialLoadDone.value = true
-    await refreshData({ soft: true })
-    return
-  }
-
-  await refreshAll({ forcePlan: true })
+  initialLoadDone.value = true
+  await refreshData({ soft: true, forcePlan: !hasCache.value })
 })
 
 watch(addedVersion, () => {

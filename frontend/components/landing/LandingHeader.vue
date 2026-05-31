@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ArrowRight, Menu, User, X } from 'lucide-vue-next'
-import { LANDING_ANCHORS } from '~/constants/landingContent'
+import { Menu, User, X } from 'lucide-vue-next'
+import { LANDING_ANCHORS, AUTH_LOGIN_PATH } from '~/constants/landingContent'
 import { scrollToLandingSection } from '~/composables/useLandingAnchor'
 import { needsOnboarding } from '~/composables/useOnboarding'
 import { useAuthStore } from '~/store/authStore'
@@ -140,14 +140,14 @@ onUnmounted(() => {
       <div class="ml-auto flex items-center gap-2">
         <NuxtLink
           v-if="!headerAuthReady || !headerAuthenticated"
-          to="/login"
+          :to="AUTH_LOGIN_PATH"
           class="mm-btn-primary mm-landing-cta mm-landing-header__login hidden min-h-10 !px-4 !py-2 text-sm sm:inline-flex"
         >
           Войти
         </NuxtLink>
 
         <NuxtLink
-          v-else
+          v-if="headerAuthReady && headerAuthenticated"
           :to="appEntryPath"
           class="mm-btn-primary mm-landing-cta hidden min-h-10 !px-4 !py-2 text-sm sm:inline-flex"
           @click="closeMobileNav"
@@ -157,7 +157,7 @@ onUnmounted(() => {
 
         <NuxtLink
           v-if="!headerAuthReady || !headerAuthenticated"
-          to="/login"
+          :to="AUTH_LOGIN_PATH"
           class="mm-landing-header__login-icon mm-landing-brand-text flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--mm-border)] transition hover:bg-[color:var(--mm-landing-brand-soft)] sm:hidden"
           aria-label="Войти"
         >
@@ -213,12 +213,11 @@ onUnmounted(() => {
 
             <div class="mt-4 border-t border-[color:var(--mm-border-subtle)] pt-4">
               <NuxtLink
-                to="/login"
-                class="mm-btn-primary mm-landing-cta flex min-h-12 w-full items-center justify-center gap-2 text-sm"
+                :to="AUTH_LOGIN_PATH"
+                class="mm-btn-primary mm-landing-cta flex min-h-12 w-full items-center justify-center text-sm"
                 @click="closeMobileNav"
               >
-                Войти в Поток
-                <ArrowRight class="h-4 w-4" stroke-width="2" />
+                Войти
               </NuxtLink>
             </div>
           </template>

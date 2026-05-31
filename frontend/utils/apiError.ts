@@ -11,11 +11,39 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_json: 'Не удалось разобрать запрос. Попробуйте ещё раз.'
 }
 
+const API_ERROR_TEXT: Record<string, string> = {
+  'invalid phone or password': 'Неверный телефон или пароль',
+  'user already exists': 'Этот номер уже зарегистрирован',
+  'phone and password required': 'Укажите телефон и пароль',
+  'phone required': 'Укажите телефон',
+  'password must be at least 8 characters': 'Пароль — минимум 8 символов',
+  'invalid or expired code': 'Неверный или просроченный код',
+  'registration failed': 'Не удалось зарегистрироваться',
+  'request failed': 'Не удалось выполнить запрос'
+}
+
+const STATUS_FALLBACKS: Record<number, string> = {
+  401: 'Неверный телефон или пароль',
+  409: 'Этот номер уже зарегистрирован',
+  400: 'Проверьте введённые данные'
+}
+
 function extractPayload(error: unknown): ApiErrorPayload | null {
   if (!error || typeof error !== 'object') return null
   const data = (error as { data?: ApiErrorPayload }).data
   if (data && typeof data === 'object') return data
   return null
+}
+
+function extractStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object') return undefined
+  const code = (error as { statusCode?: number }).statusCode
+  return typeof code === 'number' ? code : undefined
+}
+
+function mapApiErrorText(raw: string): string | null {
+  const key = raw.trim().toLowerCase()
+  return API_ERROR_TEXT[key] ?? null
 }
 
 /** Человекочитаемое сообщение из ответа API или $fetch-ошибки. */
@@ -25,6 +53,8 @@ export function formatApiError(error: unknown, fallback: string): string {
     return ERROR_MESSAGES[payload.code]
   }
   if (payload?.error?.trim()) {
+    const mapped = mapApiErrorText(payload.error)
+    if (mapped) return mapped
     const known = Object.values(ERROR_MESSAGES).find((msg) => msg === payload.error)
     if (known) return known
     if (!looksLikeRawHttpError(payload.error)) {
@@ -32,7 +62,14 @@ export function formatApiError(error: unknown, fallback: string): string {
     }
   }
   if (payload?.message?.trim() && !looksLikeRawHttpError(payload.message)) {
+    const mapped = mapApiErrorText(payload.message)
+    if (mapped) return mapped
     return payload.message.trim()
+  }
+
+  const status = extractStatusCode(error)
+  if (status != null && STATUS_FALLBACKS[status]) {
+    return STATUS_FALLBACKS[status]!
   }
 
   if (error instanceof Error && error.message.trim()) {

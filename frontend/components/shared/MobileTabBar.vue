@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { CreditCard, LayoutGrid, Menu, MessageCircle, Plus, ReceiptText } from 'lucide-vue-next'
+import { LayoutGrid, MessageCircle, PieChart, Plus, ReceiptText } from 'lucide-vue-next'
 import { ADVISOR } from '~/constants/productCopy'
-import { useSidebar } from '~/components/ui/sidebar/utils'
-import { isAppFeatureEnabled } from '~/constants/featureFlags'
 
 const route = useRoute()
-const { setOpenMobile } = useSidebar()
 const { show: showAddExpense } = useAddExpenseSheet()
-
-const showCredits = computed(() => isAppFeatureEnabled('creditsNav'))
 </script>
 
 <template>
@@ -60,24 +55,13 @@ const showCredits = computed(() => isAppFeatureEnabled('creditsNav'))
       </NuxtLink>
 
       <NuxtLink
-        v-if="showCredits"
-        to="/credits"
+        to="/profile"
         class="mm-mobile-tab-bar__item"
-        :class="route.path === '/credits' ? 'text-primary' : 'text-muted-foreground'"
+        :class="route.path === '/profile' ? 'text-primary' : 'text-muted-foreground'"
       >
-        <CreditCard class="size-5" stroke-width="1.75" />
-        <span class="max-w-full truncate">Кредиты</span>
+        <PieChart class="size-5" stroke-width="1.75" />
+        <span class="max-w-full truncate">Профиль</span>
       </NuxtLink>
-      <button
-        v-else
-        type="button"
-        class="mm-mobile-tab-bar__item text-muted-foreground"
-        aria-label="Открыть меню"
-        @click="setOpenMobile(true)"
-      >
-        <Menu class="size-5" stroke-width="1.75" />
-        <span>Ещё</span>
-      </button>
     </div>
   </nav>
 </template>

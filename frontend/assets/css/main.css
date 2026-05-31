@@ -527,6 +527,19 @@ body {
     @apply text-sm leading-relaxed text-muted-foreground;
   }
 
+  .mm-diagnosis-indicators-grid {
+    display: grid;
+    width: 100%;
+    gap: 0.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 640px) {
+    .mm-diagnosis-indicators-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   .mm-financial-report-loading {
     @apply rounded-2xl border p-4 sm:p-5;
     border-color: var(--mm-border);
@@ -886,11 +899,15 @@ body {
   }
 
   .mm-scenario-simulator--embedded {
-    @apply p-4 sm:p-5;
+    @apply flex flex-col gap-5 p-4 sm:gap-6 sm:p-5;
   }
 
   .mm-scenario-simulator__header {
     @apply space-y-1 pb-0;
+  }
+
+  .mm-scenario-simulator--embedded .mm-scenario-simulator__header {
+    @apply space-y-2;
   }
 
   .mm-scenario-simulator:not(.mm-scenario-simulator--embedded) .mm-scenario-simulator__header {
@@ -901,12 +918,20 @@ body {
     @apply flex flex-col gap-4;
   }
 
+  .mm-scenario-simulator--embedded .mm-scenario-simulator__body {
+    @apply gap-5;
+  }
+
   .mm-scenario-simulator:not(.mm-scenario-simulator--embedded) .mm-scenario-simulator__body {
     @apply p-4 pt-0 sm:p-5 sm:pt-0;
   }
 
   .mm-scenario-simulator__section {
     @apply space-y-2;
+  }
+
+  .mm-scenario-simulator--embedded .mm-scenario-simulator__section {
+    @apply space-y-3;
   }
 
   .mm-scenario-simulator__section-label {
@@ -937,6 +962,10 @@ body {
     @apply space-y-3 rounded-xl border border-primary/15 bg-card/90 p-3.5 shadow-sm backdrop-blur-sm sm:space-y-4 sm:p-4;
   }
 
+  .mm-scenario-simulator--embedded .mm-scenario-simulator__result {
+    @apply space-y-4 sm:space-y-5;
+  }
+
   .mm-scenario-simulator__metrics {
     @apply grid grid-cols-2 gap-2.5 sm:gap-3;
   }
@@ -954,7 +983,7 @@ body {
   }
 
   .mm-scenario-simulator__metric-value {
-    @apply mt-0.5 text-lg font-bold tabular-nums text-foreground sm:text-xl;
+    @apply mt-1 text-lg font-bold tabular-nums text-foreground sm:mt-1.5 sm:text-xl;
   }
 
   .mm-scenario-simulator__metric--accent .mm-scenario-simulator__metric-value {
@@ -962,15 +991,19 @@ body {
   }
 
   .mm-scenario-simulator__scale {
-    @apply space-y-1.5;
+    @apply space-y-2;
   }
 
   .mm-scenario-simulator__scale-caption {
-    @apply text-xs leading-snug text-muted-foreground;
+    @apply text-xs leading-relaxed text-muted-foreground;
   }
 
   .mm-scenario-simulator__context {
     @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .mm-scenario-simulator--embedded .mm-scenario-simulator__context {
+    @apply pt-0.5;
   }
 
   .mm-scenario-simulator__bar-row {
@@ -1010,7 +1043,7 @@ body {
   }
 
   .mm-scenario-simulator__footnote {
-    @apply flex items-start gap-2 rounded-lg border border-dashed border-primary/20 bg-primary/[0.04] px-3 py-2 text-sm leading-relaxed text-muted-foreground;
+    @apply flex items-start gap-2.5 rounded-lg border border-dashed border-primary/20 bg-primary/[0.04] px-3 py-2.5 text-sm leading-relaxed text-muted-foreground;
   }
 
   .mm-scenario-simulator__empty {
@@ -2667,11 +2700,19 @@ body {
     background: color-mix(in srgb, var(--mm-primary-soft) 35%, transparent);
   }
 
-  /* Form panels */
+  /* Form panels — gap, не space-y: иначе grid-колонки получают лишний margin-top */
   .mm-onb-form-panel {
-    @apply space-y-4 rounded-2xl border p-4 sm:p-5;
+    @apply flex flex-col gap-4 rounded-2xl border p-4 sm:p-5;
     border-color: color-mix(in srgb, var(--mm-border) 70%, transparent);
     background: color-mix(in srgb, var(--mm-primary-soft) 35%, transparent);
+  }
+
+  .mm-onb-field {
+    @apply flex min-w-0 flex-col gap-2;
+  }
+
+  .mm-onb-field-label {
+    @apply block min-h-[2.5rem] text-sm leading-snug;
   }
 
   .mm-onb-goal-pill {

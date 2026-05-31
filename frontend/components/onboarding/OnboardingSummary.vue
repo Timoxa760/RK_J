@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { ArrowRight, Target, Wallet } from 'lucide-vue-next'
-import type { AiDiagnosisResponse, OnboardingDraft } from '~/types/api'
-import {
-  FINANCIAL_REPORT_LOADING_COPY,
-  ONBOARDING_DIAGNOSIS_LOADING_STAGES
-} from '~/constants/financialReportLoading'
+import { Target, Wallet } from 'lucide-vue-next'
+import type { OnboardingDraft } from '~/types/api'
 
 defineProps<{
   draft: OnboardingDraft
@@ -16,8 +12,6 @@ defineProps<{
     goalForecast: string
     runwayMonths: number | null
   }
-  diagnosis?: AiDiagnosisResponse | null
-  diagnosisLoading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -92,35 +86,6 @@ const emit = defineEmits<{
         Запаса хватит примерно на {{ summary.runwayMonths }} мес. при текущих тратах.
       </p>
       <p class="font-medium">{{ summary.goalForecast }}</p>
-    </div>
-
-    <div
-      class="flex items-start gap-3 rounded-2xl border border-[color:var(--mm-primary)]/25 bg-[color:var(--mm-primary-soft)]/50 px-4 py-3"
-    >
-      <ArrowRight class="mt-0.5 size-5 shrink-0 text-[color:var(--mm-primary)]" />
-      <div class="text-sm">
-        <p class="font-medium text-[color:var(--mm-primary)]">Первое действие</p>
-        <SharedFinancialReportLoading
-          v-if="diagnosisLoading"
-          class="mt-3"
-          compact
-          :active="diagnosisLoading"
-          :stages="ONBOARDING_DIAGNOSIS_LOADING_STAGES"
-          :title="FINANCIAL_REPORT_LOADING_COPY.onboardingTitle"
-          :subtitle="FINANCIAL_REPORT_LOADING_COPY.onboardingSubtitle"
-        />
-        <template v-else-if="diagnosis?.main_action">
-          <p class="mt-0.5 font-medium text-[color:var(--mm-text)]">
-            {{ diagnosis.main_action.title }}
-          </p>
-          <p class="mt-0.5 text-[color:var(--mm-text-muted)]">
-            {{ diagnosis.main_action.description }}
-          </p>
-        </template>
-        <p v-else class="mt-0.5 text-[color:var(--mm-text-muted)]">
-          Добавьте одну покупку голосом или вручную — советы станут точнее.
-        </p>
-      </div>
     </div>
   </OnboardingStepShell>
 </template>

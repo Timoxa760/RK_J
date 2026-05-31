@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ArrowRight } from 'lucide-vue-next'
-import { ctaContent } from '~/constants/landingContent'
+import { ctaContent, AUTH_REGISTER_PATH } from '~/constants/landingContent'
 </script>
 
 <template>
@@ -21,7 +21,7 @@ import { ctaContent } from '~/constants/landingContent'
           </div>
 
           <NuxtLink
-            to="/login"
+            :to="AUTH_REGISTER_PATH"
             class="mm-btn-primary mm-landing-cta group min-h-12 w-full shrink-0 sm:w-auto"
           >
             {{ ctaContent.button }}

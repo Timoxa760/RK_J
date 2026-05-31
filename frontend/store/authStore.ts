@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import type { AuthUser } from '~/types/api'
+import { clearStoredAiPlanForCurrentUser } from '~/utils/aiPlanStorage'
 
 const TOKEN_KEY = 'money_mind_token'
 const REFRESH_KEY = 'money_mind_refresh'
@@ -49,6 +50,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
+      if (import.meta.client) {
+        clearStoredAiPlanForCurrentUser()
+      }
       this.token = null
       this.user = null
       this.refreshToken = null

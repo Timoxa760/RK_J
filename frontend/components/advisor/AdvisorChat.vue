@@ -58,7 +58,6 @@ function onPrompt(text: string) {
 
 function sourceLabel(msg: ChatTurn): string | null {
   if (msg.role !== 'assistant') return null
-  if (msg.source === 'local') return ADVISOR.chatSourceLocal
   if (msg.source === 'heuristic') return ADVISOR.chatSourceHeuristic
   if (msg.source === 'gemini') return ADVISOR.chatSourceAi
   return null
@@ -111,6 +110,15 @@ function showDayDivider(index: number): string | null {
         :class="fullPage ? 'px-3 sm:px-4' : 'max-h-[min(480px,52vh)] px-4 sm:px-5'"
         aria-live="polite"
       >
+        <div
+          v-if="!messages.length && !typing"
+          class="flex min-h-[12rem] flex-col items-center justify-center px-2 py-6 text-center sm:min-h-[14rem]"
+        >
+          <p class="max-w-md text-sm leading-relaxed text-muted-foreground">
+            {{ ADVISOR.chatEmptyHint }}
+          </p>
+        </div>
+
         <template v-for="(msg, index) in messages" :key="msg.id">
           <div
             v-if="showDayDivider(index)"
@@ -180,7 +188,16 @@ function showDayDivider(index: number): string | null {
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-1.5 px-3 sm:px-4">
+      <div
+        v-if="quickPrompts.length"
+        class="flex flex-wrap gap-1.5 px-3 sm:px-4"
+      >
+        <p
+          v-if="!messages.length"
+          class="mb-1 w-full text-xs font-medium text-muted-foreground"
+        >
+          Подсказки по вашей картине
+        </p>
         <Button
           v-for="prompt in quickPrompts"
           :key="prompt"

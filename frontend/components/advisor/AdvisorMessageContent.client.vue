@@ -59,13 +59,17 @@ watch(
     :blocks="resolved.blocks!"
     :streaming="streaming"
   />
+  <div v-else-if="streaming" class="flex items-center gap-2 text-sm text-muted-foreground">
+    <span class="advisor-markdown-cursor" aria-hidden="true" />
+    <span>Готовлю ответ…</span>
+  </div>
   <div
     v-else-if="html"
     class="advisor-markdown text-base leading-relaxed"
     v-html="html"
   />
   <p
-    v-else-if="content"
+    v-else-if="content && !streaming"
     class="whitespace-pre-wrap text-base leading-relaxed"
   >
     {{ content }}

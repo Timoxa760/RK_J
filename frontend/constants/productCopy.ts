@@ -94,7 +94,7 @@ export const ANALYTICS = {
 
 export const ADVISOR = {
   chatTitle: 'Советник',
-  chatHint: 'Спросите про совет недели или план',
+  chatHint: 'Вопрос снизу или свой текст — ответит советник',
   chatReset: 'Очистить диалог',
   chatLocalReply: 'Локальный ответ',
   chatWeeklyHint: 'Совет недели',
@@ -121,7 +121,8 @@ export const ADVISOR = {
   diagnosisStatusUrgent: 'Срочно',
   addPurchaseLabel: 'Добавить покупку',
   addPurchaseAria: 'Голосом или вручную — совет станет точнее',
-  chatPlaceholder: 'Спросите про совет недели или план…',
+  chatPlaceholder: 'Напишите вопрос…',
+  chatEmptyHint: 'Выберите вопрос ниже или напишите свой — ответит советник',
   chatHistoryToday: 'Сегодня',
   chatSourceAi: 'Ответ ИИ',
   chatSourceHeuristic: 'Базовый ответ',

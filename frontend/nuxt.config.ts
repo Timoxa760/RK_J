@@ -83,6 +83,9 @@ export default defineNuxtConfig({
   },
   pwa: {
     registerType: 'autoUpdate',
+    devOptions: {
+      enabled: false
+    },
     manifest: {
       name: 'Поток',
       short_name: 'Поток',
@@ -95,7 +98,7 @@ export default defineNuxtConfig({
   },
   routeRules: {
     '/': { ssr: true },
-    '/login': { ssr: true },
+    '/login': { ssr: false },
     '/dashboard': { ssr: false },
     '/profile': { ssr: false },
     '/receipts': { ssr: false },

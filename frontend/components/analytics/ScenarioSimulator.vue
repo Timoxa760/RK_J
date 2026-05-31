@@ -98,7 +98,7 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
         >
           <Sparkles class="size-4" />
         </span>
-        <div class="min-w-0 space-y-0.5">
+        <div class="min-w-0 space-y-1">
           <CardTitle class="text-base leading-snug">А если чуть меньше тратить?</CardTitle>
           <CardDescription class="text-sm leading-relaxed">
             Категории из ваших покупок — сразу видно, сколько можно отложить
@@ -126,7 +126,7 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
         <p v-else class="text-sm leading-relaxed text-muted-foreground">
           Пока нет трат по категориям — добавьте покупку голосом или вручную.
         </p>
-        <p v-if="activeOption" class="text-xs text-muted-foreground">
+        <p v-if="activeOption" class="mt-1 text-xs leading-relaxed text-muted-foreground">
           {{ categoryHint(activeOption) }}
         </p>
       </section>

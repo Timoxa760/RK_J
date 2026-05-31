@@ -39,31 +39,8 @@ export const FINANCIAL_REPORT_LOADING_STAGES: FinancialReportLoadingStage[] = [
   }
 ]
 
-export const ONBOARDING_DIAGNOSIS_LOADING_STAGES: FinancialReportLoadingStage[] = [
-  {
-    id: 'save',
-    label: 'Сохраняем ответы',
-    hint: 'Фиксируем доход, цель и расходы',
-    durationMs: 1600
-  },
-  {
-    id: 'model',
-    label: 'Строим модель',
-    hint: 'Считаем запас и путь к цели',
-    durationMs: 2600
-  },
-  {
-    id: 'action',
-    label: 'Подбираем первое действие',
-    hint: 'Один конкретный шаг на старт',
-    durationMs: 3800
-  }
-]
-
 export const FINANCIAL_REPORT_LOADING_COPY = {
   title: 'Собираем финансовый отчёт',
   subtitle: 'Обычно это занимает до минуты — идём по шагам',
-  waitMore: 'Ещё немного — дожимаем детали',
-  onboardingTitle: 'Готовим вашу картину',
-  onboardingSubtitle: 'Считаем модель и первое действие'
+  waitMore: 'Ещё немного — дожимаем детали'
 } as const
