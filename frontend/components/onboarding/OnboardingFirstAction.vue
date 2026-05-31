@@ -14,7 +14,7 @@ const emit = defineEmits<{
 <template>
   <OnboardingStepShell
     title="Первая покупка"
-    description="Одна покупка — и Поток увидит ваши траты. Доход и цель вы уже назвали; чеки с кассы — по желанию."
+    description="Одна покупка — и Поток увидит ваши траты. Доход и цель вы уже назвали."
     show-back
     :next-label="expenseAdded ? 'Открыть дашборд' : 'Пропустить и открыть дашборд'"
     :loading="finishing"

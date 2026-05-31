@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { Camera, Check, PenLine, Receipt } from 'lucide-vue-next'
+import { Check, PenLine } from 'lucide-vue-next'
 import type { ReceiptManualResponse, ReceiptVoiceResponse } from '~/types/api'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
-    /** Четвёртая вкладка «Фото чека» — на дашборде; в онбординге скрыта */
-    showPhoto?: boolean
     /** Кнопка «Готово» после успеха — в модалке дашборда */
     dismissible?: boolean
   }>(),
-  { showPhoto: false, dismissible: false }
+  { dismissible: false }
 )
 
 const emit = defineEmits<{
@@ -17,19 +15,15 @@ const emit = defineEmits<{
   confirmed: []
 }>()
 
-const baseTabs = ['voice', 'manual', 'fns'] as const
-type PurchaseTab = (typeof baseTabs)[number] | 'photo'
+const baseTabs = ['voice', 'manual'] as const
+type PurchaseTab = (typeof baseTabs)[number]
 type Phase = 'input' | 'success'
-
-const tabOrder = computed((): PurchaseTab[] =>
-  props.showPhoto ? [...baseTabs, 'photo'] : [...baseTabs]
-)
 
 const inputTab = ref<PurchaseTab>('voice')
 const phase = ref<Phase>('input')
 const successHint = ref('')
 
-const activeTabIndex = computed(() => tabOrder.value.indexOf(inputTab.value))
+const activeTabIndex = computed(() => baseTabs.indexOf(inputTab.value))
 
 const { submitting, submitManual, lastResult } = useReceiptSubmit()
 
@@ -69,28 +63,11 @@ async function onManual(payload: {
   showSuccess()
 }
 
-function onFnsSynced() {
-  showSuccess('Чек добавлен — расход учтён в ленте.')
-}
-
-function onPhotoSynced() {
-  showSuccess('Чек по фото добавлен — расход учтён в ленте.')
-}
-
 function confirmSuccess() {
   phase.value = 'input'
   successHint.value = ''
   emit('confirmed')
 }
-
-watch(
-  () => props.showPhoto,
-  () => {
-    if (!tabOrder.value.includes(inputTab.value)) {
-      inputTab.value = 'voice'
-    }
-  }
-)
 </script>
 
 <template>
@@ -121,7 +98,7 @@ watch(
         <div
           class="mm-onb-tabs__indicator"
           :style="{
-            width: `${100 / tabOrder.length}%`,
+            width: `${100 / baseTabs.length}%`,
             transform: `translateX(${activeTabIndex * 100}%)`
           }"
           aria-hidden="true"
@@ -147,29 +124,6 @@ watch(
           <PenLine class="size-3.5" aria-hidden="true" />
           Вручную
         </button>
-        <button
-          type="button"
-          role="tab"
-          class="mm-onb-tabs__btn inline-flex items-center justify-center gap-1.5"
-          :class="{ 'mm-onb-tabs__btn--active': inputTab === 'fns' }"
-          :aria-selected="inputTab === 'fns'"
-          @click="selectTab('fns')"
-        >
-          <Receipt class="size-3.5" aria-hidden="true" />
-          Чеки
-        </button>
-        <button
-          v-if="showPhoto"
-          type="button"
-          role="tab"
-          class="mm-onb-tabs__btn inline-flex items-center justify-center gap-1.5"
-          :class="{ 'mm-onb-tabs__btn--active': inputTab === 'photo' }"
-          :aria-selected="inputTab === 'photo'"
-          @click="selectTab('photo')"
-        >
-          <Camera class="size-3.5" aria-hidden="true" />
-          Фото
-        </button>
       </div>
 
       <div v-show="inputTab === 'voice'" role="tabpanel">
@@ -178,30 +132,6 @@ watch(
 
       <div v-show="inputTab === 'manual'" role="tabpanel">
         <OnboardingPurchaseManual :busy="submitting" @submit="onManual" />
-      </div>
-
-      <div v-show="inputTab === 'fns'" class="space-y-3" role="tabpanel">
-        <div class="mm-onb-form-panel border-dashed bg-[color:var(--mm-primary-soft)]/30">
-          <p class="text-sm font-medium text-[color:var(--mm-text)]">
-            Только расходы по чекам
-          </p>
-          <p class="mt-1 text-xs leading-relaxed text-[color:var(--mm-text-muted)]">
-            Чеки с кассы — по желанию. Зарплату и накопления сервис не видит, только покупки.
-          </p>
-        </div>
-        <DashboardFnsExpensePanel @synced="onFnsSynced" />
-      </div>
-
-      <div v-if="showPhoto" v-show="inputTab === 'photo'" class="space-y-3" role="tabpanel">
-        <div class="mm-onb-form-panel border-dashed bg-[color:var(--mm-primary-soft)]/30">
-          <p class="text-sm font-medium text-[color:var(--mm-text)]">
-            QR на бумажном чеке
-          </p>
-          <p class="mt-1 text-xs leading-relaxed text-[color:var(--mm-text-muted)]">
-            Сфотографируйте QR — Поток проверит чек через ФНС.
-          </p>
-        </div>
-        <DashboardPhotoReceiptPanel embedded @synced="onPhotoSynced" />
       </div>
     </template>
   </div>

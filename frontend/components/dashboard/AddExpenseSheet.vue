@@ -24,14 +24,13 @@ function closeSheet() {
           Добавить покупку
         </DialogTitle>
         <DialogDescription class="text-sm leading-relaxed text-[color:var(--mm-text-muted)]">
-          Одна покупка — и Поток обновит картину денег. Как в онбординге: голос, вручную или чек.
+          Одна покупка — и Поток обновит картину денег. Голосом или вручную.
         </DialogDescription>
       </DialogHeader>
 
       <div class="px-5 pb-5 pt-4">
         <PurchaseInputTabs
           v-if="open"
-          show-photo
           dismissible
           @added="onAdded"
           @confirmed="closeSheet"

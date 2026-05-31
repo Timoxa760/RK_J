@@ -16,7 +16,7 @@ export {
   mockCredits
 } from '~/store/mocks/dashboard'
 
-export { mockReceiptManual, mockReceiptVoice, mockReceiptFnsScan } from '~/store/mocks/receipts'
+export { mockReceiptManual, mockReceiptVoice } from '~/store/mocks/receipts'
 
 export { mockReceiptListItems } from '~/store/mocks/receiptList'
 
