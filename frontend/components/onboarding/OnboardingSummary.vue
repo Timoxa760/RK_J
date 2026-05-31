@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ArrowRight, Target, Wallet } from 'lucide-vue-next'
 import type { AiDiagnosisResponse, OnboardingDraft } from '~/types/api'
+import {
+  FINANCIAL_REPORT_LOADING_COPY,
+  ONBOARDING_DIAGNOSIS_LOADING_STAGES
+} from '~/constants/financialReportLoading'
 
 defineProps<{
   draft: OnboardingDraft
@@ -31,7 +35,7 @@ const emit = defineEmits<{
     @back="emit('back')"
     @next="emit('next')"
   >
-    <div class="grid gap-3 sm:grid-cols-2">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <OnboardingMetricCard
         v-if="!draft.skipped_income && summary.income > 0"
         label="Доход"
@@ -96,7 +100,15 @@ const emit = defineEmits<{
       <ArrowRight class="mt-0.5 size-5 shrink-0 text-[color:var(--mm-primary)]" />
       <div class="text-sm">
         <p class="font-medium text-[color:var(--mm-primary)]">Первое действие</p>
-        <Skeleton v-if="diagnosisLoading" class="mt-2 h-10 w-full" />
+        <SharedFinancialReportLoading
+          v-if="diagnosisLoading"
+          class="mt-3"
+          compact
+          :active="diagnosisLoading"
+          :stages="ONBOARDING_DIAGNOSIS_LOADING_STAGES"
+          :title="FINANCIAL_REPORT_LOADING_COPY.onboardingTitle"
+          :subtitle="FINANCIAL_REPORT_LOADING_COPY.onboardingSubtitle"
+        />
         <template v-else-if="diagnosis?.main_action">
           <p class="mt-0.5 font-medium text-[color:var(--mm-text)]">
             {{ diagnosis.main_action.title }}
@@ -106,8 +118,7 @@ const emit = defineEmits<{
           </p>
         </template>
         <p v-else class="mt-0.5 text-[color:var(--mm-text-muted)]">
-          Добавьте одну покупку голосом или вручную. Чеки с кассы — по желанию; зарплату ФНС не
-          видит.
+          Добавьте одну покупку голосом или вручную — советы станут точнее.
         </p>
       </div>
     </div>

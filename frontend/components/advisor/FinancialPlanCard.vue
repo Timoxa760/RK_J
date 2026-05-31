@@ -10,6 +10,7 @@ import type {
 } from '~/types/api'
 import type { DashboardSummary, HealthTone } from '~/utils/dashboardSummary'
 import type { FinancialPlan } from '~/utils/financialPlan'
+import type { PageNarrativeBlock } from '~/utils/pageNarrative'
 import { ADVISOR, GOALS, HEALTH } from '~/constants/productCopy'
 import { buildDiagnosisIntro } from '~/utils/dashboardCopy'
 
@@ -30,6 +31,8 @@ const props = withDefaults(
     dtiTone?: HealthTone
     insights: InsightItem[]
     loading?: boolean
+    overviewLoading?: boolean
+    narrative?: PageNarrativeBlock | null
     /** Полный план на дашборде — все блоки подряд */
     mega?: boolean
   }>(),
@@ -54,6 +57,36 @@ const opportunityBadge = computed(() => {
   if (!k) return null
   return GOALS.opportunityAmount(k).replace(' ₽', '')
 })
+
+const narrativeResolved = computed(() => {
+  const n = props.narrative
+  return {
+    headline: n?.headline ?? '',
+    goalOpportunityThousands: n?.goalOpportunityThousands ?? null,
+    weeklyAction: n?.weeklyAction ?? props.summary?.weeklyAction ?? '',
+    adviceHint: n?.adviceHint ?? ADVISOR.weeklyAdviceHintShort,
+    incomeDisplay: n?.incomeDisplay ?? null,
+    expensesDisplay: n?.expensesDisplay ?? null,
+    expensesWarn: n?.expensesWarn ?? false,
+    callout: n?.callout ?? null
+  }
+})
+
+const showMoneyRow = computed(
+  () => Boolean(narrativeResolved.value.incomeDisplay || narrativeResolved.value.expensesDisplay)
+)
+
+const showOverview = computed(
+  () =>
+    props.mega &&
+    Boolean(
+      props.summary ||
+        narrativeResolved.value.weeklyAction ||
+        showMoneyRow.value ||
+        props.diagnosis ||
+        props.diagnosisLoading
+    )
+)
 </script>
 
 <template>
@@ -88,9 +121,84 @@ const opportunityBadge = computed(() => {
       </Button>
     </CardHeader>
     <CardContent :class="mega ? 'mm-financial-plan-mega__content' : 'space-y-4 p-4 pt-0 sm:p-5 sm:pt-0'">
-      <Skeleton v-if="loading && !plan" :class="mega ? 'h-48 w-full rounded-2xl' : 'h-36 w-full rounded-xl'" />
+      <SharedFinancialReportLoading
+        v-if="loading && !plan"
+        :active="loading"
+        :compact="!mega"
+      />
 
       <template v-else-if="plan">
+        <section v-if="showOverview" class="mm-financial-plan-mega__section mm-financial-plan-mega__overview">
+          <div class="mm-financial-plan-mega__section-head">
+            <h3 class="mm-financial-plan-mega__heading">Обзор</h3>
+            <p v-if="narrativeResolved.headline" class="mm-financial-plan-mega__hint">
+              {{ narrativeResolved.headline }}
+            </p>
+            <p v-else-if="narrativeResolved.callout" class="mm-financial-plan-mega__hint">
+              {{ narrativeResolved.callout }}
+            </p>
+          </div>
+
+          <div class="mm-financial-plan-mega__section-body space-y-4">
+            <div class="mm-narrative-hero mm-financial-plan-mega__narrative">
+              <div class="mm-narrative-hero__top">
+                <aside
+                  v-if="narrativeResolved.weeklyAction"
+                  class="mm-narrative-hero__advice"
+                  aria-label="Совет недели"
+                  data-demo="narrative"
+                >
+                  <div class="mm-narrative-hero__advice-meta">
+                    <span class="mm-narrative-hero__advice-badge">{{ ADVISOR.weeklyAdviceTitle }}</span>
+                    <span
+                      v-if="narrativeResolved.goalOpportunityThousands"
+                      class="mm-narrative-hero__advice-hook"
+                    >
+                      {{ GOALS.opportunityAmount(narrativeResolved.goalOpportunityThousands) }}
+                    </span>
+                  </div>
+                  <p class="mm-narrative-hero__advice-text">{{ narrativeResolved.weeklyAction }}</p>
+                  <p class="mm-narrative-hero__advice-hint">{{ narrativeResolved.adviceHint }}</p>
+                </aside>
+
+                <div class="mm-narrative-hero__aside">
+                  <DashboardMindfulnessScore
+                    :diagnosis="diagnosis"
+                    :loading="diagnosisLoading && !diagnosis"
+                  />
+                </div>
+              </div>
+
+              <div
+                v-if="showMoneyRow"
+                class="mm-narrative-hero__money-row"
+                aria-label="Доход и траты"
+              >
+                <div v-if="narrativeResolved.incomeDisplay" class="mm-narrative-hero__money-card">
+                  <span class="mm-narrative-hero__money-label">Доход</span>
+                  <span class="mm-narrative-hero__money-value">{{ narrativeResolved.incomeDisplay }}</span>
+                </div>
+                <div v-if="narrativeResolved.expensesDisplay" class="mm-narrative-hero__money-card">
+                  <span class="mm-narrative-hero__money-label">Траты</span>
+                  <span
+                    class="mm-narrative-hero__money-value"
+                    :class="{ 'text-amber-800': narrativeResolved.expensesWarn }"
+                  >
+                    {{ narrativeResolved.expensesDisplay }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <DashboardMetricsGrid
+              v-if="summary"
+              embedded
+              :summary="summary"
+              :loading="overviewLoading"
+            />
+          </div>
+        </section>
+
         <div :class="mega ? 'mm-financial-plan-mega__hero' : 'space-y-3'">
           <p :class="mega ? 'mm-financial-plan-mega__lead' : 'text-lg font-semibold leading-snug'">
             {{ plan.goalTitle }}
@@ -100,10 +208,6 @@ const opportunityBadge = computed(() => {
             <p v-if="plan.runwayText">{{ plan.runwayText }}</p>
             <p v-if="plan.freeCashflowText">{{ plan.freeCashflowText }}</p>
           </div>
-          <p v-if="mega && summary?.weeklyAction" class="mm-financial-plan-mega__weekly">
-            <span class="font-semibold text-foreground">Главное на неделю: </span>
-            {{ summary.weeklyAction }}
-          </p>
         </div>
 
         <!-- Mega: все разделы подряд -->

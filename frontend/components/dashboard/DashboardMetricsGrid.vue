@@ -5,6 +5,8 @@ import type { DashboardSummary } from '~/utils/dashboardSummary'
 defineProps<{
   summary: DashboardSummary
   loading?: boolean
+  /** Внутри финансового плана — без карточки «Что сделать» (уже в советe недели) */
+  embedded?: boolean
 }>()
 
 const toneVariant = {
@@ -16,11 +18,15 @@ const toneVariant = {
 
 <template>
   <section aria-label="Ключевые показатели">
-    <div v-if="loading" class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Skeleton v-for="i in 4" :key="i" class="h-28 w-full" />
+    <div v-if="loading" class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2" :class="embedded ? 'lg:grid-cols-3' : 'lg:grid-cols-4'">
+      <Skeleton v-for="i in embedded ? 3 : 4" :key="i" class="h-28 w-full" />
     </div>
 
-    <div v-else class="grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      v-else
+      class="grid w-full grid-cols-1 items-stretch gap-3 sm:grid-cols-2"
+      :class="embedded ? 'lg:grid-cols-3' : 'lg:grid-cols-4'"
+    >
       <Card class="flex h-full flex-col">
         <CardHeader class="pb-2">
           <CardDescription>Сейчас</CardDescription>
@@ -72,7 +78,7 @@ const toneVariant = {
         </CardContent>
       </Card>
 
-      <Card class="flex h-full flex-col border-primary/25 bg-primary/5">
+      <Card v-if="!embedded" class="flex h-full flex-col border-primary/25 bg-primary/5">
         <CardHeader class="pb-2">
           <CardDescription class="text-primary">Что сделать</CardDescription>
           <CardTitle class="mm-heading-stretch text-base leading-snug">

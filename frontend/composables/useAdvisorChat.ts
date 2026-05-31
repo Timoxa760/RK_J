@@ -1,4 +1,4 @@
-import type { AdvisorChatAction, AiChatHistoryResponse, AiChatResponse } from '~/types/api'
+import type { AdvisorChatAction, AiChatHistoryResponse, AiChatResponse, AdvisorReplyBlock } from '~/types/api'
 import { useAuthStore } from '~/store/authStore'
 import { currentUserStorageKey } from '~/utils/userStorage'
 import {
@@ -16,6 +16,8 @@ export interface ChatTurn {
   id: string
   role: 'user' | 'assistant'
   content: string
+  title?: string
+  blocks?: AdvisorReplyBlock[]
   createdAt: number
   actions?: AdvisorChatAction[]
   source?: 'gemini' | 'heuristic' | 'local'
@@ -50,7 +52,7 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
   const messages = useState<ChatTurn[]>('advisor-chat-messages', () => [])
   const typing = useState('advisor-chat-typing', () => false)
   const error = useState<string | null>('advisor-chat-error', () => null)
-  const initialized = useState('advisor-chat-initialized', () => false)
+  const historyLoaded = useState('advisor-chat-history-loaded', () => false)
 
   function persist() {
     writeStoredChat(messages.value)
@@ -76,19 +78,31 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
       if (res.messages?.length) {
         messages.value = historyToTurns(res.messages)
         persist()
-        return
+        historyLoaded.value = true
+        return true
       }
     } catch {
       /* fallback to local */
     }
-    messages.value = readStoredChat()
+    const local = readStoredChat()
+    if (local.length) {
+      messages.value = local
+    }
+    historyLoaded.value = true
+    return false
   }
 
-  async function initChat() {
-    if (initialized.value) return
-    await loadServerHistory()
-    seedGreeting()
-    initialized.value = true
+  async function initChat(opts?: { reload?: boolean }) {
+    if (historyLoaded.value && !opts?.reload) {
+      if (!messages.value.length) seedGreeting()
+      return
+    }
+    const fromServer = await loadServerHistory()
+    if (!fromServer && !messages.value.length) {
+      seedGreeting()
+    } else if (!messages.value.length) {
+      seedGreeting()
+    }
   }
 
   async function resetChat() {
@@ -98,6 +112,7 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
       /* local reset still works */
     }
     messages.value = []
+    historyLoaded.value = false
     seedGreeting()
     persist()
   }
@@ -106,7 +121,10 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
     const ctx = getContext()
     const history = toApiHistory(messages.value)
 
-    const applyResponse = (reply: string, meta?: Partial<ChatTurn>) => {
+    const applyResponse = (
+      reply: string,
+      meta?: Partial<ChatTurn> & { blocks?: AdvisorReplyBlock[]; title?: string }
+    ) => {
       const idx = messages.value.findIndex((m) => m.id === assistantId)
       const turn: ChatTurn = {
         id: assistantId,
@@ -151,6 +169,8 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
           }
         )
         applyResponse(res.reply, {
+          title: res.title,
+          blocks: res.blocks,
           actions: res.actions,
           source: res.source ?? 'gemini',
           id: res.id
@@ -167,6 +187,8 @@ export function useAdvisorChat(getContext: () => AdvisorContext) {
         body: { message: trimmed, history }
       })
       applyResponse(res.reply?.trim() || buildAdvisorReply(trimmed, ctx), {
+        title: res.title,
+        blocks: res.blocks,
         actions: res.actions,
         source: res.source ?? 'gemini',
         id: res.id

@@ -184,6 +184,13 @@ export interface AiChatMessage {
   content: string
 }
 
+export interface AdvisorReplyBlock {
+  type: 'lead' | 'heading' | 'paragraph' | 'list' | 'callout'
+  text?: string
+  items?: string[]
+  tone?: 'info' | 'action'
+}
+
 export interface AiChatRequest {
   message: string
   history?: AiChatMessage[]
@@ -191,6 +198,8 @@ export interface AiChatRequest {
 
 export interface AiChatResponse {
   reply: string
+  title?: string
+  blocks?: AdvisorReplyBlock[]
   actions?: AdvisorChatAction[]
   source?: 'gemini' | 'heuristic'
   id?: string
@@ -336,22 +345,6 @@ export interface ReceiptVoiceResponse {
   confidence: number
 }
 
-export interface ReceiptFnsScanRequest {
-  fn: string
-  fd: string
-  fp: string
-}
-
-export interface ReceiptFnsScanResponse {
-  receipt_id: string
-  store: string
-  inn?: string
-  date?: string
-  total: number
-  items?: ReceiptLineItem[]
-  category: string
-}
-
 export interface ProfilePatchRequest {
   active_income?: number
   passive_income?: number
@@ -373,21 +366,6 @@ export interface OnboardingCompleteResponse {
   onboarding_completed: boolean
 }
 
-export interface FnsTicketRequest {
-  qr: string
-}
-
-export interface FnsTicketResponse {
-  success?: boolean
-  message?: string
-  receipt_id?: string
-}
-
-export interface FnsMcoSyncResponse {
-  synced: number
-  message?: string
-}
-
 export type ProviderId =
   | 'x5club'
   | 'magnit'
@@ -396,7 +374,6 @@ export type ProviderId =
   | 'ozon'
   | 'wb'
   | 'email'
-  | 'fns'
 
 export interface ProviderInfo {
   id: ProviderId

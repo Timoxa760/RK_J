@@ -99,6 +99,7 @@ function onVoiceProgress(current: number, total: number) {
     :progress="progressView"
     :show-progress="step > 1 && step < ONBOARDING_WIZARD_STEP_COUNT"
     :minimal-header="step === 1"
+    :compact-header="step > 1"
     :step-labels="[...ONBOARDING_STEP_LABELS].slice(1)"
   >
     <div class="mm-onboarding-survey">

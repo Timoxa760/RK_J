@@ -515,8 +515,116 @@ body {
     @apply text-sm leading-relaxed sm:text-base;
   }
 
+  .mm-financial-plan-mega__overview {
+    @apply border-b border-border/50 pb-2;
+  }
+
+  .mm-financial-plan-mega__narrative {
+    @apply rounded-2xl border border-border/60 bg-muted/15 p-3 sm:p-4;
+  }
+
   .mm-financial-plan-mega__opportunity-muted {
     @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .mm-financial-report-loading {
+    @apply rounded-2xl border p-4 sm:p-5;
+    border-color: var(--mm-border);
+    background-color: color-mix(in srgb, var(--mm-bg-muted) 50%, transparent);
+  }
+
+  .mm-financial-report-loading--compact {
+    @apply rounded-xl p-3 sm:p-4;
+  }
+
+  .mm-financial-report-loading__head {
+    @apply space-y-1;
+  }
+
+  .mm-financial-report-loading__title {
+    @apply text-base font-semibold leading-snug text-[color:var(--mm-text)] sm:text-lg;
+  }
+
+  .mm-financial-report-loading__subtitle {
+    @apply text-sm leading-relaxed text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-financial-report-loading__progress {
+    @apply mt-4 flex items-center gap-3;
+  }
+
+  .mm-financial-report-loading__progress-track {
+    @apply relative h-2 flex-1 overflow-hidden rounded-full bg-[color:var(--mm-flow-track)];
+  }
+
+  .mm-financial-report-loading__progress-fill {
+    @apply absolute inset-y-0 left-0 rounded-full bg-[color:var(--mm-primary-deep)];
+    transition: width 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px rgb(var(--mm-primary-rgb) / 0.45);
+  }
+
+  .mm-financial-report-loading__progress-label {
+    @apply min-w-[2.75rem] text-right text-xs font-medium tabular-nums text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-financial-report-loading__current {
+    @apply mt-3 text-sm font-medium text-[color:var(--mm-text)];
+  }
+
+  .mm-financial-report-loading__current-hint {
+    @apply font-normal text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-financial-report-loading__steps {
+    @apply mt-4 space-y-2;
+  }
+
+  .mm-financial-report-loading--compact .mm-financial-report-loading__steps {
+    @apply mt-3 space-y-1.5;
+  }
+
+  .mm-financial-report-loading__step {
+    @apply flex items-start gap-2.5 rounded-xl px-2 py-1.5 text-sm transition-colors duration-300;
+  }
+
+  .mm-financial-report-loading__step--active {
+    background-color: color-mix(in srgb, var(--mm-primary-soft) 80%, transparent);
+  }
+
+  .mm-financial-report-loading__step--done {
+    @apply text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-financial-report-loading__step--pending {
+    @apply text-[color:var(--mm-text-soft)];
+  }
+
+  .mm-financial-report-loading__step-icon {
+    @apply mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full;
+  }
+
+  .mm-financial-report-loading__step--active .mm-financial-report-loading__step-icon {
+    color: var(--mm-primary-deep);
+  }
+
+  .mm-financial-report-loading__step--done .mm-financial-report-loading__step-icon {
+    @apply bg-[color:var(--mm-primary-soft)] text-[color:var(--mm-primary-deep)];
+  }
+
+  .mm-financial-report-loading__step-copy {
+    @apply min-w-0 flex flex-col gap-0.5;
+  }
+
+  .mm-financial-report-loading__step-label {
+    @apply leading-snug;
+  }
+
+  .mm-financial-report-loading__step-hint {
+    @apply text-xs leading-relaxed text-[color:var(--mm-text-muted)];
+  }
+
+  .mm-financial-report-loading__step--active .mm-financial-report-loading__step-label {
+    @apply font-medium text-[color:var(--mm-text)];
   }
 
   .mm-sidebar-brand-link .mm-hero-flow-word--brand,
@@ -1894,7 +2002,7 @@ body {
   }
 
   .mm-onboarding-survey {
-    @apply relative z-20 isolate w-full overflow-hidden rounded-3xl border border-[color:var(--mm-border)] p-5 sm:p-8;
+    @apply relative z-20 isolate w-full overflow-hidden rounded-3xl border border-[color:var(--mm-border)] p-5 sm:p-6 lg:p-7;
     background: rgb(255 255 255 / 0.88);
     backdrop-filter: blur(20px) saturate(1.15);
     -webkit-backdrop-filter: blur(20px) saturate(1.15);
@@ -2021,10 +2129,25 @@ body {
   }
 
   .mm-onb-welcome-highlights {
-    @apply grid gap-2.5;
+    @apply grid gap-2.5 md:grid-cols-3 md:gap-3;
     list-style: none;
     padding: 0;
     margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    .mm-onb-welcome-highlights__item {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      justify-items: center;
+      text-align: center;
+      row-gap: 0.625rem;
+      padding: 1rem 0.75rem;
+    }
+
+    .mm-onb-welcome-highlights__text {
+      font-size: 0.8125rem;
+    }
   }
 
   .mm-onb-welcome-highlights__item {
@@ -2698,4 +2821,77 @@ html {
   --sidebar-background: 60 4% 11%;
   --sidebar-foreground: 40 33% 99%;
   --sidebar-border: 33 10% 22%;
+}
+
+/* Markdown в чате советника */
+.advisor-markdown :is(h1, h2, h3, h4) {
+  margin: 0.75rem 0 0.4rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.advisor-markdown h2 {
+  font-size: 1.0625rem;
+}
+
+.advisor-markdown h3 {
+  font-size: 1rem;
+}
+
+.advisor-markdown :is(p, ul, ol) {
+  margin: 0.45rem 0;
+}
+
+.advisor-markdown :is(ul, ol) {
+  padding-left: 1.25rem;
+}
+
+.advisor-markdown ul {
+  list-style: disc;
+}
+
+.advisor-markdown ol {
+  list-style: decimal;
+}
+
+.advisor-markdown li + li {
+  margin-top: 0.2rem;
+}
+
+.advisor-markdown strong {
+  font-weight: 600;
+}
+
+.advisor-markdown hr {
+  margin: 0.75rem 0;
+  border: 0;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.advisor-markdown table {
+  width: 100%;
+  margin: 0.5rem 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.advisor-markdown th,
+.advisor-markdown td {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid hsl(var(--border));
+  text-align: left;
+  vertical-align: top;
+}
+
+.advisor-markdown th {
+  font-weight: 600;
+  background: hsl(var(--muted) / 0.35);
+}
+
+.advisor-markdown :is(p, li, h1, h2, h3, h4):first-child {
+  margin-top: 0;
+}
+
+.advisor-markdown :is(p, li, h1, h2, h3, h4):last-child {
+  margin-bottom: 0;
 }

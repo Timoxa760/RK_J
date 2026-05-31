@@ -11,6 +11,7 @@ import { buildUserCategoryOptions } from '~/constants/expenseCategories'
 import { buildGoalForecast } from '~/utils/dashboardSummary'
 import { buildGoalProgressText } from '~/utils/pageNarrative'
 import { formatRub } from '~/constants/productCopy'
+import { parseAdvisorStoredContent } from '~/utils/advisorStructured'
 
 export interface AdvisorContext {
   diagnosis: AiDiagnosisResponse | null
@@ -171,14 +172,19 @@ export function historyToTurns(
     created_at: number
   }>
 ) {
-  return rows.map((row) => ({
-    id: row.id,
-    role: row.role,
-    content: row.content,
-    createdAt: row.created_at,
-    actions: row.actions,
-    source: (row.source as 'gemini' | 'heuristic' | undefined) ?? undefined
-  }))
+  return rows.map((row) => {
+    const parsed = parseAdvisorStoredContent(row.content)
+    return {
+      id: row.id,
+      role: row.role,
+      content: parsed.plain,
+      title: parsed.title,
+      blocks: parsed.blocks,
+      createdAt: row.created_at,
+      actions: row.actions,
+      source: (row.source as 'gemini' | 'heuristic' | undefined) ?? undefined
+    }
+  })
 }
 
 export function toApiHistory(

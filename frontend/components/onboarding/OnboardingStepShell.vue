@@ -19,8 +19,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <article class="mm-onboarding-card w-full p-6 sm:p-8">
-    <header class="space-y-2">
+  <article class="mm-onboarding-card w-full p-5 sm:p-6 lg:p-7">
+    <header class="space-y-1.5 lg:space-y-2">
       <h2 class="text-xl font-semibold tracking-tight text-[color:var(--mm-text)] sm:text-2xl">
         {{ title }}
       </h2>
@@ -29,7 +29,7 @@ const emit = defineEmits<{
       </p>
     </header>
 
-    <div class="mt-6 space-y-6">
+    <div class="mt-5 space-y-5 lg:mt-4 lg:space-y-4">
       <slot />
 
       <p

@@ -55,14 +55,9 @@ function createAdvisorShell() {
   const bootstrapped = useState('advisor-shell-boot', () => false)
 
   async function bootstrap() {
-    if (bootstrapped.value) {
-      await processAskFromQuery()
-      return
-    }
-    bootstrapped.value = true
-    typing.value = false
     await refreshAdvisorContext({ silent: true })
-    await initChat()
+    await initChat({ reload: !bootstrapped.value })
+    bootstrapped.value = true
     await processAskFromQuery()
   }
 

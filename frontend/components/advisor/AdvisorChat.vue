@@ -3,6 +3,11 @@ import { RotateCcw, Send } from 'lucide-vue-next'
 import type { AdvisorChatAction } from '~/types/api'
 import { ADVISOR } from '~/constants/productCopy'
 import { buildDynamicQuickPrompts, type AdvisorContext } from '~/utils/advisorChat'
+import {
+  chatDayKey,
+  formatChatDayLabel,
+  formatChatMessageTime
+} from '~/utils/advisorMarkdown'
 import type { ChatTurn } from '~/composables/useAdvisorChat'
 
 const props = withDefaults(
@@ -51,8 +56,20 @@ function onPrompt(text: string) {
   emit('send', text)
 }
 
-function isLocalSource(msg: ChatTurn) {
-  return msg.source === 'local'
+function sourceLabel(msg: ChatTurn): string | null {
+  if (msg.role !== 'assistant') return null
+  if (msg.source === 'local') return ADVISOR.chatSourceLocal
+  if (msg.source === 'heuristic') return ADVISOR.chatSourceHeuristic
+  if (msg.source === 'gemini') return ADVISOR.chatSourceAi
+  return null
+}
+
+function showDayDivider(index: number): string | null {
+  const msg = props.messages[index]
+  if (!msg) return null
+  const prev = props.messages[index - 1]
+  if (prev && chatDayKey(prev.createdAt) === chatDayKey(msg.createdAt)) return null
+  return formatChatDayLabel(msg.createdAt)
 }
 </script>
 
@@ -94,36 +111,67 @@ function isLocalSource(msg: ChatTurn) {
         :class="fullPage ? 'px-3 sm:px-4' : 'max-h-[min(480px,52vh)] px-4 sm:px-5'"
         aria-live="polite"
       >
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="flex flex-col"
-          :class="msg.role === 'user' ? 'items-end' : 'items-start'"
-        >
+        <template v-for="(msg, index) in messages" :key="msg.id">
           <div
-            class="max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm"
-            :class="
-              msg.role === 'user'
-                ? 'rounded-br-md bg-primary text-[color:var(--mm-text)]'
-                : 'rounded-bl-md border bg-card text-foreground'
-            "
+            v-if="showDayDivider(index)"
+            class="flex justify-center py-1"
           >
-            <span v-if="msg.streaming && !msg.content" class="text-muted-foreground">Печатаю…</span>
-            <span v-else>{{ msg.content }}</span>
+            <span class="rounded-full bg-muted/60 px-3 py-0.5 text-xs text-muted-foreground">
+              {{ showDayDivider(index) }}
+            </span>
           </div>
-          <p
-            v-if="msg.role === 'assistant' && isLocalSource(msg)"
-            class="mt-1 text-[10px] text-muted-foreground"
+          <div
+            class="flex flex-col"
+            :class="msg.role === 'user' ? 'items-end' : 'items-start'"
           >
-            {{ ADVISOR.chatLocalReply }}
-          </p>
-          <AdvisorChatActions
-            v-if="msg.role === 'assistant' && msg.actions?.length"
-            :actions="msg.actions"
-            :disabled="typing"
-            @action="emit('action', $event)"
-          />
-        </div>
+            <div
+              class="max-w-[92%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[88%]"
+              :class="
+                msg.role === 'user'
+                  ? 'rounded-br-md bg-primary text-[color:var(--mm-text)]'
+                  : 'rounded-bl-md border bg-card text-foreground'
+              "
+            >
+              <template v-if="msg.role === 'assistant'">
+                <span v-if="msg.streaming" class="text-muted-foreground">
+                  Печатаю…
+                </span>
+                <AdvisorMessageContent
+                  v-else
+                  :content="msg.content"
+                  :title="msg.title"
+                  :blocks="msg.blocks"
+                />
+              </template>
+              <p v-else class="whitespace-pre-wrap text-base leading-relaxed">
+                {{ msg.content }}
+              </p>
+            </div>
+            <div
+              class="mt-1 flex max-w-[92%] flex-wrap items-center gap-x-2 gap-y-0.5 px-1 sm:max-w-[88%]"
+              :class="msg.role === 'user' ? 'justify-end' : 'justify-start'"
+            >
+              <time
+                :datetime="new Date(msg.createdAt).toISOString()"
+                class="text-[10px] text-muted-foreground"
+              >
+                {{ formatChatMessageTime(msg.createdAt) }}
+              </time>
+              <span
+                v-if="sourceLabel(msg)"
+                class="text-[10px] text-muted-foreground"
+              >
+                · {{ sourceLabel(msg) }}
+              </span>
+            </div>
+            <AdvisorChatActions
+              v-if="msg.role === 'assistant' && msg.actions?.length"
+              :actions="msg.actions"
+              :disabled="typing"
+              @action="emit('action', $event)"
+            />
+          </div>
+        </template>
 
         <div v-if="typing && !messages.some((m) => m.streaming)" class="flex justify-start">
           <div class="rounded-2xl rounded-bl-md border bg-muted/50 px-4 py-3 text-base text-muted-foreground">

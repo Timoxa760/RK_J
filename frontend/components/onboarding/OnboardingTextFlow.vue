@@ -94,7 +94,7 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
     @next="emit('next')"
     @secondary="emit('skip')"
   >
-    <div v-if="step === 1" class="mm-onb-form-panel">
+    <div v-if="step === 1" class="mm-onb-form-panel grid gap-4 md:grid-cols-2">
       <div class="space-y-2">
         <Label for="onb-active">Основной доход, ₽/мес</Label>
         <Input
@@ -178,7 +178,7 @@ function onVoicePatch(patch: Partial<OnboardingDraft>) {
     <div v-else-if="step === 3" class="mm-onb-form-panel">
       <div class="space-y-2">
         <Label>Тип цели</Label>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-4">
           <button
             v-for="[kind, label] in goalKinds"
             :key="kind"

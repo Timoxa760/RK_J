@@ -8,7 +8,7 @@ const { categories, timemachine, loading, error, loadAll, retry } = useDashboard
 const { dashboard: credits, loading: creditsLoading, fetchDashboard } = useCredits()
 const { profile, loadProfile, fetchProfileFromApi } = useFinancialProfile()
 const { insights, topInsight, loading: insightsLoading, fetchInsights } = useInsights()
-const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan } = useAiPlan()
+const { plan, diagnosisFromPlan, loading: aiPlanLoading, fetchPlan, hasCache, invalidatePlan } = useAiPlan()
 
 const { refreshAdvisorContext } = useAdvisorContext()
 
@@ -52,27 +52,30 @@ const pageNarrative = computed(() => {
   return narrativeFromDashboardSummary(summary.value, insight)
 })
 
-const narrativeLoading = computed(
+const planLoading = computed(
   () =>
     !initialLoadDone.value &&
     (loading.value || creditsLoading.value || insightsLoading.value || aiPlanLoading.value)
 )
 
-const planLoading = computed(
-  () => !initialLoadDone.value && (narrativeLoading.value || aiPlanLoading.value)
+const overviewLoading = computed(
+  () => planLoading.value && !plan.value
 )
 
 const showCredits = computed(() => hasCreditsData(credits.value))
 
 const planRefreshing = ref(false)
 
-async function rebuildPlan() {
+async function rebuildPlan(options?: { force?: boolean }) {
   planRefreshing.value = true
-  await fetchPlan({
-    summary: summary.value,
-    timemachine: projectedTimemachine.value,
-    topInsight: topInsight.value
-  })
+  await fetchPlan(
+    {
+      summary: summary.value,
+      timemachine: projectedTimemachine.value,
+      topInsight: topInsight.value
+    },
+    { force: options?.force ?? true }
+  )
   planRefreshing.value = false
 }
 
@@ -86,48 +89,51 @@ const chartsLoading = computed(
 
 const allInsights = computed(() => insights.value?.insights ?? [])
 
-async function refreshData(options?: { soft?: boolean }) {
+async function refreshData(options?: { soft?: boolean; forcePlan?: boolean }) {
   if (options?.soft) chartsRefreshing.value = true
   loadProfile()
   await Promise.all([loadAll({ silent: options?.soft }), fetchDashboard(), fetchInsights()])
-  await rebuildPlan()
+  if (options?.forcePlan) {
+    await rebuildPlan({ force: true })
+  }
   await refreshAdvisorContext({ silent: true })
   if (options?.soft) chartsRefreshing.value = false
 }
 
-async function refreshAll() {
-  await refreshData()
+async function refreshAll(options?: { forcePlan?: boolean }) {
+  await refreshData({ forcePlan: options?.forcePlan ?? !hasCache.value })
   initialLoadDone.value = true
 }
 
 onMounted(async () => {
   loadProfile()
   await fetchProfileFromApi()
-  await refreshAll()
+
+  if (hasCache.value) {
+    initialLoadDone.value = true
+    await refreshData({ soft: true })
+    return
+  }
+
+  await refreshAll({ forcePlan: true })
 })
 
 watch(addedVersion, () => {
-  refreshData({ soft: true })
+  invalidatePlan()
+  refreshData({ soft: true, forcePlan: true })
 })
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-none space-y-4 sm:space-y-5">
-    <SharedPageNarrative :narrative="pageNarrative" :loading="narrativeLoading">
-      <template #aside>
-        <DashboardMindfulnessScore
-          :diagnosis="displayDiagnosis"
-          :loading="aiPlanLoading && !displayDiagnosis"
-        />
-      </template>
-    </SharedPageNarrative>
-
     <AdvisorFinancialPlanCard
       mega
       :plan="plan"
       :summary="displaySummary"
+      :narrative="pageNarrative"
       :diagnosis="displayDiagnosis"
       :diagnosis-loading="aiPlanLoading && !displayDiagnosis"
+      :overview-loading="overviewLoading"
       :categories="categories"
       :profile="profile"
       :timemachine="projectedTimemachine"
@@ -141,7 +147,7 @@ watch(addedVersion, () => {
       v-model:selected-category="selectedCategory"
       v-model:percent="percent"
       :loading="planLoading || planRefreshing"
-      @refresh="rebuildPlan"
+      @refresh="rebuildPlan({ force: true })"
     />
 
     <Alert v-if="error" variant="destructive">
