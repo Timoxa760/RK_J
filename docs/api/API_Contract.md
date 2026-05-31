@@ -112,7 +112,7 @@
 
 ### POST /api/v1/auth/password/reset — 🟡 important
 
-Установка нового пароля по коду из SMS.
+Установка нового пароля по коду сброса (Redis / stub `0000` в dev).
 
 **Body:**
 ```json

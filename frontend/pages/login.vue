@@ -51,7 +51,7 @@ const titles: Record<Mode, string> = {
 const descriptions: Record<Mode, string> = {
   login: 'Войдите, чтобы сохранить историю разговоров с помощником',
   register: 'Создайте аккаунт — телефон и пароль от 8 символов',
-  forgot: 'Укажите номер — мы отправим код для сброса',
+  forgot: 'Укажите номер — если аккаунт есть, можно сбросить пароль по коду',
   reset: 'Введите код и новый пароль'
 }
 
@@ -137,7 +137,7 @@ async function submitForgot() {
   loading.value = true
   try {
     await requestPasswordReset(normalizePhone(phone.value))
-    info.value = 'Если аккаунт существует, код отправлен. Проверьте SMS.'
+    info.value = 'Если аккаунт существует, запрос принят. Введите код восстановления.'
     mode.value = 'reset'
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Не удалось отправить код'
@@ -310,7 +310,7 @@ async function submitReset() {
       >
         <p class="text-sm text-muted-foreground">{{ phone }}</p>
         <div class="space-y-2">
-          <Label for="reset-code">Код из SMS</Label>
+          <Label for="reset-code">Код восстановления</Label>
           <Input
             id="reset-code"
             v-model="resetCode"

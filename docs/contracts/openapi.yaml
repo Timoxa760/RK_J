@@ -370,7 +370,7 @@ paths:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
         "200":
-          description: SMS отправлен
+          description: Пользователь зарегистрирован
           content:
             application/json:
               schema:
