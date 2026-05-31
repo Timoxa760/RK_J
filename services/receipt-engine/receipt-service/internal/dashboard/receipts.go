@@ -43,11 +43,10 @@ func (h *Handler) listReceipts(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"failed to load receipts"}`, http.StatusInternalServerError)
 			return
 		}
-		if items == nil {
-			items = []receiptListItem{}
+		if len(items) > 0 {
+			writeJSON(w, receiptsListResponse{Receipts: items})
+			return
 		}
-		writeJSON(w, receiptsListResponse{Receipts: items})
-		return
 	}
 
 	if h.expenseFile != nil {

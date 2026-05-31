@@ -29,7 +29,9 @@ func (h *Handler) loadUserExpenses(ctx context.Context, userID string, since tim
 			}
 			return nil, err
 		}
-		return rows, nil
+		if len(rows) > 0 {
+			return rows, nil
+		}
 	}
 	if h.expenseFile != nil {
 		return h.loadUserExpensesFile(userID, since)
