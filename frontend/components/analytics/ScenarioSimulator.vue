@@ -47,16 +47,15 @@ const preview = computed(() =>
   })
 )
 
-const compareMax = computed(() =>
-  Math.max(preview.value.currentBalance, preview.value.optimizedEnd, preview.value.baselineEnd, 1)
-)
+const compareMax = computed(() => {
+  const spend = preview.value.categorySpend
+  const months = preview.value.months
+  // Максимум на шкале — сокращение 40% за выбранный период
+  return Math.max(Math.round(spend * 0.4 * months), preview.value.totalGain, preview.value.monthlySaving, 1)
+})
 
-const baselineWidth = computed(() =>
-  Math.round((preview.value.currentBalance / compareMax.value) * 100)
-)
-
-const optimizedWidth = computed(() =>
-  Math.round((preview.value.optimizedEnd / compareMax.value) * 100)
+const savingBarWidth = computed(() =>
+  Math.max(Math.round((preview.value.totalGain / compareMax.value) * 100), 8)
 )
 
 const scenarioBarLabel = computed(() => {
@@ -129,15 +128,15 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
           id="scenario-percent"
           v-model.number="percent"
           type="range"
-          min="5"
-          max="50"
+          min="10"
+          max="40"
           step="5"
           class="mm-scenario-simulator__range mt-3 w-full"
           :disabled="!categoryOptions.length"
         />
         <div class="mt-1 flex justify-between text-xs text-muted-foreground">
-          <span>5%</span>
-          <span>50%</span>
+          <span>10%</span>
+          <span>40%</span>
         </div>
       </div>
 
@@ -163,50 +162,31 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
           </div>
 
           <div class="space-y-3">
-            <p class="text-sm font-medium text-foreground">Подушка через год</p>
+            <p class="text-sm font-medium text-foreground">
+              Экономия за {{ preview.months }} мес.
+            </p>
             <div class="space-y-2">
-              <div class="mm-scenario-simulator__bar-row">
-                <span class="mm-scenario-simulator__bar-label">Как сейчас</span>
-                <div class="mm-scenario-simulator__bar-track">
-                  <div
-                    class="mm-scenario-simulator__bar mm-scenario-simulator__bar--base"
-                    :style="{ width: `${Math.max(baselineWidth, 8)}%` }"
-                  />
-                </div>
-                <span class="mm-scenario-simulator__bar-value">
-                  {{ formatRub(preview.currentBalance) }}
-                </span>
-              </div>
-              <div
-                v-if="preview.baselineEnd !== preview.currentBalance"
-                class="mm-scenario-simulator__bar-row"
-              >
-                <span class="mm-scenario-simulator__bar-label">Без изменений</span>
-                <div class="mm-scenario-simulator__bar-track">
-                  <div
-                    class="mm-scenario-simulator__bar mm-scenario-simulator__bar--muted"
-                    :style="{
-                      width: `${Math.max(Math.round((preview.baselineEnd / compareMax) * 100), 8)}%`
-                    }"
-                  />
-                </div>
-                <span class="mm-scenario-simulator__bar-value">
-                  {{ formatRub(preview.baselineEnd) }}
-                </span>
-              </div>
               <div class="mm-scenario-simulator__bar-row">
                 <span class="mm-scenario-simulator__bar-label">{{ scenarioBarLabel }}</span>
                 <div class="mm-scenario-simulator__bar-track">
                   <div
                     class="mm-scenario-simulator__bar mm-scenario-simulator__bar--gain"
-                    :style="{ width: `${Math.max(optimizedWidth, 8)}%` }"
+                    :style="{ width: `${savingBarWidth}%` }"
                   />
                 </div>
                 <span class="mm-scenario-simulator__bar-value mm-scenario-simulator__bar-value--accent">
-                  {{ formatRub(preview.optimizedEnd) }}
+                  +{{ formatRub(preview.totalGain) }}
                 </span>
               </div>
             </div>
+            <p v-if="preview.incomeKnown" class="text-xs text-muted-foreground">
+              Свободно сейчас {{ preview.freeCashflow > 0 ? '+' : '' }}{{ formatRub(preview.freeCashflow) }}/мес.
+              С экономией подушка за {{ preview.months }} мес.:
+              {{ formatRub(preview.baselineEnd) }} → {{ formatRub(preview.optimizedEnd) }}.
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
+              Укажите доход в профиле — добавим прогноз роста подушки.
+            </p>
           </div>
 
           <p class="mm-scenario-simulator__footnote">

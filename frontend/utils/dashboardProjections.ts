@@ -19,8 +19,12 @@ function sumFixedExpenses(profile: FinancialProfile | null | undefined): number 
 }
 
 function profileIncome(profile: FinancialProfile | null | undefined): number {
-  if (!profile) return 0
+  if (!profile || profile.skipped_income) return 0
   return (profile.active_income ?? 0) + (profile.passive_income ?? 0)
+}
+
+function incomeKnown(profile: FinancialProfile | null | undefined): boolean {
+  return !profile?.skipped_income && profileIncome(profile) > 0
 }
 
 function monthSpend(profile: FinancialProfile | null | undefined, categories: CategoriesResponse | null) {
@@ -185,6 +189,12 @@ export interface ScenarioPreview {
   freeCashflow: number
   baselineEnd: number
   optimizedEnd: number
+  /** Доход известен — можно прогнозировать подушку, не только экономию по категории */
+  incomeKnown: boolean
+  /** Прирост подушки за период без сокращения выбранной категории */
+  baselineGain: number
+  /** Прирост с учётом сокращения (baselineGain + totalGain) */
+  optimizedGain: number
   hasData: boolean
   message: string
 }
@@ -228,6 +238,7 @@ export function buildScenarioPreview(input: {
   const monthlySaving = Math.round(categorySpend * (input.reductionPercent / 100))
   const totalGain = monthlySaving * months
 
+  const knownIncome = incomeKnown(input.profile)
   const baselineEnd = Math.max(
     0,
     Math.round(currentBalance + freeCashflow * months)
@@ -236,6 +247,8 @@ export function buildScenarioPreview(input: {
     0,
     Math.round(currentBalance + (freeCashflow + monthlySaving) * months)
   )
+  const baselineGain = knownIncome ? Math.max(0, Math.round(freeCashflow * months)) : 0
+  const optimizedGain = baselineGain + totalGain
 
   if (totalSpend <= 0) {
     return {
@@ -249,6 +262,9 @@ export function buildScenarioPreview(input: {
       freeCashflow,
       baselineEnd: currentBalance,
       optimizedEnd: currentBalance,
+      incomeKnown: knownIncome,
+      baselineGain: 0,
+      optimizedGain: 0,
       hasData: false,
       message: 'Добавьте покупки — покажем эффект от сокращения трат.'
     }
@@ -266,12 +282,17 @@ export function buildScenarioPreview(input: {
       freeCashflow,
       baselineEnd: currentBalance,
       optimizedEnd: currentBalance,
+      incomeKnown: knownIncome,
+      baselineGain: 0,
+      optimizedGain: 0,
       hasData: false,
       message: `За этот месяц нет трат в «${categoryName}». Выберите категорию, где уже есть расходы.`
     }
   }
 
-  const message = `Сократите «${categoryName}» на ${input.reductionPercent}% — это ~${monthlySaving.toLocaleString('ru-RU')} ₽/мес (${categorySpend.toLocaleString('ru-RU')} ₽ сейчас).`
+  const message = knownIncome
+    ? `Сократите «${categoryName}» на ${input.reductionPercent}% — +${monthlySaving.toLocaleString('ru-RU')} ₽/мес к свободным деньгам (сейчас ${categorySpend.toLocaleString('ru-RU')} ₽/мес в категории).`
+    : `Сократите «${categoryName}» на ${input.reductionPercent}% — освободите ~${monthlySaving.toLocaleString('ru-RU')} ₽/мес. Укажите доход в профиле для прогноза подушки.`
 
   return {
     categoryName,
@@ -284,6 +305,9 @@ export function buildScenarioPreview(input: {
     freeCashflow,
     baselineEnd,
     optimizedEnd,
+    incomeKnown: knownIncome,
+    baselineGain,
+    optimizedGain,
     hasData: true,
     message
   }
