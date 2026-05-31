@@ -1,7 +1,6 @@
 import type {
   AiDiagnosisResponse,
   CreditsDashboardResponse,
-  DigestResponse,
   FinancialProfile,
   ForecastResponse,
   Goal,
@@ -12,7 +11,6 @@ import {
   ACTIONS,
   ANALYTICS,
   CREDITS,
-  DIGEST,
   HEALTH,
   NAV,
   PROFILE,
@@ -25,17 +23,14 @@ import {
   adviceFromDiagnosis,
   buildAdviceBlock,
   buildAdviceHint,
-  buildDashboardContextFacts,
-  type DashboardContextFact
+  buildDashboardMoneyDisplay
 } from '~/utils/dashboardCopy'
 
 export interface PageNarrativeBlock {
   headline: string
   paragraphs: string[]
-  /** @deprecated Плитки контекста в contextFacts */
+  /** @deprecated hero не рендерит; данные в плане */
   contextLine?: string
-  /** Оценка, доход, траты, запас — отдельные плитки */
-  contextFacts?: DashboardContextFact[]
   /** Hook-цифра для совета недели */
   goalOpportunityThousands?: number | null
   /** @deprecated hero не рендерит; данные в contextLine / плане */
@@ -50,6 +45,9 @@ export interface PageNarrativeBlock {
   weeklyAction?: string
   adviceHint?: string
   callout?: string
+  incomeDisplay?: string | null
+  expensesDisplay?: string | null
+  expensesWarn?: boolean
 }
 
 export function buildGoalProgressText(goal: Goal | null, monthlySaving?: number): string {
@@ -76,45 +74,12 @@ export function buildGoalProgressText(goal: Goal | null, monthlySaving?: number)
 }
 
 export function buildWeeklyAction(
-  digest: DigestResponse | null,
   summary: Pick<DashboardSummary, 'weeklyAction'> | null,
   topInsight: InsightItem | null
 ): string {
-  if (digest?.ai_advice) return digest.ai_advice
   if (summary?.weeklyAction) return summary.weeklyAction
   if (topInsight?.title) return topInsight.title
   return ACTIONS.addPurchaseOrReceipt
-}
-
-export function buildDigestPageNarrative(input: {
-  digest: DigestResponse | null
-  primaryGoal: Goal | null
-  weeklyAction?: string
-}): PageNarrativeBlock {
-  const { digest, primaryGoal, weeklyAction } = input
-
-  if (!digest) {
-    return {
-      headline: DIGEST.loading,
-      paragraphs: ['Собираем цифры за месяц…'],
-      badgeLabel: DIGEST.badge
-    }
-  }
-
-  const free = digest.total_income - digest.total_spent
-  const freeText =
-    free >= 0
-      ? DIGEST.leftAfterExpenses(`+${formatRub(free)}`)
-      : `Расходы больше дохода на ${formatRub(Math.abs(free))}.`
-  const picture = `За ${digest.period.from} — ${digest.period.to}: доход ${formatRub(digest.total_income)}, траты ${formatRub(digest.total_spent)}. ${freeText} Отложили ${formatRub(digest.saved)}.`
-
-  return {
-    headline: DIGEST.headline,
-    paragraphs: [picture, buildGoalProgressText(primaryGoal, digest.saved)],
-    weeklyAction: weeklyAction ?? digest.ai_advice,
-    callout: digest.insights_summary,
-    badgeLabel: DIGEST.badge
-  }
 }
 
 export function buildReceiptsPageNarrative(input: {
@@ -309,14 +274,14 @@ export function narrativeFromDashboardSummary(
 
   return {
     headline: summary.healthHeadline,
-    contextFacts: buildDashboardContextFacts({ diagnosis: null, summary }),
     goalOpportunityThousands: summary.goalOpportunityThousands,
     paragraphs: [],
     healthEmoji: summary.healthEmoji,
     healthTone: summary.healthTone,
     weeklyAction: advice.weeklyAction,
     adviceHint: advice.adviceHint,
-    badgeLabel: NAV.dashboard
+    badgeLabel: NAV.dashboard,
+    ...buildDashboardMoneyDisplay(summary)
   }
 }
 
@@ -354,9 +319,6 @@ export function narrativeFromDiagnosis(
 
   return {
     headline: `${health.headline} · ${diagnosis.score} из 100`,
-    contextFacts: summary
-      ? buildDashboardContextFacts({ diagnosis, summary })
-      : [{ id: 'grade', label: 'Оценка', value: diagnosis.grade, tone: 'accent' }],
     goalOpportunityThousands: summary?.goalOpportunityThousands ?? null,
     paragraphs: [],
     healthEmoji: health.emoji,
@@ -367,6 +329,7 @@ export function narrativeFromDiagnosis(
     callout:
       diagnosis.next_check_days > 0
         ? `Обновим картину через ${diagnosis.next_check_days} дн.`
-        : undefined
+        : undefined,
+    ...(summary ? buildDashboardMoneyDisplay(summary) : {})
   }
 }

@@ -208,6 +208,25 @@ export function buildDashboardContextFacts(input: {
   return facts
 }
 
+export function buildDashboardMoneyDisplay(summary: DashboardSummary): {
+  incomeDisplay: string | null
+  expensesDisplay: string | null
+  expensesWarn?: boolean
+} {
+  const incomeDisplay = summary.income > 0 ? `${formatRub(summary.income)}/мес` : null
+  let expensesDisplay: string | null = null
+  let expensesWarn = false
+
+  if (summary.expenses > 0) {
+    expensesDisplay = `${formatRub(summary.expenses)}/мес`
+  } else if (summary.income > 0 || summary.expenses <= 0) {
+    expensesDisplay = 'Добавьте в профиле'
+    expensesWarn = true
+  }
+
+  return { incomeDisplay, expensesDisplay, expensesWarn }
+}
+
 /** @deprecated Используйте buildDashboardContextFacts */
 export function buildDashboardContextLine(input: {
   diagnosis: AiDiagnosisResponse | null | undefined

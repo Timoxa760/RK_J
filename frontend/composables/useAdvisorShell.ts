@@ -9,7 +9,6 @@ export type AdvisorShellApi = ReturnType<typeof createAdvisorShell>
 function createAdvisorShell() {
   const route = useRoute()
   const router = useRouter()
-  const { requestOpen: requestMobileSidebar } = usePendingMobileSidebar()
   const { advisorContext, refreshAdvisorContext } = useAdvisorContext()
   const {
     messages,
@@ -44,7 +43,8 @@ function createAdvisorShell() {
     const ask = decodeAskQuery(route.query.ask)
     if (!ask) return
     if (route.path !== '/advisor') {
-      requestMobileSidebar()
+      await navigateTo({ path: '/advisor', query: route.query, hash: '#advisor-chat' })
+      return
     }
     await handleAskQuery(ask)
     scrollToAdvisorChat()

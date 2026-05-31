@@ -11,13 +11,11 @@ const props = withDefaults(
     typing?: boolean
     error?: string | null
     context?: AdvisorContext | null
-    /** Компактный чат в левом сайдбаре */
-    sidebar?: boolean
     /** Полноэкранная страница /advisor */
     fullPage?: boolean
     showReset?: boolean
   }>(),
-  { sidebar: false, fullPage: false, showReset: false }
+  { fullPage: false, showReset: false }
 )
 
 const emit = defineEmits<{
@@ -63,25 +61,15 @@ function isLocalSource(msg: ChatTurn) {
     :id="fullPage ? 'advisor-chat' : undefined"
     data-demo="advisor-chat"
     class="flex flex-col overflow-hidden"
-    :class="[
-      sidebar
-        ? 'mm-sidebar-advisor-card h-full min-h-0 border-0 bg-transparent shadow-none'
-        : fullPage
-          ? 'h-full min-h-0 border-0 bg-transparent shadow-none'
-          : 'h-full'
-    ]"
+    :class="fullPage ? 'h-full min-h-0 border-0 bg-transparent shadow-none' : 'h-full'"
   >
-    <CardHeader
-      class="gap-1 shrink-0"
-      :class="sidebar ? 'p-0 pb-2' : 'gap-1.5 p-4 pb-2 sm:p-5 sm:pb-3'"
-    >
+    <CardHeader class="shrink-0 gap-1.5 p-4 pb-2 sm:p-5 sm:pb-3">
       <div class="flex items-start justify-between gap-2">
         <div>
-          <CardTitle :class="sidebar ? 'text-sm font-semibold' : 'text-lg font-semibold'">
+          <CardTitle class="text-lg font-semibold">
             {{ ADVISOR.chatTitle }}
           </CardTitle>
-          <CardDescription v-if="!sidebar" class="text-base">{{ ADVISOR.chatHint }}</CardDescription>
-          <p v-else class="text-xs leading-snug text-muted-foreground">{{ ADVISOR.chatHintSidebar }}</p>
+          <CardDescription class="text-base">{{ ADVISOR.chatHint }}</CardDescription>
         </div>
         <Button
           v-if="showReset"
@@ -98,19 +86,12 @@ function isLocalSource(msg: ChatTurn) {
       </div>
     </CardHeader>
     <CardContent
-      class="flex min-h-0 flex-1 flex-col space-y-2 p-0"
-      :class="sidebar ? 'pb-0' : 'space-y-3 pb-4 sm:pb-5'"
+      class="flex min-h-0 flex-1 flex-col space-y-3 p-0 pb-4 sm:pb-5"
     >
       <div
         ref="listRef"
-        class="min-h-0 flex-1 space-y-2 overflow-y-auto py-1"
-        :class="
-          sidebar
-            ? 'px-0'
-            : fullPage
-              ? 'space-y-3 px-3 sm:px-4'
-              : 'max-h-[min(480px,52vh)] space-y-3 px-4 sm:px-5'
-        "
+        class="min-h-0 flex-1 space-y-3 overflow-y-auto py-1"
+        :class="fullPage ? 'px-3 sm:px-4' : 'max-h-[min(480px,52vh)] px-4 sm:px-5'"
         aria-live="polite"
       >
         <div
@@ -120,13 +101,12 @@ function isLocalSource(msg: ChatTurn) {
           :class="msg.role === 'user' ? 'items-end' : 'items-start'"
         >
           <div
-            class="whitespace-pre-wrap rounded-2xl leading-relaxed shadow-sm"
-            :class="[
-              sidebar ? 'max-w-[92%] px-3 py-2 text-sm' : 'max-w-[88%] px-4 py-3 text-base',
+            class="max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm"
+            :class="
               msg.role === 'user'
                 ? 'rounded-br-md bg-primary text-[color:var(--mm-text)]'
                 : 'rounded-bl-md border bg-card text-foreground'
-            ]"
+            "
           >
             <span v-if="msg.streaming && !msg.content" class="text-muted-foreground">Печатаю…</span>
             <span v-else>{{ msg.content }}</span>
@@ -146,24 +126,20 @@ function isLocalSource(msg: ChatTurn) {
         </div>
 
         <div v-if="typing && !messages.some((m) => m.streaming)" class="flex justify-start">
-          <div
-            class="rounded-2xl rounded-bl-md border bg-muted/50 text-muted-foreground"
-            :class="sidebar ? 'px-3 py-2 text-sm' : 'px-4 py-3 text-base'"
-          >
+          <div class="rounded-2xl rounded-bl-md border bg-muted/50 px-4 py-3 text-base text-muted-foreground">
             Печатаю…
           </div>
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-1.5" :class="sidebar ? '' : 'px-3 sm:px-4'">
+      <div class="flex flex-wrap gap-1.5 px-3 sm:px-4">
         <Button
           v-for="prompt in quickPrompts"
           :key="prompt"
           type="button"
           variant="outline"
           size="sm"
-          class="rounded-full text-xs"
-          :class="sidebar ? 'h-7 px-2' : 'text-sm'"
+          class="rounded-full text-sm"
           :disabled="typing"
           @click="onPrompt(prompt)"
         >
@@ -171,24 +147,18 @@ function isLocalSource(msg: ChatTurn) {
         </Button>
       </div>
 
-      <form
-        class="flex gap-2"
-        :class="sidebar ? '' : 'px-3 sm:px-4'"
-        @submit.prevent="submit"
-      >
+      <form class="flex gap-2 px-3 sm:px-4" @submit.prevent="submit">
         <Input
           v-model="draft"
           :placeholder="ADVISOR.chatPlaceholder"
-          class="flex-1"
-          :class="sidebar ? 'min-h-9 text-sm' : 'min-h-12 text-base'"
+          class="min-h-12 flex-1 text-base"
           :disabled="typing"
           autocomplete="off"
         />
         <Button
           type="submit"
           size="icon"
-          class="shrink-0"
-          :class="sidebar ? 'size-9' : 'size-11'"
+          class="size-11 shrink-0"
           :disabled="typing || !draft.trim()"
         >
           <Send class="size-4" />
@@ -196,7 +166,7 @@ function isLocalSource(msg: ChatTurn) {
         </Button>
       </form>
 
-      <p v-if="error" class="text-xs text-destructive" :class="sidebar ? '' : 'px-3 text-sm sm:px-4'">
+      <p v-if="error" class="px-3 text-sm text-destructive sm:px-4">
         {{ error }}
       </p>
     </CardContent>

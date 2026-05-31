@@ -16,19 +16,23 @@ const props = defineProps<{
   loading?: boolean
 }>()
 
+const slots = useSlots()
+
 const resolved = computed(() => {
   const n = props.narrative
   return {
     headline: props.headline ?? n?.headline ?? '',
     paragraphs: props.paragraphs ?? n?.paragraphs ?? [],
-    contextFacts: n?.contextFacts ?? [],
     goalOpportunityThousands: n?.goalOpportunityThousands ?? null,
     healthEmoji: props.healthEmoji ?? n?.healthEmoji,
     healthTone: props.healthTone ?? n?.healthTone,
     badgeLabel: props.badgeLabel ?? n?.badgeLabel,
     weeklyAction: props.weeklyAction ?? n?.weeklyAction,
     adviceHint: props.adviceHint ?? n?.adviceHint ?? ADVISOR.weeklyAdviceHintShort,
-    callout: props.callout ?? n?.callout
+    callout: props.callout ?? n?.callout,
+    incomeDisplay: n?.incomeDisplay ?? null,
+    expensesDisplay: n?.expensesDisplay ?? null,
+    expensesWarn: n?.expensesWarn ?? false
   }
 })
 
@@ -36,8 +40,14 @@ const isHero = computed(
   () =>
     Boolean(
       resolved.value.weeklyAction ||
-        resolved.value.contextFacts.length
+        slots.aside ||
+        resolved.value.incomeDisplay ||
+        resolved.value.expensesDisplay
     )
+)
+
+const showMoneyRow = computed(
+  () => Boolean(resolved.value.incomeDisplay || resolved.value.expensesDisplay)
 )
 </script>
 
@@ -51,43 +61,46 @@ const isHero = computed(
 
     <section
       v-else-if="resolved.headline || resolved.paragraphs.length || isHero"
-      class="mm-narrative-hero space-y-3"
+      class="mm-narrative-hero"
     >
       <template v-if="isHero">
-        <aside
-          v-if="resolved.weeklyAction"
-          class="mm-tier-1 mm-narrative-hero__advice"
-          aria-label="Совет недели"
-        >
-          <div class="mm-narrative-hero__advice-meta">
-            <span class="mm-narrative-hero__advice-badge">{{ ADVISOR.weeklyAdviceTitle }}</span>
-            <span
-              v-if="resolved.goalOpportunityThousands"
-              class="mm-narrative-hero__advice-hook"
-            >
-              {{ GOALS.opportunityAmount(resolved.goalOpportunityThousands) }}
-            </span>
-          </div>
-          <p class="mm-narrative-hero__advice-text">{{ resolved.weeklyAction }}</p>
-          <p class="mm-narrative-hero__advice-hint">{{ resolved.adviceHint }}</p>
-        </aside>
-
-        <div
-          v-if="resolved.contextFacts.length"
-          class="mm-narrative-hero__grid"
-          aria-label="Ключевые цифры"
-        >
-          <div
-            v-for="fact in resolved.contextFacts"
-            :key="fact.id"
-            class="mm-narrative-hero__tile"
-            :class="{
-              'mm-narrative-hero__tile--accent': fact.tone === 'accent',
-              'mm-narrative-hero__tile--warn': fact.tone === 'warn'
-            }"
+        <div class="mm-narrative-hero__top">
+          <aside
+            v-if="resolved.weeklyAction"
+            class="mm-narrative-hero__advice"
+            aria-label="Совет недели"
           >
-            <span class="mm-narrative-hero__tile-label">{{ fact.label }}</span>
-            <span class="mm-narrative-hero__tile-value">{{ fact.value }}</span>
+            <div class="mm-narrative-hero__advice-meta">
+              <span class="mm-narrative-hero__advice-badge">{{ ADVISOR.weeklyAdviceTitle }}</span>
+              <span
+                v-if="resolved.goalOpportunityThousands"
+                class="mm-narrative-hero__advice-hook"
+              >
+                {{ GOALS.opportunityAmount(resolved.goalOpportunityThousands) }}
+              </span>
+            </div>
+            <p class="mm-narrative-hero__advice-text">{{ resolved.weeklyAction }}</p>
+            <p class="mm-narrative-hero__advice-hint">{{ resolved.adviceHint }}</p>
+          </aside>
+
+          <div v-if="$slots.aside" class="mm-narrative-hero__aside">
+            <slot name="aside" />
+          </div>
+        </div>
+
+        <div v-if="showMoneyRow" class="mm-narrative-hero__money-row" aria-label="Доход и траты">
+          <div v-if="resolved.incomeDisplay" class="mm-narrative-hero__money-card">
+            <span class="mm-narrative-hero__money-label">Доход</span>
+            <span class="mm-narrative-hero__money-value">{{ resolved.incomeDisplay }}</span>
+          </div>
+          <div v-if="resolved.expensesDisplay" class="mm-narrative-hero__money-card">
+            <span class="mm-narrative-hero__money-label">Траты</span>
+            <span
+              class="mm-narrative-hero__money-value"
+              :class="{ 'text-amber-800': resolved.expensesWarn }"
+            >
+              {{ resolved.expensesDisplay }}
+            </span>
           </div>
         </div>
       </template>

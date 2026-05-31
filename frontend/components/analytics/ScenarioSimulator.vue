@@ -87,7 +87,10 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
     class="mm-scenario-simulator"
     :class="{ 'mm-scenario-simulator--embedded': embedded }"
   >
-    <CardHeader v-if="!embedded" class="mm-scenario-simulator__header">
+    <component
+      :is="embedded ? 'div' : 'CardHeader'"
+      class="mm-scenario-simulator__header"
+    >
       <div class="flex items-start gap-3">
         <span
           class="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
@@ -102,7 +105,7 @@ function categoryHint(option: (typeof categoryOptions.value)[number]): string {
           </CardDescription>
         </div>
       </div>
-    </CardHeader>
+    </component>
 
     <component :is="embedded ? 'div' : 'CardContent'" class="mm-scenario-simulator__body">
       <section class="mm-scenario-simulator__section">

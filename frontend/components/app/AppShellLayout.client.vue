@@ -27,7 +27,7 @@ watch(showDemoTour, (enabled) => {
 <template>
   <SidebarProvider
     :default-open="true"
-    class="mm-app-shell mm-app-shell--with-advisor"
+    class="mm-app-shell"
     :style="{ '--sidebar-width': '20rem' }"
   >
     <AppShellAdvisorScope>

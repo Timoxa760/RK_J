@@ -112,8 +112,15 @@ watch(addedVersion, () => {
 </script>
 
 <template>
-  <div class="mx-auto w-full max-w-none space-y-5 lg:space-y-6">
-    <SharedPageNarrative :narrative="pageNarrative" :loading="narrativeLoading" />
+  <div class="mx-auto w-full max-w-none space-y-4 sm:space-y-5">
+    <SharedPageNarrative :narrative="pageNarrative" :loading="narrativeLoading">
+      <template #aside>
+        <DashboardMindfulnessScore
+          :diagnosis="displayDiagnosis"
+          :loading="aiPlanLoading && !displayDiagnosis"
+        />
+      </template>
+    </SharedPageNarrative>
 
     <AdvisorFinancialPlanCard
       mega

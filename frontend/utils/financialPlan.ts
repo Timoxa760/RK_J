@@ -47,7 +47,6 @@ export function buildFinancialPlan(input: {
   timemachine: TimeMachineResponse | null
   diagnosis: AiDiagnosisResponse | null
   topInsight: InsightItem | null
-  digestAdvice?: string | null
 }): FinancialPlan {
   const goalTitle = input.primaryGoal?.title ?? 'Финансовая цель'
   const goalProgress = buildGoalProgressText(input.primaryGoal)

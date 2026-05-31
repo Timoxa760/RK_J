@@ -100,7 +100,6 @@ export default defineNuxtConfig({
     '/profile': { ssr: false },
     '/receipts': { ssr: false },
     '/credits': { ssr: false },
-    '/digest': { ssr: false },
     '/onboarding': { ssr: false },
     '/advisor': { ssr: false }
   },

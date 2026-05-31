@@ -1,6 +1,5 @@
 import type {
   ChallengeItem,
-  DigestResponse,
   ForecastResponse,
   Goal,
   LeaderboardEntry,
@@ -52,25 +51,6 @@ export const mockLeaderboard: LeaderboardEntry[] = [
   { position: 2, username: 'Иван', relative_score: 0.35, display_name: 'Иван', rank: 2 },
   { position: 3, username: 'Вы', relative_score: 0.52, display_name: 'Вы', rank: 3 }
 ]
-
-export const mockDigest: DigestResponse = {
-  period: { from: '2026-04-01', to: '2026-04-30' },
-  total_spent: 145000,
-  total_income: 180000,
-  saved: 35000,
-  by_category: [
-    { name: 'Продукты', total: 52000, percent: 35.9, trend: '+8.3%' },
-    { name: 'Кафе', total: 28000, percent: 19.3, trend: '+12%' }
-  ],
-  word_cloud: ['молоко', 'латте', 'хлеб', 'сыр', 'такси', 'доставка'],
-  top_stores: [
-    { name: 'Пятёрочка', total: 9100, visits: 14 },
-    { name: 'Ozon', total: 8400, visits: 4 }
-  ],
-  mindfulness_rating: 72,
-  ai_advice: 'Попробуйте сократить доставку — это около 9 000 ₽ в месяц',
-  insights_summary: ''
-}
 
 export const mockGoals: Goal[] = [
   {

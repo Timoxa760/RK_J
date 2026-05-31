@@ -3,7 +3,6 @@ const ADVISOR_PATH = '/advisor'
 
 export function useOpenAdvisorChat() {
   const route = useRoute()
-  const { requestOpen: requestMobileSidebar } = usePendingMobileSidebar()
 
   async function openAdvisorChat(prompt: string) {
     const encoded = prompt ? encodeURIComponent(prompt) : undefined

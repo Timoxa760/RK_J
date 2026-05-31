@@ -12,7 +12,6 @@ export const NAV = {
   creditsSubtitle: 'Сколько уходит на погашение',
   social: 'Привычки',
   socialSubtitle: 'Задания с друзьями',
-  digest: 'Сводка',
   profile: 'Профиль'
 } as const
 
@@ -94,7 +93,6 @@ export const ANALYTICS = {
 export const ADVISOR = {
   chatTitle: 'Советник',
   chatHint: 'Спросите про совет недели или план',
-  chatHintSidebar: 'Спросите про план, цель или траты',
   chatReset: 'Очистить диалог',
   chatLocalReply: 'Локальный ответ',
   chatWeeklyHint: 'Совет недели',
@@ -108,6 +106,7 @@ export const ADVISOR = {
   planTabMoney: 'Картина денег',
   planTabCredits: 'Кредиты',
   planTabExplore: 'Что если',
+  mindfulnessTitle: 'Траты под контролем',
   weeklyAdviceTitle: 'Совет недели',
   weeklyAdviceHint: 'Один шаг из вашего финансового плана',
   weeklyAdviceHintShort: 'Первый шаг — в вашем плане ниже',
@@ -128,14 +127,6 @@ export const ADVISOR = {
   forecastTitle: 'Прогноз трат (7 дней)',
   savingsTitle: 'Как пойдут накопления',
   categoriesTitle: 'Категории'
-} as const
-
-export const DIGEST = {
-  loading: 'Сводка за период',
-  headline: 'Как складывается месяц',
-  badge: 'Сводка',
-  mindfulness: 'Траты под контролем',
-  leftAfterExpenses: (amount: string) => `После расходов остаётся ${amount}`
 } as const
 
 export const SOCIAL = {

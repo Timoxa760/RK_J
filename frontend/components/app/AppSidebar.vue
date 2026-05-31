@@ -3,7 +3,6 @@ import {
   CreditCard,
   LayoutGrid,
   MessageCircle,
-  Newspaper,
   PieChart,
   Plus,
   ReceiptText
@@ -17,7 +16,6 @@ const authStore = useAuthStore()
 const route = useRoute()
 const { setOpenMobile, isMobile } = useSidebar()
 const { show: showAddExpense } = useAddExpenseSheet()
-const { messages, typing, chatError, sendMessage, advisorContext, runAction } = useAdvisorShell()
 
 async function onNavClick(to: string) {
   if (isMobile.value) setOpenMobile(false)
@@ -34,7 +32,6 @@ const mainNav = computed(() =>
     isAppFeatureEnabled('creditsNav')
       ? { to: '/credits', label: 'Кредиты', icon: CreditCard }
       : null,
-    { to: '/digest', label: 'Сводка', icon: Newspaper },
     { to: '/profile', label: 'Профиль', icon: PieChart }
   ].filter(Boolean) as Array<{ to: string; label: string; icon: typeof LayoutGrid }>
 )
@@ -66,8 +63,8 @@ const mainNav = computed(() =>
       </Button>
     </div>
 
-    <SidebarContent class="flex min-h-0 flex-1 flex-col gap-0 overflow-hidden">
-      <SidebarGroup class="shrink-0 py-2">
+    <SidebarContent class="gap-0 py-2">
+      <SidebarGroup>
         <SidebarGroupLabel>Навигация</SidebarGroupLabel>
         <SidebarMenu>
           <SidebarMenuItem v-for="item in mainNav" :key="item.to">
@@ -79,20 +76,6 @@ const mainNav = computed(() =>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-      </SidebarGroup>
-
-      <SidebarGroup class="mm-sidebar-advisor-group flex min-h-0 flex-1 flex-col border-t border-sidebar-border">
-        <SidebarGroupLabel class="shrink-0 px-2">Советник</SidebarGroupLabel>
-        <div class="flex min-h-0 flex-1 flex-col px-2 pb-2">
-          <AppSidebarAdvisor
-            :messages="messages"
-            :typing="typing"
-            :error="chatError"
-            :context="advisorContext"
-            @send="sendMessage"
-            @action="runAction"
-          />
-        </div>
       </SidebarGroup>
     </SidebarContent>
 
