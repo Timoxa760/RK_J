@@ -17,7 +17,7 @@ export const NAV = {
 
 export const ACTIONS = {
   addPurchaseHint: 'Добавьте покупку — цифры обновятся',
-  addPurchaseOrReceipt: 'Добавьте покупку или чек — подскажем следующий шаг',
+  addPurchaseOrReceipt: 'Добавьте покупку — подскажем следующий шаг',
   weeklyActionLabel: 'Что сделать на этой неделе',
   pageSummaryAria: 'Кратко о странице',
   oneTipNow: 'Совет на сейчас',
@@ -77,7 +77,9 @@ export const PURCHASES = {
   impulseBadge: 'лишнее',
   impulseCount: (n: number) => `${n} лишн.`,
   onEmotion: 'на эмоциях',
-  goalDelay: 'Эта покупка отодвинет цель примерно на'
+  goalDelay: 'Эта покупка отодвинет цель примерно на',
+  deleteReceipt: 'Удалить покупку',
+  deleteConfirm: 'Удалить эту покупку? Её не будет в картине расходов.'
 } as const
 
 export const ANALYTICS = {
@@ -120,6 +122,10 @@ export const ADVISOR = {
   addPurchaseLabel: 'Добавить покупку',
   addPurchaseAria: 'Голосом или вручную — совет станет точнее',
   chatPlaceholder: 'Спросите про совет недели или план…',
+  chatHistoryToday: 'Сегодня',
+  chatSourceAi: 'Ответ ИИ',
+  chatSourceHeuristic: 'Базовый ответ',
+  chatSourceLocal: 'Локальный ответ',
   askCloser: (goalTitle: string) => `Приблизить «${goalTitle}»`,
   askAboutAction: 'Спросить советника',
   askGettingStarted: 'Спросить, с чего начать',
@@ -142,7 +148,11 @@ export const PROFILE = {
   headline: 'Ваши цифры',
   formTitle: 'Финансовая модель',
   formHint: 'Доход, запас и цель — основа прогноза на главной и в советнике',
-  emptyModel: 'Пока мало данных — пройдите короткий опрос'
+  emptyModel: 'Пока мало данных — пройдите короткий опрос',
+  fixedExpensesTitle: 'Обязательные расходы',
+  fixedExpensesHint:
+    'Аренда, кредиты, связь — учитываются в прогнозе. Можно добавить, если пропустили на опросе.',
+  addFixedExpense: 'Добавить платёж'
 } as const
 
 export const ONBOARDING = {

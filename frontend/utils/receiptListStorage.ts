@@ -26,6 +26,10 @@ export function appendStoredReceipt(item: ReceiptListItem) {
   return next
 }
 
+export function removeStoredReceipt(id: string) {
+  writeStoredReceipts(readStoredReceipts().filter((item) => item.id !== id))
+}
+
 export function receiptFromManual(res: ReceiptManualResponse): ReceiptListItem {
   return {
     id: res.receipt_id,

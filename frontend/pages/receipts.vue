@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Plus } from 'lucide-vue-next'
-import { PURCHASES } from '~/constants/productCopy'
+import { Plus, Trash2 } from 'lucide-vue-next'
+import { PURCHASES, ADVISOR } from '~/constants/productCopy'
 import type { ReceiptListItem } from '~/types/api'
 import { formatGoalImpact } from '~/utils/receiptImpact'
 import { buildReceiptsGoalDelayPrompt } from '~/utils/advisorChat'
-import { ADVISOR } from '~/constants/productCopy'
 
-const { receipts, selected, selectReceipt, closeDetail, refresh } = useReceiptList()
+const { receipts, selected, deleting, selectReceipt, closeDetail, deleteReceipt, refresh } =
+  useReceiptList()
 const { addedVersion, show: showAddExpense } = useAddExpenseSheet()
 
 watch(addedVersion, () => {
@@ -21,6 +21,12 @@ const totals = computed(() => {
 
 function impactFor(receipt: ReceiptListItem) {
   return formatGoalImpact(receipt.amount)
+}
+
+async function confirmDelete(receipt: ReceiptListItem) {
+  if (!import.meta.client) return
+  if (!window.confirm(PURCHASES.deleteConfirm)) return
+  await deleteReceipt(receipt.id)
 }
 </script>
 
@@ -52,7 +58,7 @@ function impactFor(receipt: ReceiptListItem) {
             class="flex cursor-pointer flex-col gap-2 px-4 py-4 text-sm transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             @click="selectReceipt(r)"
           >
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-2">
                 <p class="font-medium">{{ r.store }}</p>
                 <Badge v-if="r.impulse_count" variant="secondary" class="text-[10px]">
@@ -65,7 +71,20 @@ function impactFor(receipt: ReceiptListItem) {
               </p>
               <p v-if="impactFor(r)" class="mt-1 text-xs text-primary">{{ impactFor(r) }}</p>
             </div>
-            <p class="shrink-0 text-base font-semibold">{{ r.amount.toLocaleString('ru-RU') }} ₽</p>
+            <div class="flex shrink-0 items-center gap-2 self-end sm:self-center">
+              <p class="text-base font-semibold">{{ r.amount.toLocaleString('ru-RU') }} ₽</p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                class="size-9 text-muted-foreground hover:text-destructive"
+                :disabled="deleting"
+                :aria-label="PURCHASES.deleteReceipt"
+                @click.stop="confirmDelete(r)"
+              >
+                <Trash2 class="size-4" />
+              </Button>
+            </div>
           </li>
         </ul>
       </CardContent>
@@ -104,13 +123,27 @@ function impactFor(receipt: ReceiptListItem) {
           >
             <span>
               {{ item.name }}
-              <Badge v-if="item.impulse" variant="secondary" class="ml-1 text-[10px]">{{ PURCHASES.impulseBadge }}</Badge>
+              <Badge v-if="item.impulse" variant="secondary" class="ml-1 text-[10px]">{{
+                PURCHASES.impulseBadge
+              }}</Badge>
             </span>
             <span class="shrink-0 text-muted-foreground">
               {{ (item.price * (item.quantity ?? 1)).toLocaleString('ru-RU') }} ₽
             </span>
           </li>
         </ul>
+        <DialogFooter class="gap-2 sm:justify-between">
+          <Button
+            type="button"
+            variant="destructive"
+            class="gap-2"
+            :disabled="deleting"
+            @click="confirmDelete(selected)"
+          >
+            <Trash2 class="size-4" />
+            {{ PURCHASES.deleteReceipt }}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   </div>
