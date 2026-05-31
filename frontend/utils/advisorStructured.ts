@@ -18,14 +18,12 @@ function repairBlock(block: AdvisorReplyBlock): AdvisorReplyBlock {
   if (block.type === 'list') {
     return {
       ...block,
-      items: block.items?.map((item) => repairSplitRussianWords(repairSplitRussianWords(item)))
+      items: block.items?.map((item) => repairSplitRussianWords(item))
     }
   }
   return {
     ...block,
-    text: block.text
-      ? repairSplitRussianWords(repairSplitRussianWords(block.text))
-      : block.text
+    text: block.text ? repairSplitRussianWords(block.text) : block.text
   }
 }
 

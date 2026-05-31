@@ -1,3 +1,83 @@
+type TextFix = readonly [RegExp, string]
+
+const EXPLICIT_SPLIT_FIXES: TextFix[] = [
+  [/за\s+по\s+лнении/gi, 'заполнении'],
+  [/за\s+по\s+лнен/gi, 'заполнен'],
+  [/по\s+это\s+му/gi, 'поэтому'],
+  [/по\s+это\s+м([^а-яё]|$)/gi, 'поэтом$1'],
+  [/де\s+по\s+зит/gi, 'депозит'],
+  [/го\s+до\s+вых/gi, 'годовых'],
+  [/кр\s+из\s+ис/gi, 'кризис'],
+  [/пред\s+по\s+чтительнее/gi, 'предпочтительнее'],
+  [/рабо\s+тают/gi, 'работают'],
+  [/не\s+рабают/gi, 'не работают'],
+  [/без\s+укания/gi, 'без уточнения'],
+  [/ставки\s*цб/gi, 'ставки ЦБ'],
+  [/ис\s+по\s+льз/gi, 'использ'],
+  [/не\s+до\s+стающ/gi, 'недостающ'],
+  [/единственныйфи\s+на\s+нсовый/gi, 'единственный финансовый'],
+  [/фи\s+на\s+нсовый/gi, 'финансовый'],
+  [/месяцона/gi, 'месяц она'],
+  [/меся\s+-(\s|$)/gi, 'месяце$1'],
+  [/увасуже/gi, 'у вас уже'],
+  [/заменын[a-яёa-z]+/gi, 'замены нет']
+]
+
+const TOKEN_GLUED_MAP = new Map<string, string>(
+  Object.entries({
+    расходынапродукты: 'расходы на продукты',
+    бюджетнаследующий: 'бюджет на следующий',
+    откладыватьнацель: 'откладывать на цель',
+    откладыватьнакредит: 'откладывать на кредит',
+    свободныхденег: 'свободных денег',
+    притекущихданных: 'при текущих данных',
+    притекущих: 'при текущих',
+    главныйвопрос: 'главный вопрос',
+    илиесть: 'или есть',
+    замесяц: 'за месяц',
+    занеделю: 'за неделю',
+    вмесяц: 'в месяц',
+    намесяц: 'на месяц',
+    накредит: 'на кредит',
+    безкатегори: 'без категори',
+    безпробел: 'без пробел',
+    сокративэти: 'сократив эти',
+    сокративэтот: 'сократив этот',
+    сокративэту: 'сократив эту'
+  })
+)
+
+const KNOWN_SHORT_TAIL = [
+  'эти',
+  'этот',
+  'этой',
+  'этом',
+  'эту',
+  'это',
+  'или',
+  'уже',
+  'ещё',
+  'eще',
+  'нет'
+]
+
+const SAFE_LEFT_STEMS = new Set([
+  'расходы',
+  'бюджет',
+  'сократив',
+  'откладывать',
+  'отложите',
+  'сократите',
+  'переведите',
+  'направьте',
+  'главный',
+  'свободных',
+  'свободные',
+  'свободный'
+])
+
+const RE_VERBISH_LEFT = /(?:ив|ивш|ая|ые|ий|ую|ите|ьте|ать|ить|еть)$/i
+
 /**
  * Явные склейки от LLM (без пробела). Не трогаем нормальные русские слова с теми же слогами.
  */
@@ -24,144 +104,43 @@ const GLUED_REPAIRS: ReadonlyArray<readonly [RegExp, string]> = [
   [/(\d)(%)/g, '$1 $2']
 ]
 
-const EXPLICIT_SPLIT_FIXES: ReadonlyArray<readonly [RegExp, string]> = [
-  [/за\s+по\s+лнении/gi, 'заполнении'],
-  [/за\s+по\s+лнен/gi, 'заполнен'],
-  [/по\s+это\s+му/gi, 'поэтому'],
-  [/по\s+это\s+м([^а-яё]|$)/gi, 'поэтом$1'],
-  [/де\s+по\s+зит/gi, 'депозит'],
-  [/го\s+до\s+вых/gi, 'годовых'],
-  [/кр\s+из\s+ис/gi, 'кризис'],
-  [/пред\s+по\s+чтительнее/gi, 'предпочтительнее'],
-  [/рабо\s+тают/gi, 'работают'],
-  [/не\s+рабают/gi, 'не работают'],
-  [/без\s+укания/gi, 'без уточнения'],
-  [/ставки\s*цб/gi, 'ставки ЦБ'],
-  [/ис\s+по\s+льз/gi, 'использ'],
-  [/не\s+до\s+стающ/gi, 'недостающ'],
-  [/единственныйфи\s+на\s+нсовый/gi, 'единственный финансовый'],
-  [/фи\s+на\s+нсовый/gi, 'финансовый'],
-  [/месяцона/gi, 'месяц она'],
-  [/увасуже/gi, 'у вас уже'],
-  [/заменын[а-яёa-z]+/gi, 'замены нет']
-]
-
-const PREP_INSIDE_WORD_FALSE = new Set([
-  'идти', 'идём', 'идем', 'иду', 'шли', 'шёл', 'шел',
-  'смотреть', 'смотрите', 'смотрим', 'ориентир', 'опираться'
-])
-
-const PREP_INSIDE_WORD_NA_FALSE = new Set([
-  'он', 'она', 'они', 'мы', 'вы', 'то', 'ту', 'ему', 'ей', 'им'
-])
-
-const RE_SHORT_FRAGMENT_CHAIN =
-  /(^|[\s(«"'—-])([а-яё]{1,3}(?: [а-яё]{1,3}){2,})([\s,.!?;:»)\]"'—-]|$)/gi
-
-const RE_MIXED_FRAGMENT_CHAIN =
-  /(^|[\s(«"'—-])((?:[а-яё]{1,3}\s+){2,}[а-яё]{4,12})([\s,.!?;:»)\]"'—-]|$)/gi
-
-const RE_PREP_INSIDE_WORD = /([а-яё]{3,6}) по ([б-джзклмнпрстфхцчшщ][а-яё]{4,})/gi
-
-const RE_PREP_INSIDE_WORD_NA = /([а-яё]{1,3}) на ([б-джзклмнпрстфхцчшщ][а-яё]{3,})/gi
-
-const SPLIT_MERGE_STOP = new Set([
-  'за', 'по', 'от', 'до', 'на', 'в', 'и', 'но', 'или', 'при', 'для', 'из', 'с', 'к', 'у', 'о', 'об',
-  'не', 'ни', 'вы', 'мы', 'он', 'я', 'ты', 'её', 'ее', 'их', 'то', 'как', 'что', 'это', 'там', 'тут',
-  'уже', 'ещё', 'eще', 'все', 'всё', 'без', 'про', 'под', 'над', 'мне', 'вас', 'нас',   'ему', 'ей', 'им',
-  'бы', 'ли', 'же', 'она', 'они', 'нет', 'есть'
-])
-
-const RE_EMBEDDED_PREP_SPLIT =
-  /([а-яё]{3,}) (?:за|по|от|или) ([а-яё]{1,3})([\s,.!?;:«»\)\]"'\-—]|$)/gi
-const RE_SUFFIX_SPLIT = /([а-яё]{4,}) ([а-яё]{1,3})([\s,.!?;:«»\)\]"'\-—]|$)/gi
-
-const RUSSIAN_VOWELS = new Set(['а', 'е', 'ё', 'и', 'о', 'у', 'ы', 'э', 'ю', 'я'])
-
-function isRussianVowel(ch: string): boolean {
-  return RUSSIAN_VOWELS.has(ch.toLowerCase())
-}
-
-function endsWithRussianVowel(word: string): boolean {
-  const ch = word.slice(-1)
-  return ch ? isRussianVowel(ch) : false
-}
-
-function shouldMergeSplitFragment(stem: string, frag: string): boolean {
-  const lower = frag.toLowerCase()
-  if (SPLIT_MERGE_STOP.has(lower)) return false
-  if (lower.length === 1) {
-    if (lower === 'и') return false
-    if (isRussianVowel(lower) && endsWithRussianVowel(stem)) return false
+function applyLeadingCase(source: string, replacement: string): string {
+  if (!source.length || !replacement.length) return replacement
+  const first = source[0]!
+  if (first === first.toUpperCase() && first !== first.toLowerCase()) {
+    return first + replacement.slice(1)
   }
-  return true
+  return replacement
 }
 
-function mergeSplitMatch(full: string, stem: string, frag: string, tail: string): string {
-  if (!shouldMergeSplitFragment(stem, frag)) return full
-  return stem + frag + tail
+function repairGluedToken(token: string): string {
+  const lower = token.toLowerCase()
+  const mapped = TOKEN_GLUED_MAP.get(lower)
+  if (mapped) return applyLeadingCase(token, mapped)
+
+  for (const tail of KNOWN_SHORT_TAIL) {
+    if (!lower.endsWith(tail)) continue
+    const left = lower.slice(0, -tail.length)
+    if (left.length < 4) continue
+    if (!SAFE_LEFT_STEMS.has(left) && !RE_VERBISH_LEFT.test(left)) continue
+    return applyLeadingCase(token, `${left} ${tail}`)
+  }
+
+  return token
 }
 
-function repairShortFragmentChains(text: string): string {
-  return text.replace(RE_SHORT_FRAGMENT_CHAIN, (full, prefix, chain, suffix) => {
-    const parts = chain.trim().split(/\s+/)
-    if (parts.length < 3 || parts.some((p) => p.length > 3)) return full
-    if (parts.every((p) => SPLIT_MERGE_STOP.has(p.toLowerCase()))) return full
-    const merged = parts.join('')
-    if (merged.length < 5 || merged.length > 24) return full
-    return `${prefix}${merged}${suffix}`
-  })
+function repairTokensInText(text: string): string {
+  return text.replace(/[а-яё]+/gi, (token) => repairGluedToken(token))
 }
 
-function repairMixedFragmentChains(text: string): string {
-  return text.replace(RE_MIXED_FRAGMENT_CHAIN, (full, prefix, chain, suffix) => {
-    const parts = chain.trim().split(/\s+/)
-    if (parts.length < 3) return full
-    if (parts.slice(0, -1).some((p) => p.length > 3 || p.length < 2)) return full
-    const last = parts[parts.length - 1]!
-    if (last.length < 4 || last.length > 12) return full
-    const merged = parts.join('')
-    if (merged.length < 6 || merged.length > 32) return full
-    return `${prefix}${merged}${suffix}`
-  })
-}
-
-function repairPrepInsideWordNa(text: string): string {
-  return text.replace(RE_PREP_INSIDE_WORD_NA, (full, stem, cont) => {
-    if (PREP_INSIDE_WORD_NA_FALSE.has(String(stem).toLowerCase())) return full
-    return `${stem}на${cont}`
-  })
-}
-
-function repairPrepInsideWord(text: string): string {
-  return text.replace(RE_PREP_INSIDE_WORD, (full, stem, cont) => {
-    if (PREP_INSIDE_WORD_FALSE.has(String(stem).toLowerCase())) return full
-    return `${stem}по${cont}`
-  })
-}
-
-/** Убирает лишние пробелы внутри русских слов (артефакт LLM). */
+/** Убирает известные артефакты LLM без разрезания нормальных русских слов. */
 export function repairSplitRussianWords(text: string): string {
   if (!text) return text
   let out = text
   for (const [pattern, replacement] of EXPLICIT_SPLIT_FIXES) {
     out = out.replace(pattern, replacement)
   }
-  out = repairShortFragmentChains(out)
-  out = repairMixedFragmentChains(out)
-  out = repairPrepInsideWord(out)
-  out = repairPrepInsideWordNa(out)
-  out = out.replace(RE_EMBEDDED_PREP_SPLIT, (full, stem, frag, tail) =>
-    mergeSplitMatch(full, stem, frag, tail)
-  )
-  for (let i = 0; i < 6; i++) {
-    const next = out.replace(RE_SUFFIX_SPLIT, (full, stem, frag, tail) =>
-      mergeSplitMatch(full, stem, frag, tail)
-    )
-    if (next === out) break
-    out = next
-  }
-  return out
+  return repairTokensInText(out)
 }
 
 /** Приводит ответ советника к читаемому виду (пробелы, абзацы, без таблиц). */

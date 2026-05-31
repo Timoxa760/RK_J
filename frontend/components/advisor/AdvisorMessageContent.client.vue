@@ -2,8 +2,8 @@
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import type { AdvisorReplyBlock } from '~/types/api'
-import { formatAdvisorReplyText, repairSplitRussianWords } from '~/utils/advisorMarkdown'
-import { hasStructuredBlocks, normalizeAdvisorBlocks, parseAdvisorStoredContent } from '~/utils/advisorStructured'
+import { formatAdvisorReplyText } from '~/utils/advisorMarkdown'
+import { hasStructuredBlocks, normalizeAdvisorBlocks, parseAdvisorStoredContent, structuredToPlain } from '~/utils/advisorStructured'
 
 const props = defineProps<{
   content: string
@@ -22,7 +22,7 @@ const resolved = computed(() => {
     return {
       title: normalized.title,
       blocks: normalized.blocks!,
-      plain: repairSplitRussianWords(props.content)
+      plain: structuredToPlain(normalized.title, normalized.blocks)
     }
   }
   return parseAdvisorStoredContent(props.content)

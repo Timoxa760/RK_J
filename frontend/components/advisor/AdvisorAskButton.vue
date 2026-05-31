@@ -9,6 +9,7 @@ import {
   buildWeeklyActionPrompt,
   goalProgressPercent
 } from '~/utils/advisorChat'
+import { useOpenAdvisorChat } from '~/composables/useOpenAdvisorChat'
 
 const props = withDefaults(
   defineProps<{

@@ -9,6 +9,7 @@
     "build": "nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
+    "test:advisor-markdown": "node --experimental-strip-types --test utils/advisorMarkdown.test.mjs",
     "shadcn": "shadcn-vue",
     "shadcn:patch": "node scripts/patch-shadcn-vue-ignore.mjs"
   },
