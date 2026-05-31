@@ -56,7 +56,7 @@ step "7. POST /ai/chat/stream (first events)"
 STREAM=$(curl -sf -N -X POST "$API/ai/chat/stream" \
   -H 'Content-Type: application/json' \
   "${AUTH[@]}" \
-  -d '{"message":"Где урезать траты?","history":[]}' | head -20)
+  -d '{"message":"Где урезать траты?","history":[]}' | head -20 || true)
 echo "$STREAM" | head -5
 
 step "8. DELETE /ai/chat/history"

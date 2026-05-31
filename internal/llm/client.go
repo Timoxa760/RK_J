@@ -14,9 +14,13 @@ import (
 )
 
 const defaultBaseURL = "https://generativelanguage.googleapis.com/v1beta"
-const defaultModel = "gemini-2.0-flash"
+const defaultModel = "gemini-2.5-flash"
 
-// Client — HTTP-клиент Google Gemini (generateContent).
+// Antigravity Tools — OpenAI-совместимый маршрут (Gemini native для этого аккаунта блокируется по региону).
+const defaultAntigravityBaseURL = "http://127.0.0.1:8045/v1"
+const defaultAntigravityModel = "claude-sonnet-4-6"
+
+// Client — LLM через Google Gemini API или Antigravity Tools (/v1/chat/completions).
 type Client struct {
 	baseURL    string
 	apiKey     string
@@ -26,30 +30,46 @@ type Client struct {
 
 // NewClient создаёт клиент. Пустой apiKey означает, что LLM недоступен.
 func NewClient(baseURL, apiKey, model string) *Client {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	baseURL = normalizeBaseURL(baseURL)
 	if baseURL == "" {
 		baseURL = defaultBaseURL
 	}
 	if model == "" {
-		model = defaultModel
+		if isProxyBaseURL(baseURL) {
+			model = defaultAntigravityModel
+		} else {
+			model = defaultModel
+		}
 	}
 	return &Client{
 		baseURL: baseURL,
 		apiKey:  strings.TrimSpace(apiKey),
 		model:   model,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 120 * time.Second,
 		},
 	}
 }
 
-// NewFromEnv читает GEMINI_API_KEY / GEMINI_MODEL из окружения.
+// NewFromEnv читает GEMINI_* / GOOGLE_API_KEY из окружения.
 func NewFromEnv() *Client {
 	key := strings.TrimSpace(os.Getenv("GEMINI_API_KEY"))
 	if key == "" {
 		key = strings.TrimSpace(os.Getenv("GOOGLE_API_KEY"))
 	}
-	return NewClient(os.Getenv("GEMINI_BASE_URL"), key, os.Getenv("GEMINI_MODEL"))
+
+	baseURL := strings.TrimSpace(os.Getenv("GEMINI_BASE_URL"))
+	provider := strings.ToLower(strings.TrimSpace(os.Getenv("GEMINI_PROVIDER")))
+	if baseURL == "" && provider == "antigravity" {
+		baseURL = defaultAntigravityBaseURL
+	}
+
+	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
+	if model == "" && (provider == "antigravity" || isProxyBaseURL(baseURL)) {
+		model = defaultAntigravityModel
+	}
+
+	return NewClient(baseURL, key, model)
 }
 
 // Enabled возвращает true, если задан API-ключ.
@@ -57,21 +77,53 @@ func (c *Client) Enabled() bool {
 	return c != nil && c.apiKey != ""
 }
 
-// Complete выполняет generateContent и возвращает текст ответа.
-func (c *Client) Complete(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
-	if !c.Enabled() {
-		return "", fmt.Errorf("gemini: api key not configured")
+func normalizeBaseURL(baseURL string) string {
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if baseURL == "" {
+		return ""
 	}
+	// Antigravity: используем OpenAI-маршрут /v1, не native /v1beta (Gemini location block).
+	if strings.HasSuffix(baseURL, "/v1beta") &&
+		!strings.Contains(baseURL, "generativelanguage.googleapis.com") {
+		baseURL = strings.TrimSuffix(baseURL, "/v1beta") + "/v1"
+	}
+	return baseURL
+}
 
+func isProxyBaseURL(baseURL string) bool {
+	return baseURL != "" && !strings.Contains(baseURL, "generativelanguage.googleapis.com")
+}
+
+func (c *Client) isGoogleDirect() bool {
+	return strings.Contains(c.baseURL, "generativelanguage.googleapis.com")
+}
+
+func (c *Client) applyAuth(req *http.Request) {
+	if c.apiKey == "" {
+		return
+	}
+	if c.isGoogleDirect() {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("x-api-key", c.apiKey)
+}
+
+func (c *Client) geminiEndpointURL(method string, stream bool) string {
+	path := fmt.Sprintf("%s/models/%s:%s", c.baseURL, c.model, method)
+	if stream {
+		return fmt.Sprintf("%s?alt=sse&key=%s", path, c.apiKey)
+	}
+	return fmt.Sprintf("%s?key=%s", path, c.apiKey)
+}
+
+func (c *Client) newGeminiRequest(ctx context.Context, method string, stream bool, systemPrompt, userPrompt string) (*http.Request, error) {
 	body, err := json.Marshal(generateRequest{
 		SystemInstruction: &contentBlock{
 			Parts: []part{{Text: systemPrompt}},
 		},
 		Contents: []contentMessage{
-			{
-				Role:  "user",
-				Parts: []part{{Text: userPrompt}},
-			},
+			{Role: "user", Parts: []part{{Text: userPrompt}}},
 		},
 		GenerationConfig: generationConfig{
 			Temperature:     0.2,
@@ -79,46 +131,102 @@ func (c *Client) Complete(ctx context.Context, systemPrompt, userPrompt string) 
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("gemini: marshal: %w", err)
+		return nil, fmt.Errorf("llm: marshal: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.baseURL, c.model, c.apiKey)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.geminiEndpointURL(method, stream), bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("gemini: request: %w", err)
+		return nil, fmt.Errorf("llm: request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}
+
+func (c *Client) newChatRequest(ctx context.Context, stream bool, systemPrompt, userPrompt string) (*http.Request, error) {
+	body, err := json.Marshal(chatCompletionRequest{
+		Model: c.model,
+		Messages: []chatMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		Temperature: 0.2,
+		MaxTokens:   4096,
+		Stream:      stream,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("llm: marshal: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("llm: request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	c.applyAuth(req)
+	return req, nil
+}
+
+// Complete выполняет запрос и возвращает текст ответа.
+func (c *Client) Complete(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	if !c.Enabled() {
+		return "", fmt.Errorf("llm: api key not configured")
+	}
+
+	var req *http.Request
+	var err error
+	if c.isGoogleDirect() {
+		req, err = c.newGeminiRequest(ctx, "generateContent", false, systemPrompt, userPrompt)
+	} else {
+		req, err = c.newChatRequest(ctx, false, systemPrompt, userPrompt)
+	}
+	if err != nil {
+		return "", err
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("gemini: http: %w", err)
+		return "", fmt.Errorf("llm: http: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
-		return "", fmt.Errorf("gemini: read: %w", err)
-	}
-
-	var parsed generateResponse
-	if err := json.Unmarshal(raw, &parsed); err != nil {
-		return "", fmt.Errorf("gemini: decode: %w", err)
-	}
-	if parsed.Error != nil && parsed.Error.Message != "" {
-		return "", fmt.Errorf("gemini: api error: %s", parsed.Error.Message)
+		return "", fmt.Errorf("llm: read: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("gemini: status %d: %s", resp.StatusCode, string(raw))
+		return "", fmt.Errorf("llm: status %d: %s", resp.StatusCode, string(raw))
 	}
 
-	text := extractText(parsed)
+	if c.isGoogleDirect() {
+		var parsed generateResponse
+		if err := json.Unmarshal(raw, &parsed); err != nil {
+			return "", fmt.Errorf("llm: decode: %w", err)
+		}
+		if parsed.Error != nil && parsed.Error.Message != "" {
+			return "", fmt.Errorf("llm: api error: %s", parsed.Error.Message)
+		}
+		text := extractGeminiText(parsed)
+		if text == "" {
+			return "", fmt.Errorf("llm: empty response")
+		}
+		return text, nil
+	}
+
+	var parsed chatCompletionResponse
+	if err := json.Unmarshal(raw, &parsed); err != nil {
+		return "", fmt.Errorf("llm: decode: %w", err)
+	}
+	if parsed.Error != nil && parsed.Error.Message != "" {
+		return "", fmt.Errorf("llm: api error: %s", parsed.Error.Message)
+	}
+	text := extractChatText(parsed)
 	if text == "" {
-		return "", fmt.Errorf("gemini: empty response")
+		return "", fmt.Errorf("llm: empty response")
 	}
 	return text, nil
 }
 
-func extractText(resp generateResponse) string {
+func extractGeminiText(resp generateResponse) string {
 	if len(resp.Candidates) == 0 {
 		return ""
 	}
@@ -134,44 +242,54 @@ func extractText(resp generateResponse) string {
 	return strings.TrimSpace(b.String())
 }
 
+func extractChatText(resp chatCompletionResponse) string {
+	if len(resp.Choices) == 0 {
+		return ""
+	}
+	msg := resp.Choices[0].Message
+	if t := strings.TrimSpace(msg.Content); t != "" {
+		return t
+	}
+	return strings.TrimSpace(msg.ReasoningContent)
+}
+
+func extractChatDelta(chunk chatCompletionResponse) string {
+	if len(chunk.Choices) == 0 {
+		return ""
+	}
+	d := chunk.Choices[0].Delta
+	if t := strings.TrimSpace(d.Content); t != "" {
+		return t
+	}
+	return strings.TrimSpace(d.ReasoningContent)
+}
+
 // StreamComplete стримит фрагменты текста через onDelta и возвращает полный ответ.
 func (c *Client) StreamComplete(ctx context.Context, systemPrompt, userPrompt string, onDelta func(string) error) (string, error) {
 	if !c.Enabled() {
-		return "", fmt.Errorf("gemini: api key not configured")
+		return "", fmt.Errorf("llm: api key not configured")
 	}
 
-	body, err := json.Marshal(generateRequest{
-		SystemInstruction: &contentBlock{
-			Parts: []part{{Text: systemPrompt}},
-		},
-		Contents: []contentMessage{
-			{Role: "user", Parts: []part{{Text: userPrompt}}},
-		},
-		GenerationConfig: generationConfig{
-			Temperature:     0.2,
-			MaxOutputTokens: 4096,
-		},
-	})
-	if err != nil {
-		return "", fmt.Errorf("gemini: marshal: %w", err)
+	var req *http.Request
+	var err error
+	if c.isGoogleDirect() {
+		req, err = c.newGeminiRequest(ctx, "streamGenerateContent", true, systemPrompt, userPrompt)
+	} else {
+		req, err = c.newChatRequest(ctx, true, systemPrompt, userPrompt)
 	}
-
-	url := fmt.Sprintf("%s/models/%s:streamGenerateContent?alt=sse&key=%s", c.baseURL, c.model, c.apiKey)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("gemini: request: %w", err)
+		return "", err
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("gemini: http: %w", err)
+		return "", fmt.Errorf("llm: http: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-		return "", fmt.Errorf("gemini: status %d: %s", resp.StatusCode, string(raw))
+		return "", fmt.Errorf("llm: status %d: %s", resp.StatusCode, string(raw))
 	}
 
 	var full strings.Builder
@@ -182,14 +300,31 @@ func (c *Client) StreamComplete(ctx context.Context, systemPrompt, userPrompt st
 			continue
 		}
 		payload := strings.TrimPrefix(line, "data: ")
-		var chunk generateResponse
-		if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
-			continue
+		if payload == "[DONE]" {
+			break
 		}
-		if chunk.Error != nil && chunk.Error.Message != "" {
-			return "", fmt.Errorf("gemini: api error: %s", chunk.Error.Message)
+
+		var delta string
+		if c.isGoogleDirect() {
+			var chunk generateResponse
+			if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
+				continue
+			}
+			if chunk.Error != nil && chunk.Error.Message != "" {
+				return "", fmt.Errorf("llm: api error: %s", chunk.Error.Message)
+			}
+			delta = extractGeminiText(chunk)
+		} else {
+			var chunk chatCompletionResponse
+			if err := json.Unmarshal([]byte(payload), &chunk); err != nil {
+				continue
+			}
+			if chunk.Error != nil && chunk.Error.Message != "" {
+				return "", fmt.Errorf("llm: api error: %s", chunk.Error.Message)
+			}
+			delta = extractChatDelta(chunk)
 		}
-		delta := extractText(chunk)
+
 		if delta == "" {
 			continue
 		}
@@ -205,7 +340,7 @@ func (c *Client) StreamComplete(ctx context.Context, systemPrompt, userPrompt st
 	}
 	text := strings.TrimSpace(full.String())
 	if text == "" {
-		return "", fmt.Errorf("gemini: empty stream response")
+		return "", fmt.Errorf("llm: empty stream response")
 	}
 	return text, nil
 }

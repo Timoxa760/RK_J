@@ -245,8 +245,11 @@ services:
       - JWT_SECRET=${JWT_SECRET:-dev-secret}
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/moneymind?sslmode=disable
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
-      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - GEMINI_PROVIDER=${GEMINI_PROVIDER:-antigravity}
+      # Фиксируем модель: shell GEMINI_MODEL не должен подставлять gemini-* (location block в Antigravity)
+      - GEMINI_MODEL=claude-sonnet-4-6
+      # Antigravity OpenAI route on host; /v1beta auto-normalized in client
+      - GEMINI_BASE_URL=http://host.docker.internal:8045/v1
       - CREDIT_DATA_DIR=/app/data/credits
     volumes:
       - app_data:/app/data
@@ -298,8 +301,11 @@ services:
       - CLICKHOUSE_DB=default
       - KAFKA_BROKERS=kafka:9092
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.0-flash}
-      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - GEMINI_PROVIDER=${GEMINI_PROVIDER:-antigravity}
+      # Фиксируем модель: shell GEMINI_MODEL не должен подставлять gemini-* (location block в Antigravity)
+      - GEMINI_MODEL=claude-sonnet-4-6
+      # Antigravity OpenAI route on host; /v1beta auto-normalized in client
+      - GEMINI_BASE_URL=http://host.docker.internal:8045/v1
       - WHISPER_URL=${WHISPER_URL:-http://whisper:9000}
       - WHISPER_MODEL=${WHISPER_MODEL:-whisper-1}
       - PROFILE_DATA_DIR=/app/data/profiles
