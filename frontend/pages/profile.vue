@@ -54,5 +54,6 @@ onMounted(() => {
       @retake-survey="retakeSurvey"
     />
     <ProfileFinancialForm />
+    <ProfileFnsSection />
   </div>
 </template>

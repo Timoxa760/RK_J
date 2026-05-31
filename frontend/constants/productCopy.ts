@@ -9,7 +9,7 @@ export const NAV = {
   analytics: 'Советник',
   credits: 'Кредиты',
   creditsTitle: 'Кредиты: насколько спокойно',
-  creditsSubtitle: 'Сколько уходит на погашение',
+  creditsSubtitle: 'Скан договора PDF',
   social: 'Привычки',
   socialSubtitle: 'Задания с друзьями',
   profile: 'Профиль'
@@ -52,7 +52,22 @@ export const CREDITS = {
   anotherLoan: 'Потяну ли ещё один кредит?',
   highPaymentsRisk:
     'На кредиты уходит много — новый кредит сделает положение тяжелее',
-  cushionTitle: 'Запас на чёрный день'
+  cushionTitle: 'Запас на чёрный день',
+  scanConfidence: (pct: number) =>
+    `Уверенность распознавания: ${Math.round(pct <= 1 ? pct * 100 : pct)}%`,
+  scanBenchmark: (rate: number) => `Средняя ставка по рынку: ~${rate}%`,
+  scanRateAbove: 'Ставка выше рынка',
+  scanRateAtOrBelow: 'Ставка на уровне или ниже рынка',
+  scanRateUnknown: 'Сравнение со рынком недоступно',
+  scanReportTitle: 'Разбор договора',
+  scanAddFixed: 'Внести в обязательные расходы',
+  scanFixedDone: 'Платёж учтён в обязательных расходах',
+  dtiNeedIncome: 'Платёж по договору есть — укажите доход, чтобы показать долю в процентах.',
+  dtiIncomeCta: 'Указать доход в профиле',
+  monthlyPaymentsLine: (amount: number) =>
+    `Суммарный платёж по договорам: ${amount.toLocaleString('ru-RU')} ₽/мес`,
+  cushionNeedData: 'Укажите подушку в профиле — покажем, на сколько месяцев хватит запаса.',
+  deleteCredit: 'Удалить из списка'
 } as const
 
 export const GOALS = {
@@ -79,7 +94,8 @@ export const PURCHASES = {
   onEmotion: 'на эмоциях',
   goalDelay: 'Эта покупка отодвинет цель примерно на',
   deleteReceipt: 'Удалить покупку',
-  deleteConfirm: 'Удалить эту покупку? Её не будет в картине расходов.'
+  deleteConfirm: 'Удалить эту покупку? Её не будет в картине расходов.',
+  fnsBadge: 'ФНС'
 } as const
 
 export const ANALYTICS = {
@@ -154,6 +170,43 @@ export const PROFILE = {
   fixedExpensesHint:
     'Аренда, кредиты, связь — учитываются в прогнозе. Можно добавить, если пропустили на опросе.',
   addFixedExpense: 'Добавить платёж'
+} as const
+
+export const FNS = {
+  title: 'Чеки ФНС',
+  hint: 'Подключите «Мой налог» — покупки с кассы сами попадут в расходы и аналитику.',
+  phoneLabel: 'Телефон из «Мой налог»',
+  connectDialog: 'Войдите тем же номером, что в приложении «Мой налог». Мы отправим код подтверждения.',
+  codeLabel: 'Код из СМС',
+  codePlaceholder: '6 цифр',
+  sendCode: 'Получить код',
+  sendingCode: 'Отправляем код…',
+  codeSent: (phone: string) => `Код отправлен на ${phone}. Введите его ниже.`,
+  codeRequired: 'Введите код из СМС',
+  confirmCode: 'Подтвердить',
+  verifying: 'Проверяем код…',
+  changePhone: 'Другой номер',
+  resendCode: 'Отправить код ещё раз',
+  connect: 'Подключить ФНС',
+  connecting: 'Подключаем…',
+  connected: 'ФНС подключена — чеки добавлены в расходы',
+  disconnected: 'ФНС отключена',
+  disconnect: 'Отключить',
+  sync: 'Обновить чеки',
+  syncing: 'Синхронизация…',
+  syncImported: (count: number) =>
+    `Добавили ${count} ${count === 1 ? 'чек' : count < 5 ? 'чека' : 'чеков'} в расходы`,
+  syncUpToDate: 'Новых чеков нет — всё уже в ленте',
+  syncFailed: 'Не удалось синхронизировать чеки',
+  connectFailed: 'Не удалось подключить ФНС',
+  phoneRequired: 'Укажите телефон',
+  statusConnected: 'Подключено',
+  statusDisconnected: 'Не подключено',
+  importedLine: (count: number) => `В расходах: ${count} чеков из ФНС`,
+  lastSync: (when: string) => `Последняя синхронизация: ${when}`,
+  pendingLine: (count: number) =>
+    `Ещё ${count} ${count === 1 ? 'новый чек' : count < 5 ? 'новых чека' : 'новых чеков'} — нажмите «Обновить чеки».`,
+  openReceipts: 'Открыть ленту расходов'
 } as const
 
 export const ONBOARDING = {
