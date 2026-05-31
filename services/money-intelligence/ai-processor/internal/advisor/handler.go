@@ -143,14 +143,17 @@ func (h *Handler) chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := iadvisor.BuildChatReply(snap, req, h.llm)
+	stored := iadvisor.EncodeStoredContent(result.Structured, result.Reply)
 	resp := iadvisor.ChatResponse{
 		Reply:   result.Reply,
+		Title:   result.Title,
+		Blocks:  result.Blocks,
 		Actions: result.Actions,
 		Source:  result.Source,
 	}
 
 	if h.chatStore != nil && h.chatStore.Enabled() {
-		id, err := h.chatStore.Append(r.Context(), uid, "assistant", result.Reply, result.Source, result.Actions)
+		id, err := h.chatStore.Append(r.Context(), uid, "assistant", stored, result.Source, result.Actions)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "persist failed"})
 			return
@@ -208,11 +211,14 @@ func (h *Handler) chatStream(w http.ResponseWriter, r *http.Request) {
 
 	resp := iadvisor.ChatResponse{
 		Reply:   result.Reply,
+		Title:   result.Title,
+		Blocks:  result.Blocks,
 		Actions: result.Actions,
 		Source:  result.Source,
 	}
+	stored := iadvisor.EncodeStoredContent(result.Structured, result.Reply)
 	if h.chatStore != nil && h.chatStore.Enabled() {
-		id, err := h.chatStore.Append(r.Context(), uid, "assistant", result.Reply, result.Source, result.Actions)
+		id, err := h.chatStore.Append(r.Context(), uid, "assistant", stored, result.Source, result.Actions)
 		if err == nil {
 			resp.ID = id
 		}

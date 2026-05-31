@@ -21,38 +21,44 @@ type ChatRequest struct {
 
 type ChatResponse struct {
 	Reply   string       `json:"reply"`
+	Title   string       `json:"title,omitempty"`
+	Blocks  []ReplyBlock `json:"blocks,omitempty"`
 	Actions []ChatAction `json:"actions,omitempty"`
 	Source  string       `json:"source"`
 	ID      string       `json:"id,omitempty"`
 }
 
 type ChatResult struct {
-	Reply   string
-	Actions []ChatAction
-	Source  string
+	Reply      string
+	Title      string
+	Blocks     []ReplyBlock
+	Structured StructuredReply
+	Actions    []ChatAction
+	Source     string
 }
 
 func BuildChatReply(snap Snapshot, req ChatRequest, client *llm.Client) ChatResult {
-	history := req.History
 	source := "heuristic"
-	var reply string
+	var structured StructuredReply
+	var plain string
 
 	if client != nil && client.Enabled() {
 		ctxJSON, _ := json.Marshal(snap)
-		hist, _ := json.Marshal(history)
+		hist, _ := json.Marshal(req.History)
 		userPrompt := fmt.Sprintf("Snapshot:\n%s\n\nHistory:\n%s\n\nUser message:\n%s", ctxJSON, hist, req.Message)
 		if raw, err := client.Complete(context.Background(), llm.AdvisorSystemPrompt, userPrompt); err == nil && strings.TrimSpace(raw) != "" {
-			reply = strings.TrimSpace(raw)
+			structured, plain = ParseStructuredReply(raw)
 			source = "gemini"
 		}
 	}
-	if reply == "" {
-		reply = heuristicChat(snap, req.Message)
+	if len(structured.Blocks) == 0 {
+		plain = heuristicChat(snap, req.Message)
+		structured = structuredFromPlain(plain)
 		source = "heuristic"
 	}
 
-	actions := BuildChatActions(snap, req.Message, reply)
-	return ChatResult{Reply: reply, Actions: actions, Source: source}
+	actions := BuildChatActions(snap, req.Message, plain)
+	return chatResultFromStructured(structured, plain, actions, source)
 }
 
 func BuildChatReplyStream(
@@ -62,32 +68,45 @@ func BuildChatReplyStream(
 	client *llm.Client,
 	onDelta func(string) error,
 ) ChatResult {
-	history := req.History
 	source := "heuristic"
-	var reply strings.Builder
+	var structured StructuredReply
+	var plain string
 
 	if client != nil && client.Enabled() {
 		ctxJSON, _ := json.Marshal(snap)
-		hist, _ := json.Marshal(history)
+		hist, _ := json.Marshal(req.History)
 		userPrompt := fmt.Sprintf("Snapshot:\n%s\n\nHistory:\n%s\n\nUser message:\n%s", ctxJSON, hist, req.Message)
-		full, err := client.StreamComplete(ctx, llm.AdvisorSystemPrompt, userPrompt, onDelta)
+		full, err := client.StreamComplete(ctx, llm.AdvisorSystemPrompt, userPrompt, func(string) error {
+			return nil
+		})
 		if err == nil && strings.TrimSpace(full) != "" {
-			reply.WriteString(strings.TrimSpace(full))
+			structured, plain = ParseStructuredReply(full)
 			source = "gemini"
 		}
 	}
-
-	text := strings.TrimSpace(reply.String())
-	if text == "" {
-		text = heuristicChat(snap, req.Message)
+	if len(structured.Blocks) == 0 {
+		plain = heuristicChat(snap, req.Message)
+		structured = structuredFromPlain(plain)
 		source = "heuristic"
-		if onDelta != nil {
-			_ = onDelta(text)
-		}
 	}
 
-	actions := BuildChatActions(snap, req.Message, text)
-	return ChatResult{Reply: text, Actions: actions, Source: source}
+	actions := BuildChatActions(snap, req.Message, plain)
+	result := chatResultFromStructured(structured, plain, actions, source)
+	if onDelta != nil && source == "heuristic" {
+		_ = onDelta(plain)
+	}
+	return result
+}
+
+func chatResultFromStructured(structured StructuredReply, plain string, actions []ChatAction, source string) ChatResult {
+	return ChatResult{
+		Reply:      plain,
+		Title:      structured.Title,
+		Blocks:     structured.Blocks,
+		Structured: structured,
+		Actions:    actions,
+		Source:     source,
+	}
 }
 
 func heuristicChat(snap Snapshot, message string) string {

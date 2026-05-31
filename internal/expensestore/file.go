@@ -112,6 +112,35 @@ func (f *FileStore) ListSince(userID string, since time.Time) ([]Record, error) 
 	return out, nil
 }
 
+// Delete удаляет трату пользователя по id.
+func (f *FileStore) Delete(userID, id string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	payload, err := f.readLocked()
+	if err != nil {
+		return false, err
+	}
+
+	next := make([]Record, 0, len(payload.Records))
+	found := false
+	for _, rec := range payload.Records {
+		if rec.UserID == userID && rec.ID == id {
+			found = true
+			continue
+		}
+		next = append(next, rec)
+	}
+	if !found {
+		return false, nil
+	}
+	payload.Records = next
+	if err := f.writeLocked(payload); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 // Item — входная позиция для Append.
 type Item struct {
 	Amount      float64

@@ -3,10 +3,14 @@ package dashboard
 import (
 	"context"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"backend_project/internal/auth"
+	"backend_project/internal/expensestore"
 )
 
 type receiptListItem struct {
@@ -47,12 +51,12 @@ func (h *Handler) listReceipts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.expenseFile != nil {
-		rows, err := h.loadUserExpensesFile(userID, since)
+		recs, err := h.expenseFile.ListSince(userID, since)
 		if err != nil {
 			http.Error(w, `{"error":"failed to load receipts"}`, http.StatusInternalServerError)
 			return
 		}
-		items := fileRowsToReceiptList(rows, limit)
+		items := recordsToReceiptList(recs, limit)
 		writeJSON(w, receiptsListResponse{Receipts: items})
 		return
 	}
@@ -63,6 +67,57 @@ func (h *Handler) listReceipts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, receiptsListResponse{Receipts: []receiptListItem{}})
+}
+
+// deleteReceipt удаляет трату пользователя из manual_expenses или file store.
+func (h *Handler) deleteReceipt(w http.ResponseWriter, r *http.Request) {
+	userID, err := auth.UserIDFromRequest(r, h.jwtSecret)
+	if err != nil {
+		http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, `{"error":"missing id"}`, http.StatusBadRequest)
+		return
+	}
+
+	if h.demoMode {
+		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
+		return
+	}
+
+	userID = auth.NormalizePhone(userID)
+
+	if h.pgPool != nil {
+		tag, err := h.pgPool.Exec(r.Context(), `
+			DELETE FROM manual_expenses
+			WHERE id = $1::uuid AND user_id = $2
+		`, id, userID)
+		if err != nil {
+			http.Error(w, `{"error":"failed to delete receipt"}`, http.StatusInternalServerError)
+			return
+		}
+		if tag.RowsAffected() > 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	if h.expenseFile != nil {
+		ok, err := h.expenseFile.Delete(userID, id)
+		if err != nil {
+			http.Error(w, `{"error":"failed to delete receipt"}`, http.StatusInternalServerError)
+			return
+		}
+		if ok {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 }
 
 func (h *Handler) queryReceiptsPG(ctx context.Context, userID string, since time.Time, limit int) ([]receiptListItem, error) {
@@ -102,25 +157,31 @@ func (h *Handler) queryReceiptsPG(ctx context.Context, userID string, since time
 	return items, rows.Err()
 }
 
-func fileRowsToReceiptList(rows []pgExpenseRow, limit int) []receiptListItem {
+func recordsToReceiptList(recs []expensestore.Record, limit int) []receiptListItem {
 	if limit <= 0 {
 		limit = 50
 	}
-	items := make([]receiptListItem, 0, len(rows))
-	for i, row := range rows {
+	sort.Slice(recs, func(i, j int) bool {
+		if recs[i].Date.Equal(recs[j].Date) {
+			return recs[i].CreatedAt.After(recs[j].CreatedAt)
+		}
+		return recs[i].Date.After(recs[j].Date)
+	})
+	items := make([]receiptListItem, 0, len(recs))
+	for i, rec := range recs {
 		if i >= limit {
 			break
 		}
-		store := row.Description
+		store := rec.Description
 		if store == "" {
 			store = "Не указан"
 		}
 		items = append(items, receiptListItem{
-			ID:       store + "-" + row.ExpenseDate.Format("20060102"),
+			ID:       rec.ID,
 			Store:    store,
-			Amount:   row.Amount,
-			Date:     row.ExpenseDate.Format("2006-01-02"),
-			Category: row.Category,
+			Amount:   rec.Amount,
+			Date:     rec.Date.Format("2006-01-02"),
+			Category: rec.Category,
 		})
 	}
 	return items

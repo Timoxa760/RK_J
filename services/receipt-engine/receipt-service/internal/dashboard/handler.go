@@ -70,6 +70,7 @@ func (h *Handler) Register(r chi.Router) {
 	r.Get("/api/v1/dashboard/compare", h.compare)
 	r.Get("/api/v1/dashboard/timemachine", h.timemachine)
 	r.Get("/api/v1/receipts", h.listReceipts)
+	r.Delete("/api/v1/receipts/{id}", h.deleteReceipt)
 }
 
 // --- Sankey ---
