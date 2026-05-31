@@ -10,8 +10,8 @@
 - главный риск;
 - **главное действие недели** (одно).
 
-**Экраны `front`:** `/onboarding` → `/dashboard` (narrative, план, метрики). Чат — `/advisor`.  
-**Бэкенд:** `credit-service`, `analytics-service`, `ai-processor` (`/ai/diagnosis`, `/ai/chat`), `receipt-service` (dashboard).
+**Экраны `front`:** `/onboarding` (первый вход) → `/dashboard` (narrative, план, метрики).  
+**Бэкенд:** `credit-service`, `analytics-service`, `ai-processor` (`/ai/diagnosis`, `/ai/plan`), `receipt-service` (dashboard).
 
 ---
 
@@ -26,22 +26,17 @@
 - необходимый ежемесячный вклад;
 - факторы, мешающие достижению.
 
-**Экран `front`:** онбординг + `/profile` / цели (планируется).  
-**Бэкенд:** `goal-service`, прогноз — `analytics-service` (`/api/v1/forecast/`).
+**Экран `front`:** онбординг + `/profile` (цель в профиле).  
+**Бэкенд:** прогноз в `/ai/plan`, scenarios — `analytics-service`.
 
 ---
 
 ## Сценарий №3 — Понять, куда уходят деньги
 
-Ввод расходов: вручную, голосом, через чек, опционально ФНС.
+Ввод расходов: **голосом** или **вручную** (кнопка «Добавить»). Опционально — **ФНС mock** в профиле (импорт тестовых чеков).
 
-Поток показывает не цифры, а **причины**:
-
-- «Вы чаще покупаете после получения зарплаты»
-- «Маркетплейсы отодвигают цель на 3 месяца»
-
-**Экран `front`:** `/receipts`, кнопка «Добавить».  
-**Бэкенд:** `ai-processor` (голос/ручной), `scraper-service` + `receipt-service` (ФНС, LK), `analytics-service` (insights).
+**Экран `front`:** `/receipts`, кнопка «Добавить», `/profile` (ФНС).  
+**Бэкенд:** `ai-processor` (голос/ручной), `analytics-service` (insights).
 
 ---
 
@@ -51,7 +46,7 @@
 
 > Сократите расходы на доставку на 10% — цель станет ближе на 2 месяца.
 
-**Экран `front`:** `/dashboard` (PageNarrative, план), `/advisor` (чат).  
+**Экран `front`:** `/dashboard` (блок «Ваш план», narrative), `/advisor` (чат).  
 **Бэкенд:** `analytics-service` (`/api/v1/insights/`), `ai-processor` (`/ai/chat`).
 
 ---
@@ -60,8 +55,18 @@
 
 Кредит, ипотека, крупная покупка → оценка последствий и сравнение сценариев «если сейчас» / «если подождать».
 
-**Экран `front`:** `/credits`.  
+**Экран `front`:** `/credits`, симулятор на `/dashboard`.  
 **Бэкенд:** `credit-service`, `bank-service`; платный слой — [monetization.md](./monetization.md).
+
+---
+
+## Demo path (защита, ~3 мин)
+
+```
+/login → /onboarding → /dashboard → «Добавить» расход → /advisor → PDF на /credits → (опц.) ФНС в /profile
+```
+
+Подробнее: [mvp/README.md](../mvp/README.md).
 
 ---
 
@@ -69,13 +74,12 @@
 
 | Блок | Содержание |
 |------|------------|
-| Narrative | совет недели, mindfulness score, доход/траты (`PageNarrative`) |
-| Советник | `/advisor` — streaming, actions, история |
-| Ваш план | цель, срок, 3 шага |
-| Симулятор «Что если» | embedded на dashboard |
-| Прогноз цели | срок при текущем поведении |
+| Narrative | совет недели, mindfulness, доход/траты |
+| Ваш план | цель, срок, 3 шага (`/ai/plan`) |
+| Текущая картина | доходы, расходы, остаток |
+| «Что если» | симулятор сценария |
 | Финансовая устойчивость | runway в месяцах |
-| Поведенческий инсайт | мягкий вывод + микро-действие |
+| Советник | CTA → `/advisor` |
 
 ## Основной цикл продукта
 
@@ -86,5 +90,6 @@
 ## Связи
 
 - **Карта проекта**: [NAVI.md](../../NAVI.md)
+- **MVP**: [mvp/README.md](../mvp/README.md)
 - **Зависит от**: [financial-model.md](./financial-model.md), [input-methods.md](./input-methods.md)
 - **Связанные документы**: [onboarding.md](./onboarding.md), [philosophy.md](./philosophy.md)

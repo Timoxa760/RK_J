@@ -17,7 +17,6 @@ tags:
   - name: dashboard
   - name: receipt
   - name: expenses
-  - name: fns
   - name: credits
   - name: analytics
   - name: ai
@@ -193,29 +192,6 @@ components:
         confidence:
           type: number
 
-    ReceiptFnsScanRequest:
-      type: object
-      required: [fn, fd, fp]
-      properties:
-        fn:
-          type: string
-        fd:
-          type: string
-        fp:
-          type: string
-
-    ReceiptFnsScanResponse:
-      type: object
-      properties:
-        receipt_id:
-          type: string
-        store:
-          type: string
-        total:
-          type: number
-        category:
-          type: string
-
     ProfilePatchRequest:
       type: object
       properties:
@@ -294,12 +270,6 @@ components:
       type: object
       properties:
         reply:
-          type: string
-
-    FnsTicketRequest:
-      type: object
-      properties:
-        qr:
           type: string
 
     CreditsDashboardResponse:
@@ -400,7 +370,7 @@ paths:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
         "200":
-          description: SMS отправлен
+          description: Пользователь зарегистрирован
           content:
             application/json:
               schema:
@@ -545,61 +515,6 @@ paths:
           description: Audio not recognized
         "401":
           description: Unauthorized
-
-  /receipt/fns/scan:
-    post:
-      tags: [receipt]
-      summary: Чек ФНС по fn/fd/fp
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReceiptFnsScanRequest"
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReceiptFnsScanResponse"
-        "400":
-          description: Invalid fn/fd/fp
-        "401":
-          description: Unauthorized
-        "404":
-          description: Receipt not found in FNS
-
-  /fns/ticket:
-    post:
-      tags: [fns]
-      summary: Проверка чека ФНС по QR
-      security:
-        - bearerAuth: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FnsTicketRequest"
-      responses:
-        "200":
-          description: Чек принят в pipeline
-        "400":
-          description: Bad request
-        "502":
-          description: ФНС недоступна
-
-  /fns/mco/sync:
-    post:
-      tags: [fns]
-      summary: Синхронизация истории MCO (deprecated in v3)
-      deprecated: true
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Sync started
 
   /users/me/profile:
     patch:

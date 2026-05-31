@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Demo flow для жюри — 6 шагов «Поток»
+# Demo flow для жюри — критический путь «Поток»
 # Требует: api-gateway :8000, JWT (demo login 0000)
 # Использование: ./demo_flow.sh
-# Копия для back: scripts/demo_flow.sh
 
 set -euo pipefail
 
@@ -26,24 +25,42 @@ else
   AUTH=(-H "Authorization: Bearer $TOKEN")
 fi
 
-step "2. Голосовой ввод расхода"
+step "2. Profile (онбординг-данные для demo)"
+curl -sf -X PATCH "$API/users/me/profile" \
+  -H 'Content-Type: application/json' \
+  "${AUTH[@]}" \
+  -d '{"active_income":150000,"passive_income":30000,"emergency_fund":340000,"goal_title":"Отпуск","goal_amount":150000,"goal_kind":"save","onboarding_completed":true}' \
+  | python3 -m json.tool 2>/dev/null | head -15 || echo "(skip if user-service down)"
+
+step "3. Голосовой ввод расхода"
 curl -sf -X POST "$API/expenses/manual" \
   -H 'Content-Type: application/json' \
   "${AUTH[@]}" \
   -d "{\"user_id\":\"$PHONE\",\"raw_text\":\"купил продукты на 5000 и кроссовки за 16000\",\"source\":\"voice\"}" \
   | python3 -m json.tool 2>/dev/null || echo "(skip if ai-processor down)"
 
-step "3. Dashboard — sankey"
+step "4. Dashboard — sankey + timemachine"
 curl -sf "${AUTH[@]}" "$API/dashboard/sankey" | python3 -c "import sys,json; d=json.load(sys.stdin); print('nodes:', len(d.get('nodes',[])))" 2>/dev/null || echo "FAIL sankey"
+curl -sf "${AUTH[@]}" "$API/dashboard/timemachine" | head -c 120; echo
 
-step "4. Dashboard — timemachine"
-curl -sf "${AUTH[@]}" "$API/dashboard/timemachine" | head -c 200; echo
+step "5. ИИ-план и чат"
+curl -sf "${AUTH[@]}" "$API/ai/plan" | python3 -c "import sys,json; d=json.load(sys.stdin); print('plan:', d.get('plan',{}).get('goalTitle','?'), 'score:', d.get('diagnosis',{}).get('score','?'))" 2>/dev/null || echo "(skip ai/plan)"
+curl -sf -X POST "$API/ai/chat" \
+  -H 'Content-Type: application/json' \
+  "${AUTH[@]}" \
+  -d '{"message":"Сколько могу отложить в месяц?","history":[]}' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('reply:', (d.get('reply') or '')[:80])" 2>/dev/null || echo "(skip ai/chat)"
 
-step "5. Кредитный светофор"
-curl -sf "${AUTH[@]}" "$API/credits/dashboard" | python3 -m json.tool 2>/dev/null | head -20 || echo "(credits stub)"
+step "6. Кредиты + ипотечный разбор"
+curl -sf "${AUTH[@]}" "$API/credits/dashboard" | python3 -m json.tool 2>/dev/null | head -12 || echo "(credits stub)"
+curl -sf -X POST "$API/credits/mortgage/analyze" \
+  -H 'Content-Type: application/json' \
+  "${AUTH[@]}" \
+  -d '{"mortgage_amount":12000000}' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('approval:', d.get('approval_level'), 'banks:', len(d.get('banks',[])))" 2>/dev/null || echo "(skip mortgage)"
 
-step "6. Insights"
+step "7. Insights"
 curl -sf "${AUTH[@]}" "$API/insights" | head -c 200; echo
 
 echo
-echo "Demo flow complete. UI: http://localhost:3000 (front, demo code 0000)"
+echo "Demo flow complete. UI: http://localhost:3000 (demo code 0000, ?tour=1 для тура)"

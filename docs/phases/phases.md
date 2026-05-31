@@ -7,7 +7,7 @@
 |---|------|-------------|--------|
 | **0** | Docs, CI, scope trim | Блокер | ✅ |
 | **1** | Infra + Auth + gateway | Блокер | ✅ |
-| **2** | Ingest расходов: голос, ручной, **ФНС** | Блокер | ✅ |
+| **2** | Ingest расходов: голос, ручной, ФНС (mock UI) | Блокер | ✅ |
 | **3** | Receipt pipeline (Kafka) + dashboard API | Блокер | ✅ |
 | **4** | Profile + onboarding (skip-flags, goal в profile) | Ключевая | ✅ |
 | **5** | Credits PDF-only + rates benchmark | Ключевая | ✅ |
@@ -23,7 +23,7 @@
 ## Критический путь (продукт)
 
 ```
-Онбординг (profile) → первое действие (голос / ФНС) → PDF credits (опц.) → ИИ-план на dashboard → чат советника
+Онбординг (profile) → первое действие (голос / ФНС mock) → PDF credits (опц.) → ИИ-план на dashboard → чат `/advisor`
 ```
 
 Технический путь:
@@ -34,16 +34,15 @@
 
 ---
 
-## Фаза 2 — Ingest расходов (ФНС, не retail LK)
+## Фаза 2 — Ingest расходов
 
-**Продукт:** автоматическая детализация чеков — через **ФНС** (QR, MCO, ticket API). Голос и ручной ввод — ядро «Поток».
+**Продукт:** голос и ручной ввод — ядро «Поток». ФНС — **mock на front** (профиль, SMS, импорт тестовых чеков).
 
 | Способ | API / сервис |
 |--------|----------------|
-| ФНС QR / ticket | `POST /api/v1/fns/ticket`, `/fns/qr` → scraper-service |
-| ФНС MCO (sync) | `POST /api/v1/fns/mco/*` |
-| Голос / ручной | `POST /api/v1/expenses/manual`, `/expenses/voice` → ai-processor |
-| Email (опц.) | OAuth/IMAP → scraper-service |
+| Голос / ручной | `POST /api/v1/receipt/manual`, `/receipt/voice` → ai-processor |
+| ФНС «Мои чеки» | **Front mock** (`useFns`) — не back demo path |
+| Email (опц., legacy) | OAuth/IMAP → scraper-service |
 
 **Не в MVP как отдельный ingest:** X5 Club, Magnit LK — см. [input-methods.md](../product/input-methods.md), [defense.md](../architecture/defense.md).
 
@@ -85,7 +84,7 @@
 flowchart LR
   subgraph ingest [Фаза 2]
     Voice[голос manual]
-    FNS[ФНС QR MCO]
+    FNSmock[FNS mock UI]
   end
   subgraph data [Фазы 4-5]
     Profile[profile skip]
@@ -99,7 +98,7 @@ flowchart LR
     Gemini[Google Gemini]
   end
   Voice --> Expenses
-  FNS --> Expenses
+  FNSmock -.-> Expenses
   Profile --> Snap
   Credits --> Snap
   Expenses --> Snap
@@ -140,11 +139,10 @@ flowchart LR
 | Задача | Статус |
 |--------|--------|
 | `/onboarding` wizard + summary из `/ai/diagnosis` | ✅ |
-| «Добавить» → голос / ручной / ФНС QR / фото QR / MCO | ✅ |
+| «Добавить» → голос / ручной / ФНС mock | ✅ |
 | Narrative + demo tour | ✅ |
 | Seed + `demo_flow.sh` | ✅ |
 | Ипотечный разбор API | ✅ |
-| `POST /receipt/fns/scan` | ✅ |
 
 **Не в MVP:** social, auction — [гипотезы](../features/social.md).
 
@@ -161,8 +159,21 @@ flowchart LR
 | `PageNarrative`: совет недели + mindfulness + доход/траты | ✅ |
 | Sidebar embedded advisor убран → `/advisor` | ✅ |
 | Симулятор «Что если» на dashboard | ✅ |
+| Safe advisor text repair (`advisorMarkdown.ts`) | ✅ |
+| App shell: flex sidebar без shadcn offcanvas | ✅ |
 
 Документация: [llm-integration.md](../architecture/llm-integration.md), [antigravity-setup.md](../deployment/antigravity-setup.md).
+
+---
+
+## Защита MVP (что показываем)
+
+| Тема | Где |
+|------|-----|
+| Статус in/out, demo 3 мин | [mvp/README.md](../mvp/README.md) |
+| Питч тимлида | [pitch/teamlead.md](../pitch/teamlead.md) |
+| Питч front / back | [pitch/frontend.md](../pitch/frontend.md), [pitch/backend.md](../pitch/backend.md) |
+| Mock vs real | таблица в [mvp/README.md](../mvp/README.md) |
 
 ---
 

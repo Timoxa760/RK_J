@@ -27,6 +27,7 @@ sequenceDiagram
 ## POST /credits/scan
 
 - `multipart/form-data`, поле `file` (PDF)
+- Text extraction поддерживает **кириллические** договоры (pdf parser + OnlySQ)
 - OnlySQ извлекает: bank, amount, rate, term_months, monthly_payment
 - rates-aggregator возвращает `benchmark_rate` для сравнения
 - Запись в `user_credits`

@@ -33,6 +33,7 @@
 16. [Модель данных](./docs/database/)
 17. [Фазы разработки](./docs/phases/phases.md)
 18. [Deployment](./docs/deployment/) — back/front, env, demo
+19. [MVP статус](./docs/mvp/README.md) + [Pitch materials](./docs/pitch/README.md)
 
 **Гипотезы (низкий приоритет)**
 

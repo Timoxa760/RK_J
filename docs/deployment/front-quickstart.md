@@ -13,7 +13,7 @@ npm run dev
 ```
 
 Приложение: http://localhost:3000  
-Демо-вход: код **`0000`** на `/login`.
+Вход: телефон и пароль на `/login`.
 
 ## Docker
 
@@ -23,31 +23,38 @@ docker compose up --build
 # http://localhost:80
 ```
 
-## Маршруты
+## Маршруты (MVP)
 
 | Путь | Описание |
 |------|----------|
-| `/` | Welcome |
+| `/` | Welcome / landing |
 | `/login` | Вход |
-| `/onboarding` | ⏳ wizard (спека в [onboarding.md](../product/onboarding.md)) |
-| `/dashboard` | Главный экран: narrative, план, метрики, симулятор «Что если» |
+| `/onboarding` | Wizard (~1 мин), см. [onboarding.md](../product/onboarding.md) |
+| `/dashboard` | Главный экран: narrative, план, метрики, «Что если» |
 | `/advisor` | Полноэкранный чат советника |
-| `/receipts` | Расходы |
-| `/credits` | Кредитный светофор |
-| `/analytics` | Прогноз |
-| `/social` | Гипотеза |
-| `/profile` | Профиль |
+| `/receipts` | Расходы, кнопка «Добавить» |
+| `/credits` | Кредитный светофор (PDF scan) |
+| `/profile` | Профиль, цели, ФНС (mock) |
+| `/analytics` | Redirect → `/dashboard` |
 
-> `/digest` удалён — см. [digest.md](../features/digest.md).
+**Не MVP:** `/social`, `/digest` — удалены из навигации.
+
+## App shell
+
+Flex-layout без shadcn offcanvas:
+
+- `components/app/AppShellLayout.client.vue`
+- `components/app/AppSidebar.vue` — `.mm-app-sidebar`
+- `SharedBackgroundFlow` — только на `/` и `/login` (`layouts/default.vue`)
 
 ## Структура `frontend/`
 
 ```
 frontend/
 ├── pages/           # маршруты
-├── components/      # charts/, shared/
-├── composables/     # useDashboard, useCredits, …
-├── store/           # Pinia
+├── components/      # app/, advisor/, dashboard/, charts/
+├── composables/     # useDashboard, useAdvisorChat, useAiPlan, …
+├── store/           # Pinia + mocks при ошибке API
 ├── types/api.ts     # типы ответов API
 └── nuxt.config.ts
 ```
@@ -55,6 +62,8 @@ frontend/
 ## API
 
 Контракт: [API_Contract.md](../api/API_Contract.md) (ветка `docs`).
+
+`NUXT_PUBLIC_API_BASE=http://localhost:8000`
 
 ## Стек
 
@@ -64,3 +73,4 @@ Nuxt 4 · Vue 3 · TypeScript · Tailwind · Pinia · ECharts · PWA
 
 - [environment.md](./environment.md)
 - [../product/ux-scenarios.md](../product/ux-scenarios.md)
+- [../pitch/frontend.md](../pitch/frontend.md)

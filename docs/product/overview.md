@@ -48,7 +48,7 @@
 - прогноз достижения целей (без перегруженных диаграмм);
 - персональные рекомендации (одно действие, не десять).
 
-Главный экран — **`/dashboard` (Советник)**: narrative → чат → план → метрики → лёгкий прогноз.
+Главный экран — **`/dashboard` (Советник)**: narrative → план → метрики → симулятор «Что если». Полноэкранный чат — **`/advisor`**. Декоративный BackgroundFlow только на welcome/login, не в app shell.
 
 ## Ключевые метрики продукта
 
@@ -63,4 +63,4 @@
 ## Связи
 
 - **Используется**: [ux-scenarios.md](./ux-scenarios.md), [onboarding.md](./onboarding.md), [features/](../features/)
-- **Реализация**: `front` (экраны), `back` (goal-service, credit-service, analytics-service, ai-processor)
+- **Реализация**: `front` (экраны), `back` (user-service profile, credit-service, analytics-service, ai-processor)

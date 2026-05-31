@@ -8,7 +8,7 @@
 
 - строит **финансовый план** (3 шага + цель + runway);
 - даёт **диагноз** (score, indicators, main_action);
-- отвечает в **чате** с streaming, actions и историей в PostgreSQL.
+- отвечает в **чате** с streaming, actions и историей.
 
 Контекст собирается **на сервере** (`UserFinanceSnapshot`), клиент шлёт только `message` + `history`.
 
@@ -43,6 +43,11 @@ CTA «Спросить советника» → `/advisor?ask=…`. Встрое
 | Actions | navigate, add_expense, followup |
 | Fallback | `source: heuristic` при недоступности LLM |
 | Badge | UI показывает source (gemini / heuristic) |
+| Text repair | `advisorMarkdown.ts` — allowlist fix split Russian words |
+
+## Structured blocks
+
+Ответ LLM может содержать structured JSON → рендер в `advisorStructured.ts` (markdown, lists, action chips).
 
 ## Эндпоинты
 
@@ -59,4 +64,9 @@ CTA «Спросить советника» → `/advisor?ask=…`. Встрое
 
 ## LLM в dev
 
-Antigravity Tools на `:8045`, модель `claude-sonnet-4-6`. См. [antigravity-setup.md](../deployment/antigravity-setup.md).
+Antigravity: [antigravity-setup.md](../deployment/antigravity-setup.md). Dual-mode: [llm-integration.md](../architecture/llm-integration.md).
+
+## Pitch
+
+- Frontend UI: [pitch/frontend.md](../pitch/frontend.md)
+- Backend pipeline: [pitch/backend.md](../pitch/backend.md)

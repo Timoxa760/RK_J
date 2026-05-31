@@ -9,6 +9,8 @@
 | Задача | Куда |
 |--------|------|
 | Что изменилось в docs | [CHANGELOG.md](./CHANGELOG.md) |
+| **MVP статус + demo 3 мин** | [docs/mvp/README.md](./docs/mvp/README.md) |
+| **Питчи (тимлид / front / back)** | [docs/pitch/README.md](./docs/pitch/README.md) |
 | Понять продукт за 5 минут | [Potok_plan.md](./Potok_plan.md) → [docs/product/overview.md](./docs/product/overview.md) |
 | UX, сценарии, онбординг | [docs/product/](./docs/product/) |
 | Запустить бэкенд | [docs/deployment/back-quickstart.md](./docs/deployment/back-quickstart.md) |
@@ -21,6 +23,16 @@
 | Порты сервисов | [docs/architecture/overview.md](./docs/architecture/overview.md) |
 | Настроить LLM (Antigravity) | [docs/deployment/antigravity-setup.md](./docs/deployment/antigravity-setup.md) |
 | Архитектура советника | [docs/architecture/advisor-system.md](./docs/architecture/advisor-system.md) |
+| Статус фаз MVP | [docs/phases/phases.md](./docs/phases/phases.md) |
+
+### Pitch и MVP
+
+| Файл | Аудитория |
+|------|-----------|
+| [docs/mvp/README.md](./docs/mvp/README.md) | Статус, mock vs real, demo 3 мин |
+| [docs/pitch/teamlead.md](./docs/pitch/teamlead.md) | Тимлид / жюри |
+| [docs/pitch/frontend.md](./docs/pitch/frontend.md) | Frontend |
+| [docs/pitch/backend.md](./docs/pitch/backend.md) | Backend |
 
 ---
 
@@ -119,7 +131,7 @@ git checkout front   # фронтенд
 
 | Файл | Что внутри |
 |------|------------|
-| [phases/phases.md](./docs/phases/phases.md) | MVP фазы 0–8; фаза 6 — [advisor.md](./docs/product/advisor.md) |
+| [phases/phases.md](./docs/phases/phases.md) | MVP фазы 0–9; защита → [mvp/README.md](./docs/mvp/README.md) |
 
 ---
 
@@ -129,14 +141,13 @@ git checkout front   # фронтенд
 |---------|-------|----------|
 | `/` | Welcome, лендинг | [ux-scenarios.md](./docs/product/ux-scenarios.md) |
 | `/login` | Вход (демо `0000`) | — |
-| **`/onboarding`** | **Онбординг ~1 мин** (⏳ сделать) | [onboarding.md](./docs/product/onboarding.md) |
-| `/dashboard` | Главный экран, графики | [ux-scenarios.md](./docs/product/ux-scenarios.md) |
+| **`/onboarding`** | **Онбординг ~1 мин** | [onboarding.md](./docs/product/onboarding.md) |
+| `/dashboard` | Главный экран, narrative, план | [ux-scenarios.md](./docs/product/ux-scenarios.md) |
+| **`/advisor`** | **Чат советника** | [advisor.md](./docs/product/advisor.md) |
 | `/receipts` | Расходы, «Добавить» | [input-methods.md](./docs/product/input-methods.md) |
-| `/credits` | Кредиты, ипотека | [monetization.md](./docs/product/monetization.md) |
-| `/analytics` | Прогноз | [predictive-ai.md](./docs/features/predictive-ai.md) |
-| `/digest` | Дайджест | [digest.md](./docs/features/digest.md) |
-| `/social` | Social (гипотеза) | [social.md](./docs/features/social.md) |
-| `/profile` | Профиль | — |
+| `/credits` | Кредиты, PDF scan | [credit-scan.md](./docs/features/credit-scan.md) |
+| `/analytics` | Redirect → dashboard | — |
+| `/profile` | Профиль, ФНС mock | — |
 
 **Composables:** `frontend/composables/useDashboard.ts`, `useCredits.ts`, …  
 **API base:** `NUXT_PUBLIC_API_BASE=http://localhost:8000`
@@ -158,9 +169,9 @@ git checkout front   # фронтенд
 
 | Продукт | Endpoint |
 |---------|----------|
-| Голос/ручной | `POST /api/v1/expenses/manual` |
+| Голос/ручной | `POST /api/v1/receipt/manual`, `/receipt/voice` |
 | Dashboard | `GET /api/v1/dashboard/*` |
-| ФНС | `POST /api/v1/fns/*` |
+| ФНС | **Front mock** (не back demo path) |
 | Цель / профиль | `GET/PATCH /api/v1/users/me/profile` |
 | Кредиты (PDF) | `POST /api/v1/credits/scan`, `GET /api/v1/credits/dashboard` |
 | Советник | `GET /api/v1/ai/plan`, `POST /api/v1/ai/chat` |

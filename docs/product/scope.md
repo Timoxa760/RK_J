@@ -8,11 +8,12 @@
 |---------|----------|
 | Онбординг | 4 блока (доход, подушка, цель, расходы), skippable → **profile** |
 | Финансовый профиль | `GET/PATCH /users/me/profile`, skip-флаги, цель в профиле |
-| Расходы | Голос, ручной ввод, чеки, ФНС |
+| Расходы | Голос, ручной ввод |
+| ФНС «Мои чеки» | **UI mock на front** — SMS flow, импорт тестовых чеков; back API не в demo path |
 | Кредиты | **Только** PDF-скан договора → `POST /credits/scan` → dashboard |
 | Ставки | **rates-aggregator** — этalon vs ставка из скана |
-| Советник | `/ai/plan`, `/ai/diagnosis`, `/ai/chat` |
-| Dashboard | Mega-plan, чат в сайдбаре, диагностика |
+| Советник | `/ai/plan`, `/ai/diagnosis`, `/ai/chat`, SSE stream |
+| Dashboard | Narrative, план, метрики, симулятор «Что если»; чат на `/advisor` |
 
 ## Out of scope (removed)
 
@@ -23,13 +24,15 @@
 | `GET /ai/goal/{id}/forecast` | **Removed** — прогноз в `/ai/plan` |
 | Demo/stub credits dashboard | **Removed** — данные только из сканов |
 | bank-service sync для кредитов | **Not in MVP** |
-| X5 Club / Magnit LK как ingest | **Not in MVP** — только ФНС для автослоя чеков |
+| X5 Club / Magnit LK как ingest | **Not in MVP** |
+| Отдельный `/digest` | **Removed** — narrative на dashboard |
 
 ## Dual-branch
 
 | Папка | Ветка |
 |-------|-------|
-| `frontend/`, `docs/` | `front` |
+| `frontend/`, локальные `docs/` | `front` |
 | `backend/` worktree | `back` |
+| Источник правды docs | `docs` (worktree `RK_J-docs`) |
 
-См. [git-and-branches.md](../guides/git-and-branches.md).
+См. [git-and-branches.md](../guides/git-and-branches.md), [mvp/README.md](../mvp/README.md).

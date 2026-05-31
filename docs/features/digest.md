@@ -1,25 +1,23 @@
 # Дайджест и главное действие недели
 
-> **Статус (2026-05-31):** отдельная страница `/digest` **удалена**. Контент перенесён на `/dashboard` в блок `PageNarrative` (совет недели, mindfulness score, доход/траты).
+> Продукт: одно мягкое улучшение, не ежемесячный отчёт на 20 страниц.
 
-## Состав (на dashboard)
+## Состав
 
-- Текущая картина (narrative из diagnosis + insights)
-- **Mindfulness score** — из AI diagnosis (`score/100`)
-- **Главное действие недели** — `main_action` из `/ai/diagnosis`
-- Доход / траты — отдельные карточки в narrative
+- Текущая картина (1 абзац)
+- Прогресс к цели
+- **Главное действие недели** (одно предложение)
+- Опционально: динамика за период
 
-## API (legacy)
+## API
 
-`GET /api/v1/digest/*` — reporting-service (optional, не используется front MVP).
+`GET /api/v1/digest/*` — reporting-service
 
 ## UI
 
-| Было | Стало |
-|------|-------|
-| `/digest` | `/dashboard` → `PageNarrative`, `DashboardMindfulnessScore` |
+`front` — `/digest`
 
 ## Связи
 
 - [ux-scenarios.md](../product/ux-scenarios.md) №1, №4
-- [advisor.md](../product/advisor.md)
+- [detective.md](./detective.md)

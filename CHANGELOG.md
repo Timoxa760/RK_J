@@ -9,6 +9,30 @@
 
 ---
 
+## [2.2.0] — 2026-05-30
+
+### Кратко
+
+Синхронизация MVP-документации с ветками `front`/`back`, якорь [mvp/README.md](./docs/mvp/README.md), три устных питча для защиты.
+
+### Added
+
+- **`docs/mvp/README.md`** — in/out scope, mock vs real, demo script 3 мин, команды запуска.
+- **`docs/pitch/README.md`**, **`teamlead.md`**, **`frontend.md`**, **`backend.md`** — устные питчи 5–10 мин.
+
+### Changed
+
+- **`docs/product/scope.md`** — ФНС = front mock; `/digest`, social out.
+- **`docs/product/overview.md`**, **`ux-scenarios.md`** — `/dashboard` + `/advisor`, demo path.
+- **`docs/product/advisor.md`** — streaming, text repair, structured blocks.
+- **`docs/phases/phases.md`** — фаза 9, FNS mock, блок «Защита MVP».
+- **`docs/deployment/front-quickstart.md`** — актуальные маршруты, app shell.
+- **`docs/features/credit-scan.md`** — кириллические PDF.
+- **`NAVI.md`**, **`Potok_plan.md`** — секции MVP и Pitch.
+- Слияние `front/docs` → `docs` worktree (сохранены `advisor-system.md`, `llm-integration.md`, `antigravity-setup.md`).
+
+---
+
 ## [2.1.0] — 2026-05-31
 
 ### Кратко
@@ -200,6 +224,7 @@
 
 ---
 
+[2.2.0]: https://github.com/Timoxa760/RK_J/compare/c512fa6...docs
 [2.1.0]: https://github.com/Timoxa760/RK_J/compare/90930e9...docs
 [2.0.0]: https://github.com/Timoxa760/RK_J/compare/b0a74ac...docs
 [1.0.0]: https://github.com/Timoxa760/RK_J/commit/b0a74ac

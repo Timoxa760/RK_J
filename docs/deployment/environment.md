@@ -7,35 +7,25 @@
 
 | Переменная | Пример | Назначение |
 |------------|--------|------------|
-| `DEMO_MODE` | `false` | `true` = legacy код `0000` без SMS; `false` = OTP + SMS.ru |
+| `DEMO_MODE` | `false` | `true` = legacy shortcuts в части сервисов; auth всегда телефон + пароль |
 | `JWT_SECRET` | random string | HS256 — **одинаковый** на gateway, user-service, ai-processor |
 | `DATABASE_URL` | `postgres://...` | PostgreSQL (users, profile, expenses) |
-| `REDIS_URL` | `redis://localhost:6379/0` | OTP codes (TTL 5 min) |
-| `SMS_PROVIDER` | `smsru` | `smsru` \| `console` (только CI) |
-| `SMSRU_API_ID` | из [sms.ru](https://sms.ru) | API-ключ для отправки SMS |
-| `SMSRU_TEST` | `0` | `1` = SMS.ru test mode (без доставки, для CI) |
-| `OTP_TTL` | `300` | Срок жизни кода (сек) |
-| `OTP_LENGTH` | `6` | Длина OTP |
-| `OTP_RATE_LIMIT` | `5` | Max resend за 15 мин на номер |
+| `REDIS_URL` | `redis://localhost:6379/0` | Коды сброса пароля (TTL, опционально — in-memory fallback) |
+| `OTP_TTL` | `300` | Срок жизни кода сброса пароля (сек) |
 | `GEMINI_API_KEY` | — | Ключ Google AI Studio **или** API Key из Antigravity Tools → API Proxy |
 | `GEMINI_PROVIDER` | `antigravity` | `antigravity` (локальный прокси :8045) \| `google` (прямой API) |
-| `GEMINI_MODEL` | `claude-sonnet-4-6` | Модель в Antigravity. Native `gemini-*` может быть заблокирован по региону аккаунта |
+| `GEMINI_MODEL` | `gpt-oss-120b-medium` | Модель в Antigravity (`gpt-oss-120b-medium`, `claude-sonnet-4-6`, …). Native Gemini может быть заблокирован по региону аккаунта |
 | `GEMINI_BASE_URL` | `http://127.0.0.1:8045/v1` | OpenAI-маршрут Antigravity; в Docker: `http://host.docker.internal:8045/v1` |
 | `PROFILE_DATA_DIR` | `/app/data/profiles` | File mirror для advisor (Docker volume) |
 | `CREDIT_DATA_DIR` | `/app/data/credits` | Credit scans для advisor |
 | `CLICKHOUSE_*` | см. compose | OLAP dashboard |
 | `ENCRYPTION_KEY` | 32 bytes | AES для creds провайдеров |
-| `RUCAPTCHA_KEY` | — | FNS MCO (не demo) |
 
-Подробнее: [antigravity-setup.md](./antigravity-setup.md).
+### Auth (телефон + пароль)
 
-### Настройка SMS.ru
+Регистрация и вход — `POST /auth/register` и `POST /auth/login` с телефоном и паролем (мин. 8 символов). SMS не используется.
 
-1. Регистрация на [sms.ru](https://sms.ru) под **тем же номером**, что для входа в приложение.
-2. Скопировать `api_id` → `SMSRU_API_ID`.
-3. **Бесплатно:** до 5 SMS/день на свой номер ([sms.ru/free](https://sms.ru/free)).
-4. Для других номеров — пополнить баланс (~200 ₽ на тесты).
-5. Текст OTP: `Поток: код XXXXXX. Действует 5 мин.` (≤70 символов).
+Сброс пароля: `POST /auth/password/forgot` → `POST /auth/password/reset` с кодом из Redis (локально допускается stub `0000`).
 
 Проверка:
 
@@ -45,8 +35,7 @@ docker compose up -d postgres redis user-service api-gateway ai-processor
 docker compose --profile tools run --rm migrate-pg
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H 'Content-Type: application/json' \
-  -d '{"phone":"+7XXXXXXXXXX"}'
-# код придёт в SMS
+  -d '{"phone":"+7XXXXXXXXXX","password":"secret12345"}'
 ```
 
 ## Frontend (`front`)
@@ -61,4 +50,3 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 - [back-quickstart.md](./back-quickstart.md)
 - [front-quickstart.md](./front-quickstart.md)
 - [demo.md](./demo.md)
-- [antigravity-setup.md](./antigravity-setup.md)
