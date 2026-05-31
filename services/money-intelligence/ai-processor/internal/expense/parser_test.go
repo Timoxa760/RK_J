@@ -5,6 +5,17 @@ import (
 	"testing"
 )
 
+func TestParser_MultipleExpenses(t *testing.T) {
+	p := NewParser(nil)
+	res := p.Parse(context.Background(), ParseInput{RawText: "кофе 300 рублей и такси 500 рублей"})
+	if len(res.Expenses) != 2 {
+		t.Fatalf("unexpected %+v", res)
+	}
+	if res.Expenses[0].Category != "Кафе и рестораны" || res.Expenses[1].Category != "Транспорт" {
+		t.Fatalf("categories: %+v", res.Expenses)
+	}
+}
+
 func TestParser_RegexSingle(t *testing.T) {
 	p := NewParser(nil)
 	res := p.Parse(context.Background(), ParseInput{RawText: "продукты 5000"})

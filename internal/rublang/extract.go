@@ -141,6 +141,33 @@ func parseAttachedSuffixWord(word string) (int, bool) {
 	return int(v * float64(mult)), true
 }
 
+var amountPhraseRe = regexp.MustCompile(`(?i)(` +
+	`\d+(?:[\s.,]\d*)?\s*(?:₽|руб(?:лей|ля|\.?)?|р(?:\s|$|[^а-яё]))|` +
+	`\d+(?:[\s.,]\d*)?\s*(?:` +
+	`тыс(?:яч(?:и|ей|а)?|и|ч)?|` +
+	`тыщ(?:а|и|ей|у)?|` +
+	`т(?:р|р\.|\.р\.?)|` +
+	`штук(?:а|и|у|ами)?` +
+	`)|` +
+	`\d+\s*(?:` +
+	`кос(?:ар(?:ь|я|ей|ями|ик)?)?|` +
+	`к(?:ес(?:ов|а|ик)?|ос(?:ов|а)?)` +
+	`)|` +
+	`\d+\s*сот(?:ка|ку|очка|ки|ок|ен)?` +
+	`)`)
+
+// AmountPhraseEnds возвращает позиции конца каждой суммовой фразы в нормализованном тексте.
+func AmountPhraseEnds(normalized string) []int {
+	if normalized == "" {
+		return nil
+	}
+	ends := make([]int, 0, 4)
+	for _, loc := range amountPhraseRe.FindAllStringIndex(normalized, -1) {
+		ends = append(ends, loc[1])
+	}
+	return ends
+}
+
 // ExtractPrimary возвращает наиболее вероятную сумму (максимальную из найденных).
 func ExtractPrimary(text string) (float64, bool) {
 	all := ExtractAll(text)

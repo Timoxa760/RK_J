@@ -75,13 +75,17 @@ func (p *Parser) parseRegex(text string, in ParseInput) Result {
 	if text == "" && in.Amount <= 0 {
 		return Result{}
 	}
-	if p := parser.Parse(text); p != nil {
+	if parsed := parser.ParseAll(text); len(parsed) > 0 {
+		items := make([]Item, 0, len(parsed))
+		for _, pe := range parsed {
+			items = append(items, Item{
+				Amount:      pe.Amount,
+				Category:    pe.Category,
+				Description: pe.Description,
+			})
+		}
 		return Result{
-			Expenses: []Item{{
-				Amount:      p.Amount,
-				Category:    p.Category,
-				Description: p.Description,
-			}},
+			Expenses: items,
 			ParsedBy: "regex",
 			Parsed:   true,
 		}

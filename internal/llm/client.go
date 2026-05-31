@@ -143,7 +143,7 @@ func (c *Client) newGeminiRequest(ctx context.Context, method string, stream boo
 }
 
 func (c *Client) newChatRequest(ctx context.Context, stream bool, systemPrompt, userPrompt string) (*http.Request, error) {
-	body, err := json.Marshal(chatCompletionRequest{
+	reqBody := chatCompletionRequest{
 		Model: c.model,
 		Messages: []chatMessage{
 			{Role: "system", Content: systemPrompt},
@@ -152,7 +152,11 @@ func (c *Client) newChatRequest(ctx context.Context, stream bool, systemPrompt, 
 		Temperature: 0.2,
 		MaxTokens:   4096,
 		Stream:      stream,
-	})
+	}
+	if strings.Contains(systemPrompt, `"blocks"`) {
+		reqBody.ResponseFormat = &responseFormat{Type: "json_object"}
+	}
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("llm: marshal: %w", err)
 	}

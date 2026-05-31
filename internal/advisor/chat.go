@@ -76,9 +76,7 @@ func BuildChatReplyStream(
 		ctxJSON, _ := json.Marshal(snap)
 		hist, _ := json.Marshal(req.History)
 		userPrompt := fmt.Sprintf("Snapshot:\n%s\n\nHistory:\n%s\n\nUser message:\n%s", ctxJSON, hist, req.Message)
-		full, err := client.StreamComplete(ctx, llm.AdvisorSystemPrompt, userPrompt, func(string) error {
-			return nil
-		})
+		full, err := client.StreamComplete(ctx, llm.AdvisorSystemPrompt, userPrompt, onDelta)
 		if err == nil && strings.TrimSpace(full) != "" {
 			structured, plain = ParseStructuredReply(full)
 			source = "gemini"
