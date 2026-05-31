@@ -44,6 +44,43 @@ func TestDashboard_EmptyWithoutCredits(t *testing.T) {
 	}
 }
 
+func TestDashboard_IncomeFromProfile(t *testing.T) {
+	credits, err := creditstore.NewFileStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	profiles, err := profile.NewFileStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := profiles.Save("+79991234567", profile.FinancialProfile{
+		ActiveIncome:  120_000,
+		EmergencyFund: 240_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	h := NewHandler(credits, profiles, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/credits/dashboard", nil)
+	req.Header.Set("Authorization", "Bearer "+testToken(t, "+79991234567"))
+	w := httptest.NewRecorder()
+	h.dashboard(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp creditstore.Dashboard
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.MonthlyIncome != 120_000 {
+		t.Fatalf("monthly_income=%v want 120000", resp.MonthlyIncome)
+	}
+	if resp.Savings != 240_000 {
+		t.Fatalf("savings=%v want 240000", resp.Savings)
+	}
+}
+
 func TestDashboard_Unauthorized(t *testing.T) {
 	credits, _ := creditstore.NewFileStore(t.TempDir())
 	profiles, _ := profile.NewFileStore(t.TempDir())
@@ -157,5 +194,44 @@ func TestScan_RejectWithoutDemoMode(t *testing.T) {
 	h.scan(w, req)
 	if w.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+}
+
+func TestScan_GeneralConditionsPDF(t *testing.T) {
+	os.Unsetenv("DEMO_MODE")
+	data, err := os.ReadFile("../../../../../general_conditions_nal_28052020.pdf")
+	if err != nil {
+		t.Skip("sample pdf not available")
+	}
+
+	credits, _ := creditstore.NewFileStore(t.TempDir())
+	profiles, _ := profile.NewFileStore(t.TempDir())
+	h := NewHandler(credits, profiles, nil)
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "general_conditions_nal_28052020.pdf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	writer.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/credits/scan", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+testToken(t, "+79991234567"))
+	w := httptest.NewRecorder()
+	h.scan(w, req)
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var resp map[string]string
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp["error"] != "scan_general_conditions" {
+		t.Fatalf("error=%q want scan_general_conditions", resp["error"])
 	}
 }

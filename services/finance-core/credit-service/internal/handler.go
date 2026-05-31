@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	iroot "backend_project/internal/auth"
+	"backend_project/internal/creditparse"
 	"backend_project/internal/creditstore"
 	"backend_project/internal/mortgage"
 	"backend_project/internal/llm"
@@ -23,19 +24,20 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const creditScanPrompt = `Из текста кредитного договора извлеки условия. Ответ — только JSON:
+const creditScanPrompt = `Из текста договора кредита, займа, займа наличными или микрозайма извлеки условия. Ответ — только JSON:
 {"amount": 0, "rate": 0, "term_months": 0, "monthly_payment": 0, "bank": ""}
-amount и monthly_payment в рублях, rate — годовая ставка в процентах.`
+amount и monthly_payment в рублях, rate — годовая ставка или ПСК в процентах, term_months — срок в месяцах (если в договоре дни — переведи в месяцы, минимум 1).
+bank — название банка/МФО или тип продукта («Займ», «Кредит наличными»).`
 
 // Handler — credits из PDF scan only.
 type Handler struct {
 	credits  *creditstore.FileStore
-	profiles *profile.FileStore
+	profiles profile.Store
 	rates    *rates.Client
 	llm      *llm.Client
 }
 
-func NewHandler(credits *creditstore.FileStore, profiles *profile.FileStore, llmClient *llm.Client) *Handler {
+func NewHandler(credits *creditstore.FileStore, profiles profile.Store, llmClient *llm.Client) *Handler {
 	return &Handler{
 		credits:  credits,
 		profiles: profiles,
@@ -84,7 +86,34 @@ func (h *Handler) dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	dash := h.credits.Dashboard(uid, h.monthlyIncome(uid), h.emergencyFund(uid))
+	dash = enrichDashboardPayments(dash)
 	writeJSON(w, http.StatusOK, dash)
+}
+
+func enrichDashboardPayments(dash creditstore.Dashboard) creditstore.Dashboard {
+	var monthlyPayments float64
+	for i := range dash.Credits {
+		payment := dash.Credits[i].MonthlyPayment
+		if payment <= 0 {
+			payment = creditparse.EstimateMonthlyPayment(
+				dash.Credits[i].Amount,
+				dash.Credits[i].Rate,
+				dash.Credits[i].TermMonths,
+			)
+			dash.Credits[i].MonthlyPayment = payment
+		}
+		monthlyPayments += payment
+	}
+	if monthlyPayments > 0 {
+		dash.MonthlyPayments = monthlyPayments
+		if dash.MonthlyIncome > 0 {
+			dash.DTI = monthlyPayments / dash.MonthlyIncome * 100
+		}
+		if dash.Savings > 0 {
+			dash.StressTestMonths = dash.Savings / monthlyPayments
+		}
+	}
+	return dash
 }
 
 type mortgageAnalyzeRequest struct {
@@ -168,7 +197,11 @@ func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
 	hashStr := hex.EncodeToString(hash[:])
 
 	text, extractErr := pdfextract.TextFromPDF(body)
-	parsed, confidence, err := h.parseContract(r.Context(), text, extractErr)
+	filename := ""
+	if header != nil {
+		filename = header.Filename
+	}
+	parsed, confidence, err := h.parseContract(r.Context(), text, extractErr, filename)
 	if err != nil {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
 		return
@@ -195,11 +228,12 @@ func (h *Handler) scan(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"parsed": map[string]any{
-			"amount":          parsed.Amount,
-			"rate":            parsed.Rate,
-			"term_months":     parsed.TermMonths,
-			"monthly_payment": parsed.MonthlyPayment,
-			"bank":            parsed.Bank,
+			"amount":             parsed.Amount,
+			"rate":               parsed.Rate,
+			"term_months":        parsed.TermMonths,
+			"monthly_payment":    parsed.MonthlyPayment,
+			"bank":               parsed.Bank,
+			"payment_estimated":  parsed.PaymentEstimated,
 		},
 		"benchmark_rate":  bench.BenchmarkRate,
 		"rate_vs_market":  vs,
@@ -223,14 +257,15 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 type scanParsed struct {
-	Amount         float64 `json:"amount"`
-	Rate           float64 `json:"rate"`
-	TermMonths     int     `json:"term_months"`
-	MonthlyPayment float64 `json:"monthly_payment"`
-	Bank           string  `json:"bank"`
+	Amount           float64 `json:"amount"`
+	Rate             float64 `json:"rate"`
+	TermMonths       int     `json:"term_months"`
+	MonthlyPayment   float64 `json:"monthly_payment"`
+	Bank             string  `json:"bank"`
+	PaymentEstimated bool    `json:"payment_estimated,omitempty"`
 }
 
-func (h *Handler) parseContract(ctx context.Context, text string, extractErr error) (scanParsed, float64, error) {
+func (h *Handler) parseContract(ctx context.Context, text string, extractErr error, filename string) (scanParsed, float64, error) {
 	confidence := 0.75
 	trimmed := strings.TrimSpace(text)
 	if h.llm != nil && h.llm.Enabled() && len(trimmed) > 20 {
@@ -239,8 +274,22 @@ func (h *Handler) parseContract(ctx context.Context, text string, extractErr err
 			var p scanParsed
 			if json.Unmarshal([]byte(extractJSON(raw)), &p) == nil {
 				if err := creditstore.ValidateScan(p.Amount, p.Rate, p.TermMonths); err == nil {
-					return p, 0.87, nil
+					return normalizeParsed(p), 0.87, nil
 				}
+			}
+		}
+	}
+	if len(trimmed) > 20 {
+		if fields, ok := creditparse.ParseFromText(trimmed); ok {
+			if err := creditstore.ValidateScan(fields.Amount, fields.Rate, fields.TermMonths); err == nil {
+				return scanParsed{
+					Amount:           fields.Amount,
+					Rate:             fields.Rate,
+					TermMonths:       fields.TermMonths,
+					MonthlyPayment:   fields.MonthlyPayment,
+					Bank:             fields.Bank,
+					PaymentEstimated: fields.PaymentEstimated,
+				}, 0.72, nil
 			}
 		}
 	}
@@ -257,9 +306,23 @@ func (h *Handler) parseContract(ctx context.Context, text string, extractErr err
 		}
 	}
 	if extractErr != nil {
-		return scanParsed{}, 0, fmt.Errorf("could not extract text from pdf: %v", extractErr)
+		return scanParsed{}, 0, fmt.Errorf("scan_no_text")
 	}
-	return scanParsed{}, 0, fmt.Errorf("could not parse contract fields from pdf")
+	if creditparse.IsGeneralConditionsTemplate(trimmed, filename) {
+		return scanParsed{}, 0, fmt.Errorf("scan_general_conditions")
+	}
+	return scanParsed{}, 0, fmt.Errorf("scan_parse_failed")
+}
+
+func normalizeParsed(p scanParsed) scanParsed {
+	if strings.TrimSpace(p.Bank) == "" {
+		p.Bank = "Кредит"
+	}
+	if p.MonthlyPayment <= 0 && p.Amount > 0 && p.TermMonths > 0 {
+		p.MonthlyPayment = creditparse.EstimateMonthlyPayment(p.Amount, p.Rate, p.TermMonths)
+		p.PaymentEstimated = true
+	}
+	return p
 }
 
 func extractJSON(s string) string {
