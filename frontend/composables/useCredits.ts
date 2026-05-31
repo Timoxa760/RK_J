@@ -1,5 +1,8 @@
 import type { CreditScanResponse, CreditsDashboardResponse } from '~/types/api'
 import { normalizeCredits } from '~/utils/apiNormalize'
+import { enrichCreditsDashboard } from '~/utils/creditsDashboard'
+import { hasCreditsData } from '~/utils/dashboardSummary'
+import { formatApiError } from '~/utils/apiError'
 
 const emptyDashboard = (): CreditsDashboardResponse => ({
   dti: 0,
@@ -12,27 +15,34 @@ const emptyDashboard = (): CreditsDashboardResponse => ({
 
 export function useCredits() {
   const { apiFetch } = useApi()
+  const { profile, loadProfile } = useFinancialProfile()
 
-  const dashboard = ref<CreditsDashboardResponse | null>(null)
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const scanResult = ref<CreditScanResponse | null>(null)
-  const scanLoading = ref(false)
+  if (import.meta.client) {
+    loadProfile()
+  }
 
-  const hasCredits = computed(() => (dashboard.value?.credits?.length ?? 0) > 0)
+  const dashboard = useState<CreditsDashboardResponse | null>('credits-dashboard', () => null)
+  const loading = useState('credits-dashboard-loading', () => false)
+  const fetchError = useState<string | null>('credits-fetch-error', () => null)
+  const scanResult = useState<CreditScanResponse | null>('credits-scan-result', () => null)
+  const scanLoading = useState('credits-scan-loading', () => false)
+  const scanError = useState<string | null>('credits-scan-error', () => null)
+  const deleting = useState('credits-delete-loading', () => false)
 
-  const canAnalyzeMortgage = computed(
-    () => (dashboard.value?.monthly_income ?? 0) > 0
+  const hasCredits = computed(() => hasCreditsData(dashboard.value))
+
+  const enrichedDashboard = computed(() =>
+    dashboard.value ? enrichCreditsDashboard(dashboard.value, profile.value) : null
   )
 
   async function fetchDashboard() {
     loading.value = true
-    error.value = null
+    fetchError.value = null
     try {
       const raw = await apiFetch<CreditsDashboardResponse>('/credits/dashboard')
       dashboard.value = normalizeCredits(raw)
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Ошибка загрузки'
+      fetchError.value = formatApiError(e, 'Не удалось загрузить данные по кредитам')
       dashboard.value = null
     } finally {
       loading.value = false
@@ -41,7 +51,7 @@ export function useCredits() {
 
   async function scanContract(file: File) {
     scanLoading.value = true
-    error.value = null
+    scanError.value = null
     scanResult.value = null
     try {
       const form = new FormData()
@@ -52,22 +62,42 @@ export function useCredits() {
       })
       await fetchDashboard()
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Не удалось распознать договор'
+      scanError.value = formatApiError(e, 'Не удалось распознать договор')
     } finally {
       scanLoading.value = false
     }
   }
 
+  async function deleteCredit(id: string) {
+    deleting.value = true
+    scanError.value = null
+    try {
+      await apiFetch(`/credits/${encodeURIComponent(id)}`, { method: 'DELETE' })
+      if (scanResult.value?.credit_id === id) {
+        scanResult.value = null
+      }
+      await fetchDashboard()
+    } catch (e) {
+      scanError.value = formatApiError(e, 'Не удалось удалить кредит')
+    } finally {
+      deleting.value = false
+    }
+  }
+
   return {
     dashboard,
+    enrichedDashboard,
     loading,
-    error,
+    fetchError,
+    error: fetchError,
     scanResult,
     scanLoading,
+    scanError,
+    deleting,
     hasCredits,
-    canAnalyzeMortgage,
     fetchDashboard,
     scanContract,
+    deleteCredit,
     emptyDashboard
   }
 }

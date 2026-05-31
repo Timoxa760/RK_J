@@ -268,6 +268,7 @@ export interface CreditScanResponse {
     term_months: number
     monthly_payment: number
     bank: string
+    payment_estimated?: boolean
   }
   benchmark_rate?: number
   rate_vs_market?: string
@@ -291,6 +292,7 @@ export interface ReceiptListItem {
   category?: string
   items?: ReceiptLineItem[]
   impulse_count?: number
+  source?: 'manual' | 'voice' | 'fns'
 }
 
 export interface ReceiptsListResponse {
@@ -304,7 +306,7 @@ export interface ManualExpenseRequest {
   category?: string
   description?: string
   date?: string
-  source?: 'manual' | 'voice'
+  source?: 'manual' | 'voice' | 'fns'
 }
 
 export interface ManualExpenseItem {
@@ -394,6 +396,21 @@ export interface ProviderConnectResponse {
   message: string
   provider: string
   status: string
+}
+
+export interface FnsConnectionState {
+  connected: boolean
+  phone: string
+  connected_at?: string
+  last_sync_at?: string
+  auto_sync: boolean
+  imported_ids: string[]
+}
+
+export interface FnsSyncResponse {
+  imported: number
+  receipts: ReceiptListItem[]
+  synced_at: string
 }
 
 export type ChallengeType = 'least_spend' | 'most_saved' | 'streak'

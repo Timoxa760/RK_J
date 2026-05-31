@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { CREDITS } from '~/constants/productCopy'
+import { CREDITS, formatRub } from '~/constants/productCopy'
 import type { CreditsDashboardResponse } from '~/types/api'
 import type { HealthTone } from '~/utils/dashboardSummary'
 import { buildCreditsIntro } from '~/utils/dashboardCopy'
+import type { EnrichedCreditsDashboard } from '~/utils/creditsDashboard'
 
 const props = defineProps<{
-  credits: CreditsDashboardResponse | null
+  credits: CreditsDashboardResponse | EnrichedCreditsDashboard | null
   dtiTone: HealthTone
   loading?: boolean
   embedded?: boolean
 }>()
 
+const dtiAvailable = computed(() => {
+  const value = props.credits as EnrichedCreditsDashboard | null
+  return value?.dti_available !== false && (props.credits?.dti ?? 0) > 0
+})
+
 const introLine = computed(() =>
-  props.credits ? buildCreditsIntro(props.credits.dti) : null
+  props.credits && dtiAvailable.value ? buildCreditsIntro(props.credits.dti) : null
 )
 
 function dtiBarClass(tone: HealthTone) {
@@ -39,17 +45,23 @@ function dtiBarClass(tone: HealthTone) {
       <Skeleton v-if="loading && !credits" class="h-14 w-full" />
       <template v-else-if="credits">
         <p v-if="embedded && introLine" class="text-sm font-medium">{{ introLine }}</p>
-        <p class="text-3xl font-bold">{{ credits.dti }}%</p>
-        <p class="mt-1 text-xs text-muted-foreground">
-          Это {{ credits.dti }} ₽ из каждых 100 ₽ дохода на погашение кредитов
-        </p>
-        <div class="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-          <div
-            class="h-full rounded-full transition-all"
-            :class="dtiBarClass(dtiTone)"
-            :style="{ width: `${Math.min(100, credits.dti)}%` }"
-          />
-        </div>
+        <template v-if="dtiAvailable">
+          <p class="text-3xl font-bold">{{ credits.dti }}%</p>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Это {{ credits.dti }} ₽ из каждых 100 ₽ дохода на погашение кредитов
+          </p>
+          <div class="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              class="h-full rounded-full transition-all"
+              :class="dtiBarClass(dtiTone)"
+              :style="{ width: `${Math.min(100, credits.dti)}%` }"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <p class="text-3xl font-bold">{{ formatRub(credits.monthly_payments ?? 0) }}/мес</p>
+          <p class="mt-1 text-xs text-muted-foreground">{{ CREDITS.dtiNeedIncome }}</p>
+        </template>
         <div class="mt-3 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
           <p v-if="credits.stress_test_months != null">
             {{ CREDITS.stressReserveMonths(credits.stress_test_months) }}
