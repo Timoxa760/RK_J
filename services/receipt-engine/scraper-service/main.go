@@ -19,8 +19,6 @@ import (
 	"backend_project/services/receipt-engine/scraper-service/internal/kafka"
 	"backend_project/services/receipt-engine/scraper-service/internal/provider"
 	"backend_project/services/receipt-engine/scraper-service/internal/providers/email"
-	"backend_project/services/receipt-engine/scraper-service/internal/providers/fns"
-	"backend_project/services/receipt-engine/scraper-service/internal/providers/fns_mco"
 	"backend_project/services/receipt-engine/scraper-service/internal/providers/magnit"
 	"backend_project/services/receipt-engine/scraper-service/internal/providers/mock"
 	"backend_project/services/receipt-engine/scraper-service/internal/providers/x5club"
@@ -59,141 +57,10 @@ func main() {
 	oauthMgr := email.NewOAuthManager()
 	imapCli := email.NewIMAPClient(oauthMgr)
 	emailParser := email.NewParser()
-	fnsHandler := fns.NewHandler(demoMode)
-	mcoProvider := fns_mco.NewProvider(os.Getenv("RUCAPTCHA_KEY"), os.Getenv("MCO_TOKEN_DIR"), demoMode)
 	x5Client := x5club.NewClient(demoMode)
 	magnitClient := magnit.NewClient(demoMode)
 	magnitINN := magnit.NewINNDetector()
 	magnitMapper := magnit.NewMapper(magnitINN)
-
-	r.Post("/api/v1/fns/ticket", fnsHandler.ServeHTTP)
-	r.Post("/api/v1/receipt/fns/scan", fns.NewScanHandler(fnsHandler, producer).ServeHTTP)
-
-	r.Post("/api/v1/fns/mco/auth", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Phone string `json:"phone"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
-			return
-		}
-		if body.Phone == "" {
-			http.Error(w, `{"error":"phone required"}`, http.StatusBadRequest)
-			return
-		}
-
-		if err := mcoProvider.StartAuth(body.Phone); err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"message": "SMS code sent to phone",
-		})
-	})
-
-	r.Post("/api/v1/fns/mco/auth/verify", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Phone string `json:"phone"`
-			Code  string `json:"code"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
-			return
-		}
-		if body.Phone == "" || body.Code == "" {
-			http.Error(w, `{"error":"phone and code required"}`, http.StatusBadRequest)
-			return
-		}
-
-		if err := mcoProvider.VerifyAuth(body.Phone, body.Code); err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"message": "authorization successful",
-		})
-	})
-
-	r.Post("/api/v1/fns/mco/sync", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			Phone string `json:"phone"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
-			return
-		}
-		if body.Phone == "" {
-			http.Error(w, `{"error":"phone required"}`, http.StatusBadRequest)
-			return
-		}
-
-		receipts, err := mcoProvider.SyncReceipts(r.Context(), body.Phone)
-		if err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
-			return
-		}
-
-		for i := range receipts {
-			if err := producer.Send(r.Context(), receipts[i]); err != nil {
-				http.Error(w, fmt.Sprintf(`{"error":"kafka: %s"}`, err.Error()), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success":  true,
-			"count":    len(receipts),
-			"provider": "fns_mco",
-			"phone":    body.Phone,
-		})
-	})
-
-	r.Post("/api/v1/fns/qr", func(w http.ResponseWriter, r *http.Request) {
-		var body struct {
-			QR     string `json:"qr"`
-			UserID string `json:"user_id"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
-			return
-		}
-		if body.QR == "" {
-			http.Error(w, `{"error":"qr required"}`, http.StatusBadRequest)
-			return
-		}
-
-		fn, fd, fp, err := fns.ParseQRString(body.QR)
-		if err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusBadRequest)
-			return
-		}
-
-		receipt, err := fnsHandler.CheckTicket(r.Context(), fn, fd, fp)
-		if err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
-			return
-		}
-
-		receipt.UserID = body.UserID
-
-		if err := producer.Send(r.Context(), *receipt); err != nil {
-			http.Error(w, fmt.Sprintf(`{"error":"kafka: %s"}`, err.Error()), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"receipt": receipt,
-		})
-	})
 
 	r.Get("/api/v1/auth/oauth/{provider}", func(w http.ResponseWriter, r *http.Request) {
 		provider := chi.URLParam(r, "provider")
