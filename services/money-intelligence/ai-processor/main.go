@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"context"
@@ -113,9 +113,10 @@ func main() {
 
 	var proc *manual.Processor
 	if demoMode {
-		var demoHandler *manual.DemoHandler
-		demoHandler, proc = manual.NewDemoHandler(expenseParser)
-		r.Post("/api/v1/expenses/manual", demoHandler.Create)
+		store := manual.NewFallbackStorage(nil, fileStore)
+		var handler *manual.Handler
+		handler, proc = manual.NewHandlerWithStorage(store, expenseParser)
+		r.Post("/api/v1/expenses/manual", handler.Create)
 	} else {
 		var pgStorage manual.Storage
 		if pgPool != nil {

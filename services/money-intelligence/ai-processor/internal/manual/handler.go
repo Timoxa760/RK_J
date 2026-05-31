@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"backend_project/internal/auth"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
 )
 
@@ -29,6 +30,9 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error":"invalid json"}`, http.StatusBadRequest)
 		return
+	}
+	if userID, err := auth.UserIDFromRequest(r, auth.JWTSecret()); err == nil {
+		req.UserID = userID
 	}
 	resp, code, err := h.proc.Create(r.Context(), req)
 	if err != nil {

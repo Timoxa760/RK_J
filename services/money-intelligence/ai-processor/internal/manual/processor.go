@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"backend_project/internal/auth"
 	"backend_project/services/money-intelligence/ai-processor/internal/expense"
 )
 
@@ -59,6 +60,7 @@ func NewProcessor(parser *expense.Parser, store Storage) *Processor {
 
 // Create обрабатывает текстовый ввод.
 func (p *Processor) Create(ctx context.Context, req CreateRequest) (CreateResponse, int, error) {
+	req.UserID = auth.NormalizePhone(req.UserID)
 	if req.UserID == "" {
 		return CreateResponse{}, 400, &APIError{
 			Code:    "user_id_required",
