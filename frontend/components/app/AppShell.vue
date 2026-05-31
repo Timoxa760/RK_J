@@ -14,9 +14,9 @@ onMounted(() => {
       <slot />
     </AppShellLayout>
     <template #fallback>
-      <div class="flex min-h-svh w-full bg-background">
+      <div class="flex min-h-svh w-full max-w-[100vw] overflow-x-clip bg-background">
         <aside
-          class="hidden w-64 shrink-0 border-r border-border bg-background md:block"
+          class="mm-app-sidebar hidden md:flex"
           aria-hidden="true"
         />
         <div class="flex min-w-0 flex-1 flex-col">

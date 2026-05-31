@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { LogOut } from 'lucide-vue-next'
+import { User } from 'lucide-vue-next'
 import { NAV } from '~/constants/productCopy'
-import { useAuth } from '~/composables/useAuth'
+import { useAuthStore } from '~/store/authStore'
 
 defineProps<{
   title?: string
   subtitle?: string
 }>()
 
-const { authStore, logout: signOut } = useAuth()
+const authStore = useAuthStore()
 const route = useRoute()
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
@@ -20,10 +20,11 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 }
 
 const meta = computed(() => pageTitles[route.path] ?? { title: 'Поток', subtitle: '' })
+const profileActive = computed(() => route.path === '/profile')
 
-function logout() {
-  signOut()
-  navigateTo('/')
+async function openProfile() {
+  if (route.path === '/profile') return
+  await navigateTo('/profile')
 }
 </script>
 
@@ -40,7 +41,7 @@ function logout() {
         <SharedHeroFlowWord variant="brand" />
       </NuxtLink>
     </div>
-    <div class="min-w-0 flex-1">
+    <div class="pointer-events-none min-w-0 flex-1">
       <p
         v-if="subtitle || meta.subtitle"
         class="hidden truncate text-xs text-muted-foreground sm:block"
@@ -52,29 +53,20 @@ function logout() {
       </h1>
     </div>
 
-    <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
+    <div class="relative z-10 flex shrink-0 items-center gap-1.5 sm:gap-2">
       <slot name="actions" />
       <Button
         v-if="authStore.isAuthenticated"
         type="button"
-        variant="ghost"
-        size="icon"
-        class="size-9 shrink-0 text-muted-foreground hover:text-destructive sm:hidden"
-        aria-label="Выйти"
-        @click="logout"
-      >
-        <LogOut class="size-4" />
-      </Button>
-      <Button
-        v-if="authStore.isAuthenticated"
-        type="button"
         variant="outline"
-        size="sm"
-        class="hidden gap-1.5 sm:inline-flex"
-        @click="logout"
+        size="icon"
+        class="mm-app-header-profile-btn size-9 shrink-0 rounded-full md:hidden"
+        :class="profileActive ? 'mm-app-header-profile-btn--active' : ''"
+        :aria-label="NAV.profile"
+        :aria-current="profileActive ? 'page' : undefined"
+        @click="openProfile"
       >
-        <LogOut class="size-3.5 shrink-0" />
-        Выйти
+        <User class="size-4" stroke-width="2" />
       </Button>
     </div>
   </header>

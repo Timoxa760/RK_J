@@ -25,25 +25,21 @@ watch(showDemoTour, (enabled) => {
 </script>
 
 <template>
-  <SidebarProvider
-    :default-open="true"
-    class="mm-app-shell"
-    :style="{ '--sidebar-width': '20rem' }"
-  >
+  <div class="mm-app-shell">
     <AppShellAdvisorScope>
       <AppSidebar />
-      <SidebarInset class="mm-app-shell-inset">
+      <div class="mm-app-shell-content">
         <SharedAppHeader />
         <div class="mm-app-shell-main flex-1 px-3 py-4 pb-24 sm:px-6 sm:py-6 sm:pb-6 lg:px-8 lg:pb-8">
           <slot />
         </div>
         <SharedMobileTabBar />
-      </SidebarInset>
+      </div>
     </AppShellAdvisorScope>
     <ClientOnly>
       <DashboardAddExpenseSheet v-model:open="addExpenseOpen" @added="notifyAdded" />
     </ClientOnly>
     <DemoMode v-if="config.public.demoMode" ref="demoModeRef" />
     <Sonner />
-  </SidebarProvider>
+  </div>
 </template>
