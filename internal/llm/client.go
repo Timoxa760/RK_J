@@ -18,7 +18,7 @@ const defaultModel = "gemini-2.5-flash"
 
 // Antigravity Tools — OpenAI-совместимый маршрут (Gemini native для этого аккаунта блокируется по региону).
 const defaultAntigravityBaseURL = "http://127.0.0.1:8045/v1"
-const defaultAntigravityModel = "claude-sonnet-4-6"
+const defaultAntigravityModel = "gpt-oss-120b-medium"
 
 // Client — LLM через Google Gemini API или Antigravity Tools (/v1/chat/completions).
 type Client struct {
@@ -246,22 +246,15 @@ func extractChatText(resp chatCompletionResponse) string {
 	if len(resp.Choices) == 0 {
 		return ""
 	}
-	msg := resp.Choices[0].Message
-	if t := strings.TrimSpace(msg.Content); t != "" {
-		return t
-	}
-	return strings.TrimSpace(msg.ReasoningContent)
+	return resp.Choices[0].Message.Content
 }
 
 func extractChatDelta(chunk chatCompletionResponse) string {
 	if len(chunk.Choices) == 0 {
 		return ""
 	}
-	d := chunk.Choices[0].Delta
-	if t := strings.TrimSpace(d.Content); t != "" {
-		return t
-	}
-	return strings.TrimSpace(d.ReasoningContent)
+	// Только content: reasoning_content в стриме склеивается без пробелов.
+	return chunk.Choices[0].Delta.Content
 }
 
 // StreamComplete стримит фрагменты текста через onDelta и возвращает полный ответ.

@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -87,6 +88,17 @@ func TestNewFromEnv_AntigravityProvider(t *testing.T) {
 	}
 	if !c.Enabled() {
 		t.Fatal("expected enabled")
+	}
+}
+
+func TestExtractChatDelta_PreservesSpaces(t *testing.T) {
+	var chunk chatCompletionResponse
+	if err := json.Unmarshal([]byte(`{"choices":[{"delta":{"content":" на"}}]}`), &chunk); err != nil {
+		t.Fatal(err)
+	}
+	got := extractChatDelta(chunk)
+	if got != " на" {
+		t.Fatalf("got %q", got)
 	}
 }
 
