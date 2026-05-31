@@ -153,7 +153,8 @@ func (c *Client) newChatRequest(ctx context.Context, stream bool, systemPrompt, 
 		MaxTokens:   4096,
 		Stream:      stream,
 	}
-	if strings.Contains(systemPrompt, `"blocks"`) {
+	// json_object поддерживает OpenAI/Gemini direct; Antigravity proxy отвечает 400.
+	if c.isGoogleDirect() && strings.Contains(systemPrompt, `"blocks"`) {
 		reqBody.ResponseFormat = &responseFormat{Type: "json_object"}
 	}
 	body, err := json.Marshal(reqBody)

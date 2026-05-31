@@ -42,10 +42,12 @@ func (p *PGSpendingProvider) MonthSummary(ctx context.Context, userID string) Sp
 
 	var rows []expenseRow
 	if p.pool != nil {
-		if pgRows, err := p.loadPG(ctx, userID, since); err == nil {
+		if pgRows, err := p.loadPG(ctx, userID, since); err == nil && len(pgRows) > 0 {
 			rows = pgRows
 		} else if p.file != nil {
 			rows = p.loadFile(userID, since)
+		} else if err == nil {
+			rows = pgRows
 		}
 	} else if p.file != nil {
 		rows = p.loadFile(userID, since)

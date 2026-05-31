@@ -251,6 +251,7 @@ services:
       # Antigravity OpenAI route on host; /v1beta auto-normalized in client
       - GEMINI_BASE_URL=http://host.docker.internal:8045/v1
       - CREDIT_DATA_DIR=/app/data/credits
+      - PROFILE_DATA_DIR=/app/data/profiles
     volumes:
       - app_data:/app/data
     restart: unless-stopped

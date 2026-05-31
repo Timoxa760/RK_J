@@ -56,6 +56,27 @@ func TestClient_Complete_AntigravityOpenAI(t *testing.T) {
 	}
 }
 
+func TestClient_Complete_AntigravityNoJSONResponseFormatForBlocksPrompt(t *testing.T) {
+	var got chatCompletionRequest
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"{\"blocks\":[{\"type\":\"paragraph\",\"text\":\"hi\"}]}"}}]}`))
+	}))
+	defer srv.Close()
+
+	c := NewClient(srv.URL+"/v1", "antigravity-key", "gpt-oss-120b-medium")
+	_, err := c.Complete(context.Background(), `Reply JSON with "blocks"`, "user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ResponseFormat != nil {
+		t.Fatalf("response_format=%+v want nil on antigravity proxy", got.ResponseFormat)
+	}
+}
+
 func TestNormalizeBaseURL_Antigravity(t *testing.T) {
 	got := normalizeBaseURL("http://127.0.0.1:8045/v1beta")
 	if got != "http://127.0.0.1:8045/v1" {
